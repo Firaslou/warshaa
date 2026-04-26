@@ -1,0 +1,114 @@
+import { StartupCardData } from "@/components/StartupCard";
+
+/**
+ * Demo data shown on the home & creators pages until real startups are approved.
+ * Once admin approves real startups in the database, they'll automatically replace these.
+ */
+export const DEMO_STARTUPS: StartupCardData[] = [
+  {
+    id: "demo-1",
+    slug: "atelier-zineb",
+    name: "Atelier Zineb",
+    tagline: "Bijoux faits main inspirés de la mer méditerranéenne.",
+    city: "Sousse",
+    category: "Bijoux",
+    cover_url: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=800&q=80",
+    badge: "verified",
+    likes_count: 142,
+    supporters_count: 38,
+  },
+  {
+    id: "demo-2",
+    slug: "lumina-bougies",
+    name: "Lumina",
+    tagline: "Bougies parfumées au jasmin et fleur d'oranger.",
+    city: "Tunis",
+    category: "Bougies",
+    cover_url: "https://images.unsplash.com/photo-1602874801006-e26c4c9be556?w=800&q=80",
+    badge: "certified",
+    likes_count: 287,
+    supporters_count: 91,
+  },
+  {
+    id: "demo-3",
+    slug: "cadres-medina",
+    name: "Cadres Medina",
+    tagline: "Encadrements artisanaux pour vos plus beaux souvenirs.",
+    city: "Sfax",
+    category: "Art & cadres",
+    cover_url: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800&q=80",
+    badge: "new",
+    likes_count: 12,
+    supporters_count: 3,
+  },
+  {
+    id: "demo-4",
+    slug: "sahel-leather",
+    name: "Sahel Leather",
+    tagline: "Maroquinerie en cuir véritable, cousue main à Monastir.",
+    city: "Monastir",
+    category: "Cuir",
+    cover_url: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&q=80",
+    badge: "verified",
+    likes_count: 198,
+    supporters_count: 54,
+  },
+  {
+    id: "demo-5",
+    slug: "ceramica-nour",
+    name: "Cerámica Nour",
+    tagline: "Vaisselle et déco en céramique peinte à la main.",
+    city: "Nabeul",
+    category: "Céramique",
+    cover_url: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=800&q=80",
+    badge: "certified",
+    likes_count: 312,
+    supporters_count: 124,
+  },
+  {
+    id: "demo-6",
+    slug: "dar-cosmetics",
+    name: "Dar Cosmetics",
+    tagline: "Cosmétiques naturels à base d'huile d'argan tunisienne.",
+    city: "Tunis",
+    category: "Cosmétiques",
+    cover_url: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80",
+    badge: "new",
+    likes_count: 45,
+    supporters_count: 18,
+  },
+  {
+    id: "demo-7",
+    slug: "olives-zaytoun",
+    name: "Zaytoun",
+    tagline: "Huile d'olive premium et tapenades artisanales.",
+    city: "Sfax",
+    category: "Gourmandises",
+    cover_url: "https://images.unsplash.com/photo-1474898856510-884a2c0be0fe?w=800&q=80",
+    badge: "verified",
+    likes_count: 167,
+    supporters_count: 72,
+  },
+  {
+    id: "demo-8",
+    slug: "amal-fashion",
+    name: "Amal",
+    tagline: "Mode contemporaine inspirée du patrimoine berbère.",
+    city: "Tunis",
+    category: "Mode",
+    cover_url: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
+    badge: "new",
+    likes_count: 89,
+    supporters_count: 21,
+  },
+];
+
+export const TUNISIAN_CITIES = [
+  "Tunis", "Sousse", "Sfax", "Monastir", "Nabeul", "Bizerte",
+  "Gabès", "Kairouan", "Mahdia", "Hammamet", "Djerba", "Tozeur",
+];
+
+export const CATEGORIES = [
+  "Bijoux", "Bougies", "Art & cadres", "Mode", "Cuir",
+  "Céramique", "Cosmétiques", "Gourmandises", "Maison", "Autre",
+];
