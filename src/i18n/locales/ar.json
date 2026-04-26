@@ -1,0 +1,192 @@
+{
+  "common": {
+    "appName": "صنعة",
+    "tagline": "معرض المبدعين التونسيين",
+    "loading": "جار التحميل…",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "submit": "إرسال",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "back": "رجوع",
+    "search": "بحث",
+    "viewAll": "عرض الكل",
+    "explore": "استكشف",
+    "discover": "اكتشف",
+    "from": "من",
+    "city": "المدينة",
+    "category": "الفئة",
+    "all": "الكل",
+    "yes": "نعم",
+    "no": "لا",
+    "required": "مطلوب",
+    "optional": "اختياري"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "creators": "المبدعون",
+    "discover": "مفاجأة",
+    "apply": "كن مبدعا",
+    "login": "تسجيل الدخول",
+    "signup": "تسجيل",
+    "logout": "خروج",
+    "dashboard": "لوحة التحكم",
+    "favorites": "المفضلة",
+    "profile": "الملف",
+    "admin": "الإدارة"
+  },
+  "language": {
+    "choose": "اختر لغتك",
+    "label": "اللغة",
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية",
+    "es": "Español",
+    "it": "Italiano",
+    "de": "Deutsch",
+    "ru": "Русский",
+    "zh": "中文"
+  },
+  "home": {
+    "heroTitle": "ادعم المواهب التي تصنع تونس الغد",
+    "heroSubtitle": "معرض للمبدعين والحرفيين والشركات الناشئة الشابة. اكتشف منتجات فريدة مصنوعة بشغف بالقرب منك.",
+    "heroCta": "اكتشف المبدعين",
+    "heroCtaSecondary": "مفاجأة عشوائية",
+    "featuredTitle": "مبدعون مميزون",
+    "featuredSubtitle": "اختيار من المواهب الموثقة هذا الشهر",
+    "supportersBanner": "{{count}} شخص دعموا مبدعا هذا الشهر",
+    "categoriesTitle": "استكشف حسب العالم",
+    "becomeCreator": "هل أنت مبدع؟",
+    "becomeCreatorDesc": "انضم إلى صنعة وسلط الضوء على علامتك. التقديم مجاني.",
+    "applyNow": "قدم الآن",
+    "stepsTitle": "كيف يعمل",
+    "step1": "اكتشف",
+    "step1Desc": "تصفح المبدعين الموثقين حسب الفئة أو المدينة.",
+    "step2": "تحدث",
+    "step2Desc": "اضغط 'شراء': تفتح رسالة واتساب جاهزة مع المبدع.",
+    "step3": "ادعم",
+    "step3Desc": "اشتر مباشرة، اترك تقييما بالصور وساعد موهبة محلية على النمو."
+  },
+  "startup": {
+    "verified": "مبدع موثق",
+    "new": "مبدع جديد",
+    "certified": "حرفي معتمد",
+    "story": "قصة المبدع",
+    "products": "المنتجات",
+    "reviews": "التقييمات",
+    "noProducts": "لا توجد منتجات بعد.",
+    "noReviews": "لا توجد تقييمات بعد. كن الأول!",
+    "supporters": "{{count}} داعم",
+    "likes": "{{count}} إعجاب",
+    "buyOnWhatsapp": "اشتر عبر واتساب",
+    "whatsappMessage": "مرحبا، أنا مهتم بـ '{{product}}' الذي رأيته على صنعة.",
+    "addFavorite": "أضف للمفضلة",
+    "removeFavorite": "إزالة من المفضلة",
+    "writeReview": "اكتب تقييما",
+    "iBought": "اشتريت هذا المنتج"
+  },
+  "discover": {
+    "title": "مفاجأة",
+    "subtitle": "اكتشاف عشوائي مع كل ضغطة",
+    "next": "التالي",
+    "noResults": "لا يوجد مبدع متاح حاليا."
+  },
+  "auth": {
+    "loginTitle": "أهلا بعودتك",
+    "loginSubtitle": "سجل الدخول لدعم مبدعيك المفضلين.",
+    "signupTitle": "انضم إلى صنعة",
+    "signupSubtitle": "أنشئ حسابك في ثوان.",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "fullName": "الاسم الكامل",
+    "accountType": "نوع الحساب",
+    "client": "مشتري — أريد الاكتشاف والدعم",
+    "creator": "مبدع — لدي علامة لعرضها",
+    "loginBtn": "تسجيل الدخول",
+    "signupBtn": "إنشاء حساب",
+    "noAccount": "ليس لديك حساب؟",
+    "haveAccount": "لديك حساب بالفعل؟",
+    "loginSuccess": "تم تسجيل الدخول بنجاح",
+    "signupSuccess": "تم إنشاء الحساب بنجاح",
+    "errors": {
+      "invalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة",
+      "emailExists": "يوجد حساب بالفعل بهذا البريد",
+      "weakPassword": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      "generic": "حدث خطأ، حاول مرة أخرى."
+    }
+  },
+  "apply": {
+    "title": "كن مبدعا على صنعة",
+    "subtitle": "املأ هذا النموذج — يراجع المسؤول خلال 48 ساعة.",
+    "brandName": "اسم العلامة",
+    "description": "صف نشاطك",
+    "city": "المدينة",
+    "category": "الفئة",
+    "whatsapp": "رقم واتساب (مع رمز البلد)",
+    "instagram": "رابط إنستغرام",
+    "facebook": "رابط فيسبوك",
+    "proofPhotos": "3 صور غير معدلة (ورشة أو منتج)",
+    "proofVideo": "فيديو 10 ثوان للمنتج باليد (رابط)",
+    "submit": "أرسل طلبي",
+    "success": "تم إرسال الطلب! سنرد خلال 48 ساعة.",
+    "needAccount": "يجب تسجيل الدخول للتقديم."
+  },
+  "dashboard": {
+    "client": {
+      "title": "مساحتي",
+      "favorites": "مفضلاتي",
+      "reviews": "تقييماتي",
+      "noFavorites": "لا توجد مفضلات. استكشف المبدعين!",
+      "noReviews": "لم تنشر أي تقييم."
+    },
+    "creator": {
+      "title": "مساحة المبدع",
+      "myStartup": "علامتي",
+      "products": "منتجاتي",
+      "stats": "الإحصائيات",
+      "addProduct": "إضافة منتج",
+      "noStartup": "ليس لديك علامة معتمدة بعد.",
+      "applicationPending": "طلبك قيد المراجعة.",
+      "totalLikes": "إعجابات",
+      "totalSupporters": "داعمون",
+      "totalClicks": "نقرات واتساب"
+    },
+    "admin": {
+      "title": "الإدارة",
+      "applications": "الطلبات",
+      "startups": "الشركات",
+      "approve": "قبول",
+      "reject": "رفض",
+      "noApplications": "لا توجد طلبات معلقة."
+    }
+  },
+  "review": {
+    "title": "تقييمك",
+    "rating": "التقييم",
+    "comment": "تعليق",
+    "photo": "صورة المنتج المستلم",
+    "submit": "نشر التقييم",
+    "success": "شكرا لتقييمك!"
+  },
+  "footer": {
+    "rights": "جميع الحقوق محفوظة.",
+    "made": "صنع بـ ❤️ في تونس"
+  },
+  "categories": {
+    "jewelry": "مجوهرات",
+    "candles": "شموع",
+    "art": "فن وإطارات",
+    "fashion": "أزياء",
+    "leather": "جلديات",
+    "ceramics": "خزف",
+    "cosmetics": "مستحضرات",
+    "food": "أطعمة",
+    "home": "بيت",
+    "other": "أخرى"
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "subtitle": "هذه الصفحة غير موجودة أو تم نقلها.",
+    "back": "العودة للرئيسية"
+  }
+}
