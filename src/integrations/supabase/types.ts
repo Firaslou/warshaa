@@ -14,16 +14,377 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          startup_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          startup_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          startup_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorites_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          images: string[]
+          in_stock: boolean
+          name: string
+          price: number | null
+          startup_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          images?: string[]
+          in_stock?: boolean
+          name: string
+          price?: number | null
+          startup_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          images?: string[]
+          in_stock?: boolean
+          name?: string
+          price?: number | null
+          startup_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          preferred_language: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          preferred_language?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          preferred_language?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      purchase_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          startup_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          startup_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          startup_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_clicks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_clicks_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          photo_url: string | null
+          product_id: string | null
+          rating: number
+          startup_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string | null
+          product_id?: string | null
+          rating: number
+          startup_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string | null
+          product_id?: string | null
+          rating?: number
+          startup_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      startup_applications: {
+        Row: {
+          admin_notes: string | null
+          applicant_id: string
+          brand_name: string
+          category: string
+          city: string
+          created_at: string
+          description: string
+          facebook_url: string | null
+          id: string
+          instagram_url: string | null
+          proof_photos: string[]
+          proof_video_url: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          whatsapp_number: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          applicant_id: string
+          brand_name: string
+          category: string
+          city: string
+          created_at?: string
+          description: string
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          proof_photos?: string[]
+          proof_video_url?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          whatsapp_number: string
+        }
+        Update: {
+          admin_notes?: string | null
+          applicant_id?: string
+          brand_name?: string
+          category?: string
+          city?: string
+          created_at?: string
+          description?: string
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          proof_photos?: string[]
+          proof_video_url?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
+      startups: {
+        Row: {
+          badge: Database["public"]["Enums"]["startup_badge"]
+          category: string | null
+          city: string | null
+          cover_url: string | null
+          created_at: string
+          creator_story: string | null
+          description: string | null
+          facebook_url: string | null
+          id: string
+          instagram_url: string | null
+          likes_count: number
+          logo_url: string | null
+          name: string
+          owner_id: string
+          slug: string
+          status: Database["public"]["Enums"]["startup_status"]
+          supporters_count: number
+          tagline: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          badge?: Database["public"]["Enums"]["startup_badge"]
+          category?: string | null
+          city?: string | null
+          cover_url?: string | null
+          created_at?: string
+          creator_story?: string | null
+          description?: string | null
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          likes_count?: number
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          slug: string
+          status?: Database["public"]["Enums"]["startup_status"]
+          supporters_count?: number
+          tagline?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          badge?: Database["public"]["Enums"]["startup_badge"]
+          category?: string | null
+          city?: string | null
+          cover_url?: string | null
+          created_at?: string
+          creator_story?: string | null
+          description?: string | null
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          likes_count?: number
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["startup_status"]
+          supporters_count?: number
+          tagline?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "startup" | "client"
+      application_status: "pending" | "approved" | "rejected"
+      startup_badge: "new" | "verified" | "certified"
+      startup_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +511,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "startup", "client"],
+      application_status: ["pending", "approved", "rejected"],
+      startup_badge: ["new", "verified", "certified"],
+      startup_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
