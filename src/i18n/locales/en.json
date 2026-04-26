@@ -1,0 +1,192 @@
+{
+  "common": {
+    "appName": "Sanaa",
+    "tagline": "The gallery of Tunisian creators",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "search": "Search",
+    "viewAll": "View all",
+    "explore": "Explore",
+    "discover": "Discover",
+    "from": "From",
+    "city": "City",
+    "category": "Category",
+    "all": "All",
+    "yes": "Yes",
+    "no": "No",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "nav": {
+    "home": "Home",
+    "creators": "Creators",
+    "discover": "Surprise me",
+    "apply": "Become a creator",
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out",
+    "dashboard": "Dashboard",
+    "favorites": "Favorites",
+    "profile": "Profile",
+    "admin": "Admin"
+  },
+  "language": {
+    "choose": "Choose your language",
+    "label": "Language",
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية",
+    "es": "Español",
+    "it": "Italiano",
+    "de": "Deutsch",
+    "ru": "Русский",
+    "zh": "中文"
+  },
+  "home": {
+    "heroTitle": "Support the talents shaping tomorrow's Tunisia",
+    "heroSubtitle": "A gallery of creators, artisans and young startups. Discover unique products made with passion near you.",
+    "heroCta": "Discover creators",
+    "heroCtaSecondary": "Random surprise",
+    "featuredTitle": "Featured creators",
+    "featuredSubtitle": "Hand-picked verified talents this month",
+    "supportersBanner": "{{count}} people supported a creator this month",
+    "categoriesTitle": "Explore by world",
+    "becomeCreator": "Are you a creator?",
+    "becomeCreatorDesc": "Join Sanaa and put your brand in the spotlight. Free to apply.",
+    "applyNow": "Apply now",
+    "stepsTitle": "How it works",
+    "step1": "Discover",
+    "step1Desc": "Browse verified creators by category or city.",
+    "step2": "Chat",
+    "step2Desc": "Click 'Buy': a pre-filled WhatsApp message opens with the creator.",
+    "step3": "Support",
+    "step3Desc": "Buy directly, leave a photo review, and help a local talent grow."
+  },
+  "startup": {
+    "verified": "Verified creator",
+    "new": "New creator",
+    "certified": "Certified artisan",
+    "story": "Creator's story",
+    "products": "Products",
+    "reviews": "Reviews",
+    "noProducts": "No products yet.",
+    "noReviews": "No reviews yet. Be the first!",
+    "supporters": "{{count}} supporters",
+    "likes": "{{count}} likes",
+    "buyOnWhatsapp": "Buy on WhatsApp",
+    "whatsappMessage": "Hi, I'm interested in '{{product}}' seen on Sanaa.",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites",
+    "writeReview": "Write a review",
+    "iBought": "I bought this product"
+  },
+  "discover": {
+    "title": "Surprise me",
+    "subtitle": "A random discovery on every click",
+    "next": "Next",
+    "noResults": "No creator available right now."
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Log in to support your favorite creators.",
+    "signupTitle": "Join Sanaa",
+    "signupSubtitle": "Create your account in seconds.",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full name",
+    "accountType": "Account type",
+    "client": "Buyer — I want to discover and support",
+    "creator": "Creator — I have a brand to showcase",
+    "loginBtn": "Log in",
+    "signupBtn": "Create account",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "loginSuccess": "Logged in successfully",
+    "signupSuccess": "Account created successfully",
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "emailExists": "An account already exists with this email",
+      "weakPassword": "Password must be at least 6 characters",
+      "generic": "Something went wrong, please try again."
+    }
+  },
+  "apply": {
+    "title": "Become a creator on Sanaa",
+    "subtitle": "Fill this form — admin reviews within 48h.",
+    "brandName": "Brand name",
+    "description": "Describe your activity",
+    "city": "City",
+    "category": "Category",
+    "whatsapp": "WhatsApp number (with country code)",
+    "instagram": "Instagram link",
+    "facebook": "Facebook link",
+    "proofPhotos": "3 unedited photos (workshop or product)",
+    "proofVideo": "10s video of the product in hand (URL)",
+    "submit": "Submit application",
+    "success": "Application sent! We'll get back within 48h.",
+    "needAccount": "You must be logged in to apply."
+  },
+  "dashboard": {
+    "client": {
+      "title": "My space",
+      "favorites": "My favorites",
+      "reviews": "My reviews",
+      "noFavorites": "No favorites yet. Explore creators!",
+      "noReviews": "No reviews posted."
+    },
+    "creator": {
+      "title": "Creator space",
+      "myStartup": "My brand",
+      "products": "My products",
+      "stats": "Statistics",
+      "addProduct": "Add a product",
+      "noStartup": "You don't have an approved brand yet.",
+      "applicationPending": "Your application is under review.",
+      "totalLikes": "Likes",
+      "totalSupporters": "Supporters",
+      "totalClicks": "WhatsApp clicks"
+    },
+    "admin": {
+      "title": "Administration",
+      "applications": "Applications",
+      "startups": "Startups",
+      "approve": "Approve",
+      "reject": "Reject",
+      "noApplications": "No pending applications."
+    }
+  },
+  "review": {
+    "title": "Your review",
+    "rating": "Rating",
+    "comment": "Comment",
+    "photo": "Photo of the received product",
+    "submit": "Publish review",
+    "success": "Thanks for your review!"
+  },
+  "footer": {
+    "rights": "All rights reserved.",
+    "made": "Made with ❤️ in Tunisia"
+  },
+  "categories": {
+    "jewelry": "Jewelry",
+    "candles": "Candles",
+    "art": "Art & frames",
+    "fashion": "Fashion",
+    "leather": "Leather",
+    "ceramics": "Ceramics",
+    "cosmetics": "Cosmetics",
+    "food": "Food",
+    "home": "Home",
+    "other": "Other"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "subtitle": "This page doesn't exist or has been moved.",
+    "back": "Back home"
+  }
+}

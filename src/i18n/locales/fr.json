@@ -1,0 +1,192 @@
+{
+  "common": {
+    "appName": "Sanaa",
+    "tagline": "La galerie des créateurs tunisiens",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "submit": "Envoyer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "search": "Rechercher",
+    "viewAll": "Tout voir",
+    "explore": "Explorer",
+    "discover": "Découvrir",
+    "from": "Depuis",
+    "city": "Ville",
+    "category": "Catégorie",
+    "all": "Toutes",
+    "yes": "Oui",
+    "no": "Non",
+    "required": "Requis",
+    "optional": "Optionnel"
+  },
+  "nav": {
+    "home": "Accueil",
+    "creators": "Créateurs",
+    "discover": "Coup de cœur",
+    "apply": "Devenir créateur",
+    "login": "Connexion",
+    "signup": "Inscription",
+    "logout": "Déconnexion",
+    "dashboard": "Tableau de bord",
+    "favorites": "Favoris",
+    "profile": "Profil",
+    "admin": "Administration"
+  },
+  "language": {
+    "choose": "Choisissez votre langue",
+    "label": "Langue",
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية",
+    "es": "Español",
+    "it": "Italiano",
+    "de": "Deutsch",
+    "ru": "Русский",
+    "zh": "中文"
+  },
+  "home": {
+    "heroTitle": "Soutenez les talents qui font la Tunisie de demain",
+    "heroSubtitle": "Une galerie de créateurs, artisans et jeunes startups. Découvrez des produits uniques, faits avec passion près de chez vous.",
+    "heroCta": "Découvrir les créateurs",
+    "heroCtaSecondary": "Coup de cœur aléatoire",
+    "featuredTitle": "Créateurs à l'honneur",
+    "featuredSubtitle": "Une sélection de talents vérifiés ce mois-ci",
+    "supportersBanner": "{{count}} personnes ont soutenu un créateur ce mois-ci",
+    "categoriesTitle": "Explorer par univers",
+    "becomeCreator": "Vous êtes créateur ?",
+    "becomeCreatorDesc": "Rejoignez Sanaa et donnez de la visibilité à votre marque. Candidature gratuite.",
+    "applyNow": "Postuler maintenant",
+    "stepsTitle": "Comment ça marche",
+    "step1": "Découvrez",
+    "step1Desc": "Parcourez les créateurs vérifiés par catégorie ou par ville.",
+    "step2": "Discutez",
+    "step2Desc": "Cliquez sur « Acheter » : un message WhatsApp pré-rempli s'ouvre vers le créateur.",
+    "step3": "Soutenez",
+    "step3Desc": "Achetez en direct, laissez un avis avec photo et faites grandir un talent local."
+  },
+  "startup": {
+    "verified": "Créateur vérifié",
+    "new": "Nouveau créateur",
+    "certified": "Artisan certifié",
+    "story": "L'histoire du créateur",
+    "products": "Produits",
+    "reviews": "Avis",
+    "noProducts": "Aucun produit pour le moment.",
+    "noReviews": "Aucun avis pour le moment. Soyez le premier !",
+    "supporters": "{{count}} soutiens",
+    "likes": "{{count}} j'aime",
+    "buyOnWhatsapp": "Acheter via WhatsApp",
+    "whatsappMessage": "Bonjour, je suis intéressé(e) par « {{product}} » vu sur Sanaa.",
+    "addFavorite": "Ajouter aux favoris",
+    "removeFavorite": "Retirer des favoris",
+    "writeReview": "Écrire un avis",
+    "iBought": "J'ai acheté ce produit"
+  },
+  "discover": {
+    "title": "Coup de cœur",
+    "subtitle": "Une découverte aléatoire à chaque clic",
+    "next": "Suivant",
+    "noResults": "Aucun créateur disponible pour le moment."
+  },
+  "auth": {
+    "loginTitle": "Bon retour",
+    "loginSubtitle": "Connectez-vous pour soutenir vos créateurs préférés.",
+    "signupTitle": "Rejoignez Sanaa",
+    "signupSubtitle": "Créez votre compte en quelques secondes.",
+    "email": "Email",
+    "password": "Mot de passe",
+    "fullName": "Nom complet",
+    "accountType": "Type de compte",
+    "client": "Acheteur — Je veux découvrir et soutenir",
+    "creator": "Créateur — J'ai une marque à présenter",
+    "loginBtn": "Se connecter",
+    "signupBtn": "Créer mon compte",
+    "noAccount": "Pas encore de compte ?",
+    "haveAccount": "Déjà un compte ?",
+    "loginSuccess": "Connexion réussie",
+    "signupSuccess": "Compte créé avec succès",
+    "errors": {
+      "invalidCredentials": "Email ou mot de passe incorrect",
+      "emailExists": "Un compte existe déjà avec cet email",
+      "weakPassword": "Le mot de passe doit contenir au moins 6 caractères",
+      "generic": "Une erreur est survenue, réessayez."
+    }
+  },
+  "apply": {
+    "title": "Devenir créateur sur Sanaa",
+    "subtitle": "Remplissez ce formulaire — l'admin valide sous 48h.",
+    "brandName": "Nom de la marque",
+    "description": "Décrivez votre activité",
+    "city": "Ville",
+    "category": "Catégorie",
+    "whatsapp": "Numéro WhatsApp (avec indicatif)",
+    "instagram": "Lien Instagram",
+    "facebook": "Lien Facebook",
+    "proofPhotos": "3 photos non retouchées (atelier ou produit)",
+    "proofVideo": "Vidéo 10s du produit en main (URL)",
+    "submit": "Envoyer ma candidature",
+    "success": "Candidature envoyée ! Nous revenons vers vous sous 48h.",
+    "needAccount": "Vous devez être connecté pour postuler."
+  },
+  "dashboard": {
+    "client": {
+      "title": "Mon espace",
+      "favorites": "Mes favoris",
+      "reviews": "Mes avis",
+      "noFavorites": "Aucun favori. Explorez les créateurs !",
+      "noReviews": "Aucun avis publié."
+    },
+    "creator": {
+      "title": "Espace créateur",
+      "myStartup": "Ma marque",
+      "products": "Mes produits",
+      "stats": "Statistiques",
+      "addProduct": "Ajouter un produit",
+      "noStartup": "Vous n'avez pas encore de marque approuvée.",
+      "applicationPending": "Votre candidature est en cours d'examen.",
+      "totalLikes": "J'aime",
+      "totalSupporters": "Soutiens",
+      "totalClicks": "Clics WhatsApp"
+    },
+    "admin": {
+      "title": "Administration",
+      "applications": "Candidatures",
+      "startups": "Startups",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "noApplications": "Aucune candidature en attente."
+    }
+  },
+  "review": {
+    "title": "Votre avis",
+    "rating": "Note",
+    "comment": "Commentaire",
+    "photo": "Photo du produit reçu",
+    "submit": "Publier mon avis",
+    "success": "Merci pour votre avis !"
+  },
+  "footer": {
+    "rights": "Tous droits réservés.",
+    "made": "Fait avec ❤️ en Tunisie"
+  },
+  "categories": {
+    "jewelry": "Bijoux",
+    "candles": "Bougies",
+    "art": "Art & cadres",
+    "fashion": "Mode",
+    "leather": "Cuir",
+    "ceramics": "Céramique",
+    "cosmetics": "Cosmétiques",
+    "food": "Gourmandises",
+    "home": "Maison",
+    "other": "Autre"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "subtitle": "Cette page n'existe pas ou a été déplacée.",
+    "back": "Retour à l'accueil"
+  }
+}
