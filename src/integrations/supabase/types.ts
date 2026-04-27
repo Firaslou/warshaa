@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_conversations: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          startup_id: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          startup_id: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          startup_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -53,41 +109,149 @@ export type Database = {
           },
         ]
       }
+      password_reset_codes: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
+      product_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      product_likes: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      product_views: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
+          availability: Database["public"]["Enums"]["product_availability"]
           category: string | null
           created_at: string
           currency: string
+          delivery_available: boolean
+          delivery_fee: number | null
           description: string | null
           id: string
           images: string[]
           in_stock: boolean
+          last_stock_check: string | null
           name: string
           price: number | null
           startup_id: string
           updated_at: string
         }
         Insert: {
+          availability?: Database["public"]["Enums"]["product_availability"]
           category?: string | null
           created_at?: string
           currency?: string
+          delivery_available?: boolean
+          delivery_fee?: number | null
           description?: string | null
           id?: string
           images?: string[]
           in_stock?: boolean
+          last_stock_check?: string | null
           name: string
           price?: number | null
           startup_id: string
           updated_at?: string
         }
         Update: {
+          availability?: Database["public"]["Enums"]["product_availability"]
           category?: string | null
           created_at?: string
           currency?: string
+          delivery_available?: boolean
+          delivery_fee?: number | null
           description?: string | null
           id?: string
           images?: string[]
           in_stock?: boolean
+          last_stock_check?: string | null
           name?: string
           price?: number | null
           startup_id?: string
@@ -110,7 +274,10 @@ export type Database = {
           city: string | null
           created_at: string
           full_name: string | null
+          gender: string | null
           id: string
+          must_change_password: boolean
+          preferred_categories: string[] | null
           preferred_language: string
           updated_at: string
         }
@@ -120,7 +287,10 @@ export type Database = {
           city?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
           id: string
+          must_change_password?: boolean
+          preferred_categories?: string[] | null
           preferred_language?: string
           updated_at?: string
         }
@@ -130,7 +300,10 @@ export type Database = {
           city?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
           id?: string
+          must_change_password?: boolean
+          preferred_categories?: string[] | null
           preferred_language?: string
           updated_at?: string
         }
@@ -174,6 +347,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      purchase_confirmations: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          startup_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          startup_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          startup_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -285,11 +482,15 @@ export type Database = {
           cover_url: string | null
           created_at: string
           creator_story: string | null
+          delegation: string | null
           description: string | null
           facebook_url: string | null
           id: string
           instagram_url: string | null
+          is_live: boolean
+          last_post_at: string | null
           likes_count: number
+          live_started_at: string | null
           logo_url: string | null
           name: string
           owner_id: string
@@ -307,11 +508,15 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           creator_story?: string | null
+          delegation?: string | null
           description?: string | null
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
+          is_live?: boolean
+          last_post_at?: string | null
           likes_count?: number
+          live_started_at?: string | null
           logo_url?: string | null
           name: string
           owner_id: string
@@ -329,11 +534,15 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           creator_story?: string | null
+          delegation?: string | null
           description?: string | null
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
+          is_live?: boolean
+          last_post_at?: string | null
           likes_count?: number
+          live_started_at?: string | null
           logo_url?: string | null
           name?: string
           owner_id?: string
@@ -383,6 +592,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "startup" | "client"
       application_status: "pending" | "approved" | "rejected"
+      product_availability: "in_stock" | "arriving" | "out_of_stock"
       startup_badge: "new" | "verified" | "certified"
       startup_status: "pending" | "approved" | "rejected"
     }
@@ -514,6 +724,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "startup", "client"],
       application_status: ["pending", "approved", "rejected"],
+      product_availability: ["in_stock", "arriving", "out_of_stock"],
       startup_badge: ["new", "verified", "certified"],
       startup_status: ["pending", "approved", "rejected"],
     },
