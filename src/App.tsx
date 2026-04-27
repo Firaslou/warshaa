@@ -9,6 +9,8 @@ import Creators from "./pages/Creators.tsx";
 import Discover from "./pages/Discover.tsx";
 import StartupDetail from "./pages/StartupDetail.tsx";
 import Apply from "./pages/Apply.tsx";
+import Products from "./pages/Products.tsx";
+import MyAccount from "./pages/MyAccount.tsx";
 import Login from "./pages/auth/Login.tsx";
 import Signup from "./pages/auth/Signup.tsx";
 import ClientDashboard from "./pages/dashboard/ClientDashboard.tsx";
@@ -31,6 +33,8 @@ const App = () => (
             <Route path="/discover" element={<Discover />} />
             <Route path="/startup/:slug" element={<StartupDetail />} />
             <Route path="/apply" element={<Apply />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/my-account" element={<MyAccount />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<ClientDashboard />} />
