@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield } from "lucide-react";
+import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ export function Header() {
     <>
       <NavLink to="/" className={navLinkClass} end>{t("nav.home")}</NavLink>
       <NavLink to="/creators" className={navLinkClass}>{t("nav.creators")}</NavLink>
+      <NavLink to="/products" className={navLinkClass}>{t("nav.products")}</NavLink>
       <NavLink to="/discover" className={navLinkClass}>{t("nav.discover")}</NavLink>
       <NavLink to="/apply" className={navLinkClass}>{t("nav.apply")}</NavLink>
     </>
@@ -59,6 +60,9 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover w-56">
+                <DropdownMenuItem onClick={() => navigate("/my-account")}>
+                  <UserIcon className="mr-2 h-4 w-4" /> {t("nav.myAccount")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                   <LayoutDashboard className="mr-2 h-4 w-4" /> {t("nav.dashboard")}
                 </DropdownMenuItem>
