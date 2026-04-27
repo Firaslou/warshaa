@@ -5,13 +5,11 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import fr from "./locales/fr.json";
 import en from "./locales/en.json";
 import ar from "./locales/ar.json";
-
-// Languages with full translations
-const fullLocales = { fr, en, ar };
-
-// Placeholder languages — fall back to FR but the selector still shows them.
-// Translations can be progressively added later in src/i18n/locales/{code}.json.
-const placeholderLocales = ["es", "it", "de", "ru", "zh"];
+import es from "./locales/es.json";
+import it from "./locales/it.json";
+import de from "./locales/de.json";
+import ru from "./locales/ru.json";
+import zh from "./locales/zh.json";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
@@ -28,12 +26,12 @@ const resources: Record<string, { translation: typeof fr }> = {
   fr: { translation: fr },
   en: { translation: en },
   ar: { translation: ar },
+  es: { translation: es as typeof fr },
+  it: { translation: it as typeof fr },
+  de: { translation: de as typeof fr },
+  ru: { translation: ru as typeof fr },
+  zh: { translation: zh as typeof fr },
 };
-
-// Placeholders inherit the FR bundle until proper translations are added
-placeholderLocales.forEach((code) => {
-  resources[code] = { translation: fr };
-});
 
 i18n
   .use(LanguageDetector)
