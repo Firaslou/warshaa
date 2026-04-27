@@ -33,7 +33,9 @@
     "dashboard": "Tableau de bord",
     "favorites": "Favoris",
     "profile": "Profil",
-    "admin": "Administration"
+    "admin": "Administration",
+    "products": "Produits",
+    "myAccount": "Mon compte"
   },
   "language": {
     "choose": "Choisissez votre langue",

@@ -33,7 +33,9 @@
     "dashboard": "لوحة التحكم",
     "favorites": "المفضلة",
     "profile": "الملف",
-    "admin": "الإدارة"
+    "admin": "الإدارة",
+    "products": "المنتجات",
+    "myAccount": "حسابي"
   },
   "language": {
     "choose": "اختر لغتك",
