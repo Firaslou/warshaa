@@ -135,7 +135,13 @@ export default function Products() {
                   </Button>
                   {p.startups?.whatsapp_number && (
                     <Button size="sm" className="gradient-warm text-primary-foreground"
-                      onClick={() => openWhatsApp(p.startups!.whatsapp_number!, p.name, p.id, p.startup_id)}>
+                      onClick={() => openWhatsApp({
+                        phone: p.startups!.whatsapp_number!,
+                        productName: p.name,
+                        startupId: p.startup_id,
+                        productId: p.id,
+                        message: t("startup.whatsappMessage", { product: p.name }),
+                      })}>
                       WhatsApp
                     </Button>
                   )}
