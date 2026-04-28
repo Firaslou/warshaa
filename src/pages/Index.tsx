@@ -1,18 +1,36 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
-import { ArrowRight, Sparkles, Heart, MessageCircle, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight, Sparkles, Heart, MessageCircle, Search,
+  Users, ShoppingBag, BadgeCheck, Shuffle,
+  Gem, Flame, Palette, Shirt, Briefcase, Coffee, Droplet, Cookie,
+  Home as HomeIcon, Recycle, User, UserCheck, Baby, Gift, Star, MoreHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { StartupCard, StartupCardData } from "@/components/StartupCard";
-import { DEMO_STARTUPS, CATEGORIES } from "@/lib/demo";
+import { DEMO_STARTUPS } from "@/lib/demo";
+import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  jewelry: Gem, candles: Flame, art: Palette, fashion: Shirt, leather: Briefcase,
+  ceramics: Coffee, cosmetics: Droplet, food: Cookie, home: HomeIcon, thrift: Recycle,
+  women: User, men: UserCheck, kids: Baby, gifts: Gift, personalized: Star, other: MoreHorizontal,
+};
 
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
-  const [supportersCount, setSupportersCount] = useState(842);
+  const [stats, setStats] = useState({
+    activeCreators: 12,
+    monthSupporters: 842,
+    confirmedPurchases: 318,
+    verifiedPercent: 78,
+  });
+  const [randomSeed, setRandomSeed] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -21,24 +39,48 @@ const Index = () => {
         .select("id, slug, name, tagline, city, category, cover_url, badge, likes_count, supporters_count")
         .eq("status", "approved")
         .order("supporters_count", { ascending: false })
-        .limit(8);
-      if (data && data.length > 0) {
-        setStartups(data as StartupCardData[]);
-      }
-      const { count } = await supabase
-        .from("purchase_clicks")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", new Date(Date.now() - 30 * 86400 * 1000).toISOString());
-      if (count !== null) setSupportersCount(842 + count);
+        .limit(10);
+      if (data && data.length > 0) setStartups(data as StartupCardData[]);
+
+      const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
+      const [{ count: creatorsCount }, { count: supportersCount }, { count: purchasesCount }, { data: allStartups }] = await Promise.all([
+        supabase.from("startups").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).gte("created_at", since),
+        supabase.from("purchase_confirmations").select("id", { count: "exact", head: true }),
+        supabase.from("startups").select("badge").eq("status", "approved"),
+      ]);
+      const total = allStartups?.length ?? 0;
+      const verified = allStartups?.filter((s: any) => s.badge === "verified" || s.badge === "certified").length ?? 0;
+      setStats({
+        activeCreators: creatorsCount ?? 12,
+        monthSupporters: 842 + (supportersCount ?? 0),
+        confirmedPurchases: 318 + (purchasesCount ?? 0),
+        verifiedPercent: total > 0 ? Math.round((verified / total) * 100) : 78,
+      });
     })();
   }, []);
+
+  const coupDeCoeur = useMemo(() => {
+    if (startups.length === 0) return null;
+    return startups[Math.floor(Math.random() * startups.length)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startups, randomSeed]);
+
+  const featured = startups.slice(0, 10);
+
+  const statCards = [
+    { icon: Users, label: t("stats.activeCreators"), value: stats.activeCreators },
+    { icon: Heart, label: t("stats.monthSupporters"), value: stats.monthSupporters },
+    { icon: ShoppingBag, label: t("stats.confirmedPurchases"), value: stats.confirmedPurchases },
+    { icon: BadgeCheck, label: t("stats.verifiedPercent"), value: `${stats.verifiedPercent}%` },
+  ];
 
   return (
     <PageLayout>
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-soft opacity-60" />
-        <div className="container relative py-20 md:py-32">
+        <div className="container relative py-20 md:py-28">
           <div className="mx-auto max-w-3xl text-center animate-fade-in">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-1.5 text-xs font-medium backdrop-blur">
               <Sparkles className="h-3 w-3 text-primary" />
@@ -59,17 +101,68 @@ const Index = () => {
               </Button>
             </div>
           </div>
-
-          {/* supporters banner */}
-          <div className="mx-auto mt-16 max-w-md rounded-full border border-primary/20 bg-primary/5 px-6 py-3 text-center text-sm font-medium text-primary backdrop-blur animate-slide-up">
-            <Heart className="mr-2 inline h-4 w-4" />
-            {t("home.supportersBanner", { count: supportersCount })}
-          </div>
         </div>
       </section>
 
-      {/* FEATURED CREATORS */}
-      <section className="container py-16 md:py-24">
+      {/* LIVE STATS — 4 cards */}
+      <section className="container -mt-8 md:-mt-12">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
+          {statCards.map((s, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-border bg-card p-5 shadow-card animate-slide-up"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl gradient-warm shadow-elegant">
+                <s.icon className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="font-serif text-2xl font-bold md:text-3xl">{s.value}</div>
+              <div className="mt-1 text-xs text-muted-foreground md:text-sm">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground italic">{t("stats.supportLine")}</p>
+      </section>
+
+      {/* COUP DE CŒUR ALÉATOIRE */}
+      {coupDeCoeur && (
+        <section className="container py-16 md:py-20">
+          <div className="overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-elegant">
+            <div className="grid md:grid-cols-2">
+              <Link to={`/startup/${coupDeCoeur.slug}`} className="relative aspect-[4/3] overflow-hidden bg-muted md:aspect-auto">
+                {coupDeCoeur.cover_url ? (
+                  <img src={coupDeCoeur.cover_url} alt={coupDeCoeur.name} className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center gradient-soft">
+                    <Sparkles className="h-16 w-16 text-primary/40" />
+                  </div>
+                )}
+              </Link>
+              <div className="flex flex-col justify-center p-8 md:p-12">
+                <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <Sparkles className="h-3 w-3" /> {t("stats.randomTitle")}
+                </div>
+                <h2 className="font-serif text-3xl font-bold md:text-4xl">{coupDeCoeur.name}</h2>
+                {coupDeCoeur.tagline && (
+                  <p className="mt-3 text-muted-foreground">{coupDeCoeur.tagline}</p>
+                )}
+                <p className="mt-4 text-sm text-muted-foreground">{t("stats.randomSubtitle")}</p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button onClick={() => navigate(`/startup/${coupDeCoeur.slug}`)} className="gradient-warm text-primary-foreground">
+                    {t("common.discover")} <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" onClick={() => setRandomSeed((s) => s + 1)}>
+                    <Shuffle className="mr-1 h-4 w-4" /> {t("stats.randomCta")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* FEATURED CREATORS — 10 */}
+      <section className="container py-12 md:py-16">
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("home.featuredTitle")}</h2>
@@ -79,24 +172,34 @@ const Index = () => {
             {t("common.viewAll")} <ArrowRight className="ml-1 inline h-3 w-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-          {startups.slice(0, 8).map((s, i) => <StartupCard key={s.id} startup={s} index={i} />)}
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-5">
+          {featured.map((s, i) => <StartupCard key={s.id} startup={s} index={i} />)}
         </div>
       </section>
 
-      {/* CATEGORIES */}
+      {/* 16 UNIVERS */}
       <section className="container py-16">
-        <h2 className="mb-8 text-center font-serif text-3xl font-bold md:text-4xl">{t("home.categoriesTitle")}</h2>
-        <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-3">
-          {CATEGORIES.map((cat) => (
-            <Link
-              key={cat}
-              to={`/creators?category=${encodeURIComponent(cat)}`}
-              className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium transition-smooth hover:border-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              {cat}
-            </Link>
-          ))}
+        <div className="mb-10 text-center">
+          <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("home.categoriesTitle")}</h2>
+          <p className="mt-2 text-muted-foreground">16 univers à explorer</p>
+        </div>
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
+          {CATEGORIES_KEYS.map((key, i) => {
+            const Icon = CATEGORY_ICONS[key] ?? Sparkles;
+            return (
+              <Link
+                key={key}
+                to={`/creators?category=${encodeURIComponent(t(`categoriesExt.${key}`))}`}
+                className="group flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center transition-smooth hover:-translate-y-1 hover:border-primary hover:shadow-elegant animate-slide-up"
+                style={{ animationDelay: `${i * 30}ms` }}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:gradient-warm group-hover:text-primary-foreground">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium md:text-sm">{t(`categoriesExt.${key}`)}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -122,7 +225,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA - BECOME CREATOR */}
+      {/* CTA */}
       <section className="container py-20">
         <div className="overflow-hidden rounded-3xl gradient-warm p-10 text-center text-primary-foreground shadow-elegant md:p-16">
           <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("home.becomeCreator")}</h2>
