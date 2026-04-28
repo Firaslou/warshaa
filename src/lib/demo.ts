@@ -101,6 +101,30 @@ export const DEMO_STARTUPS: StartupCardData[] = [
     likes_count: 89,
     supporters_count: 21,
   },
+  {
+    id: "demo-9",
+    slug: "kids-medina",
+    name: "Kids Medina",
+    tagline: "Vêtements pour enfants brodés à la main, doux et colorés.",
+    city: "Kairouan",
+    category: "Enfants",
+    cover_url: "https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=800&q=80",
+    badge: "verified",
+    likes_count: 134,
+    supporters_count: 47,
+  },
+  {
+    id: "demo-10",
+    slug: "carthage-gifts",
+    name: "Carthage Gifts",
+    tagline: "Coffrets cadeaux personnalisés inspirés du patrimoine tunisien.",
+    city: "Tunis",
+    category: "Cadeaux",
+    cover_url: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80",
+    badge: "certified",
+    likes_count: 221,
+    supporters_count: 86,
+  },
 ];
 
 export const TUNISIAN_CITIES = [
