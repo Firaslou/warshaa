@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { MathCaptcha } from "@/components/MathCaptcha";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -14,10 +15,12 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaValid, setCaptchaValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaValid) { toast.error("Veuillez résoudre le captcha"); return; }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
@@ -47,7 +50,13 @@ export default function Login() {
               <Label htmlFor="password">{t("auth.password")}</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" disabled={loading} className="w-full gradient-warm text-primary-foreground">
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+                Mot de passe oublié ?
+              </Link>
+            </div>
+            <MathCaptcha onValidChange={setCaptchaValid} />
+            <Button type="submit" disabled={loading || !captchaValid} className="w-full gradient-warm text-primary-foreground">
               {loading ? t("common.loading") : t("auth.loginBtn")}
             </Button>
           </form>
