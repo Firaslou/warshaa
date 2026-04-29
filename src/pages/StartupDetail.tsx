@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
-  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock,
+  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,8 @@ interface Product {
   currency: string;
   images: string[];
   created_at?: string;
+  delivery_available?: boolean;
+  delivery_fee?: number | null;
 }
 
 interface Review {
@@ -69,6 +71,7 @@ export default function StartupDetail() {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -105,6 +108,7 @@ export default function StartupDetail() {
         // Fallback to demo
         const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
         if (demo) {
+          setIsDemo(true);
           setStartup({
             ...demo,
             description: "Une marque pleine de passion et d'authenticité.",
@@ -114,6 +118,39 @@ export default function StartupDetail() {
             instagram_url: null,
             facebook_url: null,
           } as Startup);
+          // Produits de démo (avec livraison)
+          setProducts([
+            {
+              id: "demo-p1",
+              name: `${demo.name} — Pièce signature`,
+              description: "Création artisanale faite main, édition limitée.",
+              price: 89,
+              currency: "TND",
+              images: [demo.cover_url ?? ""],
+              delivery_available: true,
+              delivery_fee: 7,
+            },
+            {
+              id: "demo-p2",
+              name: `${demo.name} — Mini collection`,
+              description: "Trois pièces coordonnées dans un coffret cadeau.",
+              price: 145,
+              currency: "TND",
+              images: [demo.cover_url ?? ""],
+              delivery_available: true,
+              delivery_fee: 0,
+            },
+            {
+              id: "demo-p3",
+              name: `${demo.name} — Édition découverte`,
+              description: "Idéal pour découvrir le savoir-faire de la marque.",
+              price: 45,
+              currency: "TND",
+              images: [demo.cover_url ?? ""],
+              delivery_available: false,
+              delivery_fee: null,
+            },
+          ]);
         }
       }
       setLoading(false);
@@ -133,6 +170,7 @@ export default function StartupDetail() {
   };
 
   const buy = (productName: string, productId?: string) => {
+    if (!user) { toast.info("Connectez-vous pour contacter ce créateur."); return; }
     if (!startup?.whatsapp_number) return;
     openWhatsApp({
       phone: startup.whatsapp_number,
@@ -314,6 +352,18 @@ export default function StartupDetail() {
                     <div className="space-y-2 p-4">
                       <h3 className="font-semibold">{p.name}</h3>
                       {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                      {p.delivery_available ? (
+                        <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
+                          <Truck className="mr-1 h-3 w-3" />
+                          {p.delivery_fee && p.delivery_fee > 0
+                            ? `Livraison ${p.delivery_fee} ${p.currency}`
+                            : "Livraison gratuite"}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          Retrait uniquement
+                        </Badge>
+                      )}
                       <div className="flex items-center justify-between pt-2">
                         {p.price && <span className="font-semibold text-primary">{p.price} {p.currency}</span>}
                         <Button size="sm" className="gradient-warm text-primary-foreground" onClick={() => buy(p.name, p.id)}>
@@ -358,6 +408,30 @@ export default function StartupDetail() {
 
         {/* SIDEBAR */}
         <aside className="space-y-4">
+          {!user && (
+            <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 p-5">
+              <div className="mb-2 flex items-center gap-2 text-primary">
+                <LogIn className="h-4 w-4" />
+                <h3 className="font-semibold">Voir tous les détails</h3>
+              </div>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Connectez-vous pour acheter, discuter en privé et accéder à toutes les informations du créateur.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Link to="/login">
+                  <Button className="w-full gradient-warm text-primary-foreground">Se connecter</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button variant="outline" className="w-full">Créer un compte</Button>
+                </Link>
+              </div>
+            </div>
+          )}
+          {isDemo && (
+            <div className="rounded-xl bg-warning/10 p-4 text-xs text-muted-foreground">
+              ✨ Aperçu de démonstration. Les produits affichés sont des exemples.
+            </div>
+          )}
           {startup.description && (
             <div className="rounded-xl bg-secondary/40 p-5">
               <h3 className="mb-2 font-semibold">{t("apply.description")}</h3>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, MessageCircle, X } from "lucide-react";
+import { Search, MessageCircle, X, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function Creators() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
   const [search, setSearch] = useState("");
   const [commentSearch, setCommentSearch] = useState("");
@@ -178,7 +179,20 @@ export default function Creators() {
         )}
 
         {filtered.length === 0 ? (
-          <p className="py-20 text-center text-muted-foreground">{t("discover.noResults")}</p>
+          <div className="py-20 text-center">
+            <Sparkles className="mx-auto mb-3 h-10 w-10 text-primary/40" />
+            <p className="mb-1 font-serif text-xl font-semibold">
+              Aucun créateur disponible pour le moment.
+            </p>
+            <p className="mb-6 text-muted-foreground">Soyez le premier à le faire&nbsp;!</p>
+            <Button
+              size="lg"
+              className="gradient-warm text-primary-foreground"
+              onClick={() => navigate("/apply")}
+            >
+              <Sparkles className="mr-2 h-4 w-4" /> Devenir créateur
+            </Button>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map((s, i) => <StartupCard key={s.id} startup={s} index={i} />)}
