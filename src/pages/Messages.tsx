@@ -34,7 +34,7 @@ export default function Messages() {
     setLoading(true);
     let query = supabase
       .from("chat_conversations")
-      .select("id, buyer_id, startup_id, last_message_at, startup:startups(id,name,slug,logo_url), buyer:profiles!chat_conversations_buyer_id_fkey(full_name,avatar_url)")
+      .select("id, buyer_id, startup_id, last_message_at, startup:startups(id,name,slug,logo_url)")
       .order("last_message_at", { ascending: false });
 
     if (tab === "buyer") {
@@ -50,12 +50,19 @@ export default function Messages() {
     const { data } = await query;
     const rows = (data as any[]) ?? [];
 
-    // Fetch last message for each
+    // Fetch buyer profiles (for seller view) + last message for each
+    const buyerIds = Array.from(new Set(rows.map((r) => r.buyer_id)));
+    const { data: profs } = buyerIds.length
+      ? await supabase.from("profiles").select("id,full_name,avatar_url").in("id", buyerIds)
+      : { data: [] as any[] };
+    const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+
     const enriched = await Promise.all(rows.map(async (c) => {
       const { data: msg } = await supabase
         .from("chat_messages").select("content,sender_id")
         .eq("conversation_id", c.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return { ...c, lastMessage: msg?.content ?? "" };
+      const p = profMap.get(c.buyer_id);
+      return { ...c, buyer: p ? { full_name: p.full_name, avatar_url: p.avatar_url } : null, lastMessage: msg?.content ?? "" };
     }));
     setConvs(enriched);
     setLoading(false);
