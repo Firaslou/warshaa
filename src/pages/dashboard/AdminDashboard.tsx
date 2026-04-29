@@ -23,18 +23,17 @@ export default function AdminDashboard() {
 
   const decide = async (app: any, status: "approved" | "rejected") => {
     if (status === "approved") {
-      const slug = app.brand_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + app.id.slice(0, 6);
-      const { error: sErr } = await supabase.from("startups").insert({
-        owner_id: app.applicant_id,
-        name: app.brand_name, slug, description: app.description, city: app.city, category: app.category,
-        whatsapp_number: app.whatsapp_number, instagram_url: app.instagram_url, facebook_url: app.facebook_url,
-        status: "approved", badge: "new",
+      const { data, error } = await supabase.functions.invoke("approve-creator-application", {
+        body: { application_id: app.id },
       });
-      if (sErr) { toast.error(sErr.message); return; }
-      await supabase.from("user_roles").insert({ user_id: app.applicant_id, role: "startup" }).then(() => {});
+      if (error) { toast.error(error.message); return; }
+      if ((data as any)?.error) { toast.error((data as any).error); return; }
+      toast.success("Créateur approuvé · email envoyé");
+      fetchApps();
+      return;
     }
     await supabase.from("startup_applications").update({ status, reviewed_at: new Date().toISOString() }).eq("id", app.id);
-    toast.success("OK");
+    toast.success("Candidature rejetée");
     fetchApps();
   };
 
