@@ -11,6 +11,7 @@ import StartupDetail from "./pages/StartupDetail.tsx";
 import Apply from "./pages/Apply.tsx";
 import Products from "./pages/Products.tsx";
 import MyAccount from "./pages/MyAccount.tsx";
+import Messages from "./pages/Messages.tsx";
 import Login from "./pages/auth/Login.tsx";
 import Signup from "./pages/auth/Signup.tsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.tsx";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/apply" element={<Apply />} />
             <Route path="/products" element={<Products />} />
             <Route path="/my-account" element={<MyAccount />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
