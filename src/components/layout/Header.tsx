@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, ShoppingBag } from "lucide-react";
+import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, ShoppingBag, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -62,6 +62,9 @@ export function Header() {
               <DropdownMenuContent align="end" className="bg-popover w-56">
                 <DropdownMenuItem onClick={() => navigate("/my-account")}>
                   <UserIcon className="mr-2 h-4 w-4" /> {t("nav.myAccount")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/messages")}>
+                  <MessageCircle className="mr-2 h-4 w-4" /> Messages
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                   <LayoutDashboard className="mr-2 h-4 w-4" /> {t("nav.dashboard")}
