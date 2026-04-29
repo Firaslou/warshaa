@@ -17,15 +17,29 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    const rows = (startups ?? [])
-      .filter((s: any) => (s.products?.length ?? 0) > 0)
-      .map((s: any) => ({
+    // For each owner, only notify if no stock_reminder was sent in the last 14 days
+    const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const candidates = (startups ?? []).filter((s: any) => (s.products?.length ?? 0) > 0);
+
+    const rows: any[] = [];
+    for (const s of candidates) {
+      const { data: recent } = await admin
+        .from("notifications")
+        .select("id")
+        .eq("user_id", s.owner_id)
+        .eq("type", "stock_reminder")
+        .gte("created_at", cutoff)
+        .limit(1)
+        .maybeSingle();
+      if (recent) continue;
+      rows.push({
         user_id: s.owner_id,
         type: "stock_reminder",
         title: "Mettez à jour votre stock",
         body: `Bonjour ${s.name}, pensez à vérifier la disponibilité de vos produits pour rassurer vos clients.`,
         link: `/creator`,
-      }));
+      });
+    }
 
     let inserted = 0;
     if (rows.length > 0) {
