@@ -344,10 +344,26 @@ export default function StartupDetail() {
               <div className="grid gap-5 sm:grid-cols-2">
                 {products.map((p) => (
                   <div key={p.id} className="overflow-hidden rounded-xl bg-card shadow-card hover-lift">
-                    {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
+                    <Link to={`/product/${p.id}`} className="block">
+                      {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
+                    </Link>
                     <div className="space-y-2 p-4">
-                      <h3 className="font-semibold">{p.name}</h3>
+                      <Link to={`/product/${p.id}`}>
+                        <h3 className="font-semibold hover:text-primary">{p.name}</h3>
+                      </Link>
                       {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.category && (
+                          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs">
+                            {p.category}
+                          </Badge>
+                        )}
+                        {p.delegation && (
+                          <Badge variant="outline" className="text-xs">
+                            <MapPin className="mr-1 h-3 w-3" /> {p.delegation}
+                          </Badge>
+                        )}
+                      </div>
                       {p.delivery_available ? (
                         <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
                           <Truck className="mr-1 h-3 w-3" />
@@ -362,9 +378,11 @@ export default function StartupDetail() {
                       )}
                       <div className="flex items-center justify-between pt-2">
                         {p.price && <span className="font-semibold text-primary">{p.price} {p.currency}</span>}
-                        <Button size="sm" className="gradient-warm text-primary-foreground" onClick={() => buy(p.name, p.id)}>
-                          <MessageCircle className="mr-1 h-3 w-3" /> {t("startup.buyOnWhatsapp")}
-                        </Button>
+                        <Link to={`/product/${p.id}`}>
+                          <Button size="sm" className="gradient-warm text-primary-foreground">
+                            Voir le produit
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>
