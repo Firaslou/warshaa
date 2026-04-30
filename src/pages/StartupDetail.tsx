@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
-import { DEMO_STARTUPS } from "@/lib/demo";
+import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { openWhatsApp } from "@/lib/whatsapp";
@@ -49,6 +49,8 @@ interface Product {
   created_at?: string;
   delivery_available?: boolean;
   delivery_fee?: number | null;
+  category?: string | null;
+  delegation?: string | null;
 }
 
 interface Review {
@@ -119,39 +121,24 @@ export default function StartupDetail() {
             instagram_url: null,
             facebook_url: null,
           } as Startup);
-          // Produits de démo (avec livraison)
-          setProducts([
-            {
-              id: "demo-p1",
-              name: `${demo.name} — Pièce signature`,
-              description: "Création artisanale faite main, édition limitée.",
-              price: 89,
-              currency: "TND",
-              images: [demo.cover_url ?? ""],
-              delivery_available: true,
-              delivery_fee: 7,
-            },
-            {
-              id: "demo-p2",
-              name: `${demo.name} — Mini collection`,
-              description: "Trois pièces coordonnées dans un coffret cadeau.",
-              price: 145,
-              currency: "TND",
-              images: [demo.cover_url ?? ""],
-              delivery_available: true,
-              delivery_fee: 0,
-            },
-            {
-              id: "demo-p3",
-              name: `${demo.name} — Édition découverte`,
-              description: "Idéal pour découvrir le savoir-faire de la marque.",
-              price: 45,
-              currency: "TND",
-              images: [demo.cover_url ?? ""],
-              delivery_available: false,
-              delivery_fee: null,
-            },
-          ]);
+          // Produits de démo enrichis (multi-photos, catégorie, délégation, livraison)
+          const demoProds = getDemoProductsForStartup(demo.slug);
+          setProducts(
+            demoProds.length > 0
+              ? demoProds.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  description: p.description,
+                  price: p.price,
+                  currency: p.currency,
+                  images: p.images,
+                  delivery_available: p.delivery_available,
+                  delivery_fee: p.delivery_fee,
+                  category: p.category,
+                  delegation: p.delegation,
+                }))
+              : [],
+          );
         }
       }
       setLoading(false);

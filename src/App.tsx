@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import Creators from "./pages/Creators.tsx";
 import Discover from "./pages/Discover.tsx";
 import StartupDetail from "./pages/StartupDetail.tsx";
+import ProductDetail from "./pages/ProductDetail.tsx";
 import Apply from "./pages/Apply.tsx";
 import Products from "./pages/Products.tsx";
 import MyAccount from "./pages/MyAccount.tsx";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/creators" element={<Creators />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/startup/:slug" element={<StartupDetail />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/products" element={<Products />} />
             <Route path="/my-account" element={<MyAccount />} />
