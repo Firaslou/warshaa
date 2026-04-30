@@ -171,6 +171,10 @@ export default function StartupDetail() {
   };
 
   const buy = (productName: string, productId?: string) => {
+    if (isDemo) {
+      toast.info("Aperçu de démonstration — aucun message ne sera envoyé.");
+      return;
+    }
     if (!user) { toast.info("Connectez-vous pour contacter ce créateur."); return; }
     if (!startup?.whatsapp_number) return;
     openWhatsApp({
@@ -183,6 +187,10 @@ export default function StartupDetail() {
   };
 
   const openChat = () => {
+    if (isDemo) {
+      toast.info("Aperçu de démonstration — le chat privé sera disponible avec les vrais créateurs.");
+      return;
+    }
     if (!user) { toast.info(t("apply.needAccount")); return; }
     setChatOpen(true);
   };
