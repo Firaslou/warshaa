@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Send } from "lucide-react";
+import { Send, ImagePlus, X, Loader2 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -18,6 +18,7 @@ interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+  attachments?: string[] | null;
 }
 
 export function PrivateChatDialog({
@@ -34,6 +35,9 @@ export function PrivateChatDialog({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -88,14 +92,59 @@ export function PrivateChatDialog({
 
   const send = async () => {
     const content = input.trim();
-    if (!content || !conversationId || !user) return;
+    if ((!content && pendingFiles.length === 0) || !conversationId || !user) return;
+
+    setUploading(true);
+    const attachmentUrls: string[] = [];
+    try {
+      for (const file of pendingFiles) {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${conversationId}/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("chat-attachments")
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage
+          .from("chat-attachments")
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signed?.signedUrl) attachmentUrls.push(signed.signedUrl);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Échec de l'envoi de la photo");
+      setUploading(false);
+      return;
+    }
+
     setInput("");
+    setPendingFiles([]);
     const { error } = await supabase.from("chat_messages").insert({
       conversation_id: conversationId,
       sender_id: user.id,
-      content,
+      content: content || "",
+      attachments: attachmentUrls,
     });
+    setUploading(false);
     if (error) toast.error(error.message);
+  };
+
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    const remaining = 3 - pendingFiles.length;
+    const accepted: File[] = [];
+    for (const f of files.slice(0, remaining)) {
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`${f.name} dépasse 5 Mo`);
+        continue;
+      }
+      if (!f.type.startsWith("image/")) {
+        toast.error(`${f.name} n'est pas une image`);
+        continue;
+      }
+      accepted.push(f);
+    }
+    setPendingFiles((p) => [...p, ...accepted].slice(0, 3));
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -124,7 +173,16 @@ export function PrivateChatDialog({
                           "max-w-[75%] rounded-2xl px-3 py-2 text-sm",
                           mine ? "bg-primary text-primary-foreground" : "bg-card border",
                         )}>
-                          {m.content}
+                          {m.attachments && m.attachments.length > 0 && (
+                            <div className={cn("mb-1 grid gap-1", m.attachments.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                              {m.attachments.map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noreferrer">
+                                  <img src={url} alt="pièce jointe" className="max-h-48 w-full rounded-lg object-cover" />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          {m.content && <div>{m.content}</div>}
                         </div>
                       </div>
                     );
@@ -132,15 +190,55 @@ export function PrivateChatDialog({
                 </div>
               )}
             </ScrollArea>
+            {pendingFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-2">
+                {pendingFiles.map((f, i) => (
+                  <div key={i} className="relative h-16 w-16 overflow-hidden rounded-md">
+                    <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => setPendingFiles((p) => p.filter((_, idx) => idx !== i))}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-background/90 p-0.5 shadow"
+                      aria-label="Retirer"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={onPickFiles}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={pendingFiles.length >= 3 || uploading}
+                title="Joindre des photos (max 3, 5 Mo chacune)"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
+                onKeyDown={(e) => e.key === "Enter" && !uploading && send()}
                 placeholder="Écrire un message…"
+                disabled={uploading}
               />
-              <Button onClick={send} className="gradient-warm text-primary-foreground" size="icon">
-                <Send className="h-4 w-4" />
+              <Button
+                onClick={send}
+                className="gradient-warm text-primary-foreground"
+                size="icon"
+                disabled={uploading || (!input.trim() && pendingFiles.length === 0)}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </>

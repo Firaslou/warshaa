@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
-import { DEMO_STARTUPS } from "@/lib/demo";
+import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { openWhatsApp } from "@/lib/whatsapp";
@@ -49,6 +49,8 @@ interface Product {
   created_at?: string;
   delivery_available?: boolean;
   delivery_fee?: number | null;
+  category?: string | null;
+  delegation?: string | null;
 }
 
 interface Review {
@@ -119,39 +121,24 @@ export default function StartupDetail() {
             instagram_url: null,
             facebook_url: null,
           } as Startup);
-          // Produits de démo (avec livraison)
-          setProducts([
-            {
-              id: "demo-p1",
-              name: `${demo.name} — Pièce signature`,
-              description: "Création artisanale faite main, édition limitée.",
-              price: 89,
-              currency: "TND",
-              images: [demo.cover_url ?? ""],
-              delivery_available: true,
-              delivery_fee: 7,
-            },
-            {
-              id: "demo-p2",
-              name: `${demo.name} — Mini collection`,
-              description: "Trois pièces coordonnées dans un coffret cadeau.",
-              price: 145,
-              currency: "TND",
-              images: [demo.cover_url ?? ""],
-              delivery_available: true,
-              delivery_fee: 0,
-            },
-            {
-              id: "demo-p3",
-              name: `${demo.name} — Édition découverte`,
-              description: "Idéal pour découvrir le savoir-faire de la marque.",
-              price: 45,
-              currency: "TND",
-              images: [demo.cover_url ?? ""],
-              delivery_available: false,
-              delivery_fee: null,
-            },
-          ]);
+          // Produits de démo enrichis (multi-photos, catégorie, délégation, livraison)
+          const demoProds = getDemoProductsForStartup(demo.slug);
+          setProducts(
+            demoProds.length > 0
+              ? demoProds.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  description: p.description,
+                  price: p.price,
+                  currency: p.currency,
+                  images: p.images,
+                  delivery_available: p.delivery_available,
+                  delivery_fee: p.delivery_fee,
+                  category: p.category,
+                  delegation: p.delegation,
+                }))
+              : [],
+          );
         }
       }
       setLoading(false);
@@ -357,10 +344,26 @@ export default function StartupDetail() {
               <div className="grid gap-5 sm:grid-cols-2">
                 {products.map((p) => (
                   <div key={p.id} className="overflow-hidden rounded-xl bg-card shadow-card hover-lift">
-                    {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
+                    <Link to={`/product/${p.id}`} className="block">
+                      {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
+                    </Link>
                     <div className="space-y-2 p-4">
-                      <h3 className="font-semibold">{p.name}</h3>
+                      <Link to={`/product/${p.id}`}>
+                        <h3 className="font-semibold hover:text-primary">{p.name}</h3>
+                      </Link>
                       {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.category && (
+                          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs">
+                            {p.category}
+                          </Badge>
+                        )}
+                        {p.delegation && (
+                          <Badge variant="outline" className="text-xs">
+                            <MapPin className="mr-1 h-3 w-3" /> {p.delegation}
+                          </Badge>
+                        )}
+                      </div>
                       {p.delivery_available ? (
                         <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
                           <Truck className="mr-1 h-3 w-3" />
@@ -375,9 +378,11 @@ export default function StartupDetail() {
                       )}
                       <div className="flex items-center justify-between pt-2">
                         {p.price && <span className="font-semibold text-primary">{p.price} {p.currency}</span>}
-                        <Button size="sm" className="gradient-warm text-primary-foreground" onClick={() => buy(p.name, p.id)}>
-                          <MessageCircle className="mr-1 h-3 w-3" /> {t("startup.buyOnWhatsapp")}
-                        </Button>
+                        <Link to={`/product/${p.id}`}>
+                          <Button size="sm" className="gradient-warm text-primary-foreground">
+                            Voir le produit
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>
