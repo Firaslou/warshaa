@@ -40,6 +40,7 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          attachments: string[]
           content: string
           conversation_id: string
           created_at: string
@@ -47,6 +48,7 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          attachments?: string[]
           content: string
           conversation_id: string
           created_at?: string
@@ -54,6 +56,7 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          attachments?: string[]
           content?: string
           conversation_id?: string
           created_at?: string
@@ -244,6 +247,7 @@ export type Database = {
           category: string | null
           created_at: string
           currency: string
+          delegation: string | null
           delivery_available: boolean
           delivery_fee: number | null
           description: string | null
@@ -255,12 +259,14 @@ export type Database = {
           price: number | null
           startup_id: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           availability?: Database["public"]["Enums"]["product_availability"]
           category?: string | null
           created_at?: string
           currency?: string
+          delegation?: string | null
           delivery_available?: boolean
           delivery_fee?: number | null
           description?: string | null
@@ -272,12 +278,14 @@ export type Database = {
           price?: number | null
           startup_id: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           availability?: Database["public"]["Enums"]["product_availability"]
           category?: string | null
           created_at?: string
           currency?: string
+          delegation?: string | null
           delivery_available?: boolean
           delivery_fee?: number | null
           description?: string | null
@@ -289,6 +297,7 @@ export type Database = {
           price?: number | null
           startup_id?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: [
           {
