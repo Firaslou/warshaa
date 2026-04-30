@@ -77,7 +77,9 @@ export default function StartupDetail() {
     if (!slug) return;
     (async () => {
       const { data: s } = await supabase.from("startups").select("*").eq("slug", slug).maybeSingle();
-      if (s) {
+      // Si un startup réel existe ET que ce n'est pas un slug de démo, afficher le réel.
+      const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
+      if (s && !demo) {
         setStartup(s as Startup);
         const [{ data: prods }, { data: revs }] = await Promise.all([
           supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
@@ -105,8 +107,7 @@ export default function StartupDetail() {
           setIsFavorite(!!fav);
         }
       } else {
-        // Fallback to demo
-        const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
+        // Fallback to demo (ou slug de démo prioritaire)
         if (demo) {
           setIsDemo(true);
           setStartup({
@@ -170,6 +171,10 @@ export default function StartupDetail() {
   };
 
   const buy = (productName: string, productId?: string) => {
+    if (isDemo) {
+      toast.info("Aperçu de démonstration — aucun message ne sera envoyé.");
+      return;
+    }
     if (!user) { toast.info("Connectez-vous pour contacter ce créateur."); return; }
     if (!startup?.whatsapp_number) return;
     openWhatsApp({
@@ -182,6 +187,10 @@ export default function StartupDetail() {
   };
 
   const openChat = () => {
+    if (isDemo) {
+      toast.info("Aperçu de démonstration — le chat privé sera disponible avec les vrais créateurs.");
+      return;
+    }
     if (!user) { toast.info(t("apply.needAccount")); return; }
     setChatOpen(true);
   };
