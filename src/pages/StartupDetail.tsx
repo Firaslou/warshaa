@@ -108,6 +108,9 @@ export default function StartupDetail() {
           const { data: fav } = await supabase
             .from("favorites").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
           setIsFavorite(!!fav);
+          const { data: sup } = await supabase
+            .from("startup_supporters").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
+          setIsSupporter(!!sup);
         }
       } else {
         // Fallback to demo (ou slug de démo prioritaire)
@@ -155,6 +158,24 @@ export default function StartupDetail() {
     } else {
       await supabase.from("favorites").insert({ user_id: user.id, startup_id: startup.id });
       setIsFavorite(true);
+    }
+  };
+
+  const toggleSupport = async () => {
+    if (isDemo) { toast.info("Aperçu de démonstration — le soutien sera actif sur les vrais créateurs."); return; }
+    if (!user) { toast.info(t("apply.needAccount")); return; }
+    if (!startup) return;
+    if (isSupporter) {
+      await supabase.from("startup_supporters").delete().eq("user_id", user.id).eq("startup_id", startup.id);
+      setIsSupporter(false);
+      setStartup({ ...startup, supporters_count: Math.max(0, startup.supporters_count - 1) });
+      toast.success("Soutien retiré");
+    } else {
+      const { error } = await supabase.from("startup_supporters").insert({ user_id: user.id, startup_id: startup.id });
+      if (error) { toast.error("Impossible de soutenir ce créateur"); return; }
+      setIsSupporter(true);
+      setStartup({ ...startup, supporters_count: startup.supporters_count + 1 });
+      toast.success("Merci pour votre soutien !");
     }
   };
 
