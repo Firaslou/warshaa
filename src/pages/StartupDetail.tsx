@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
-  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn,
+  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +70,7 @@ export default function StartupDetail() {
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isSupporter, setIsSupporter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
