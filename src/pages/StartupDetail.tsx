@@ -259,6 +259,14 @@ export default function StartupDetail() {
                 <Button variant="outline" size="icon" onClick={toggleFavorite}>
                   <Heart className={cn("h-4 w-4", isFavorite && "fill-primary text-primary")} />
                 </Button>
+                <Button
+                  variant={isSupporter ? "default" : "outline"}
+                  onClick={toggleSupport}
+                  className={cn(isSupporter && "gradient-warm text-primary-foreground")}
+                >
+                  <HandHeart className={cn("mr-1 h-4 w-4", isSupporter && "fill-current")} />
+                  {isSupporter ? "Soutenu" : "Soutenir"}
+                </Button>
                 {startup.instagram_url && (
                   <Button variant="outline" size="icon" asChild><a href={startup.instagram_url} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4" /></a></Button>
                 )}
