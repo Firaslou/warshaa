@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, Eye, ShoppingBag, MessageCircle, Truck, ExternalLink } from "lucide-react";
+import { Heart, Eye, ShoppingBag, MessageCircle, Truck, ExternalLink, Search, X } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEMO_PRODUCTS, DEMO_STARTUPS } from "@/lib/demo";
+import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS, type Governorate } from "@/lib/tunisia";
+import { useMemo } from "react";
 
 interface ProductRow {
   id: string;
@@ -21,8 +25,11 @@ interface ProductRow {
   availability: "in_stock" | "arriving" | "out_of_stock";
   delivery_available: boolean;
   delivery_fee: number | null;
+  category: string | null;
+  delegation: string | null;
   startup_id: string;
-  startups: { slug: string; name: string; whatsapp_number: string | null } | null;
+  startups: { slug: string; name: string; whatsapp_number: string | null; city: string | null } | null;
+  isDemo?: boolean;
 }
 
 export default function Products() {
@@ -30,6 +37,9 @@ export default function Products() {
   const { user } = useAuth();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [search, setSearch] = useState("");
+  const [governorate, setGovernorate] = useState("all");
+  const [delegation, setDelegation] = useState("all");
+  const [category, setCategory] = useState("all");
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [views, setViews] = useState<Record<string, number>>({});
   const [purchases, setPurchases] = useState<Record<string, number>>({});
@@ -38,13 +48,37 @@ export default function Products() {
     (async () => {
       const { data } = await supabase
         .from("products")
-        .select("id,name,description,price,currency,images,availability,delivery_available,delivery_fee,startup_id,startups(slug,name,whatsapp_number)")
+        .select("id,name,description,price,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)")
         .order("created_at", { ascending: false })
-        .limit(60);
-      setProducts((data ?? []) as any);
+        .limit(120);
+
+      const real = (data ?? []) as any as ProductRow[];
+
+      // Always show demo products as fallback / examples so the page is never empty
+      const demos: ProductRow[] = DEMO_PRODUCTS.map((p) => {
+        const s = DEMO_STARTUPS.find((s) => s.slug === p.startup_slug);
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          currency: p.currency,
+          images: p.images,
+          availability: "in_stock",
+          delivery_available: p.delivery_available,
+          delivery_fee: p.delivery_fee,
+          category: p.category,
+          delegation: p.delegation,
+          startup_id: s?.id ?? "demo",
+          startups: s ? { slug: s.slug, name: s.name, whatsapp_number: null, city: s.city ?? null } : null,
+          isDemo: true,
+        };
+      });
+
+      setProducts([...real, ...demos]);
 
       // Counts
-      const ids = (data ?? []).map((p: any) => p.id);
+      const ids = real.map((p) => p.id);
       if (ids.length) {
         const [lk, vw, pc] = await Promise.all([
           supabase.from("product_likes").select("product_id").in("product_id", ids),
@@ -82,12 +116,28 @@ export default function Products() {
     setPurchases((m) => ({ ...m, [p.id]: (m[p.id] ?? 0) + 1 }));
   };
 
-  const filtered = products.filter((p) =>
-    !search ||
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (p.startups?.name ?? "").toLowerCase().includes(search.toLowerCase())
+  const delegationsForGov = useMemo(
+    () => (governorate === "all" ? [] : TUNISIA_DELEGATIONS[governorate as Governorate] ?? []),
+    [governorate]
   );
+
+  const filtered = products.filter((p) => {
+    if (search) {
+      const q = search.toLowerCase();
+      const hay = `${p.name} ${p.description ?? ""} ${p.startups?.name ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (governorate !== "all" && p.startups?.city !== governorate) return false;
+    if (delegation !== "all" && p.delegation !== delegation) return false;
+    if (category !== "all") {
+      const label = t(`categoriesExt.${category}`);
+      if (p.category !== label && p.category !== category) return false;
+    }
+    return true;
+  });
+
+  const hasFilters = search || governorate !== "all" || delegation !== "all" || category !== "all";
+  const resetFilters = () => { setSearch(""); setGovernorate("all"); setDelegation("all"); setCategory("all"); };
 
   return (
     <PageLayout>
@@ -95,21 +145,60 @@ export default function Products() {
         <h1 className="font-serif text-4xl font-bold">{t("products.title")}</h1>
         <p className="mt-2 text-muted-foreground">{t("products.subtitle")}</p>
 
-        <div className="mt-6 max-w-md">
-          <Input placeholder={t("common.search")} value={search} onChange={(e)=>setSearch(e.target.value)} />
+        <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={t("common.search")} value={search} onChange={(e)=>setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={governorate} onValueChange={(v) => { setGovernorate(v); setDelegation("all"); }}>
+            <SelectTrigger><SelectValue placeholder="Gouvernorat" /></SelectTrigger>
+            <SelectContent className="bg-popover max-h-72">
+              <SelectItem value="all">{t("common.all")} — Gouvernorat</SelectItem>
+              {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={delegation} onValueChange={setDelegation} disabled={governorate === "all"}>
+            <SelectTrigger>
+              <SelectValue placeholder={governorate === "all" ? "Choisir un gouvernorat" : "Délégation"} />
+            </SelectTrigger>
+            <SelectContent className="bg-popover max-h-72">
+              <SelectItem value="all">{t("common.all")} — Délégation</SelectItem>
+              {delegationsForGov.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger><SelectValue placeholder={t("common.category")} /></SelectTrigger>
+            <SelectContent className="bg-popover max-h-72">
+              <SelectItem value="all">{t("common.all")} — {t("common.category")}</SelectItem>
+              {CATEGORIES_KEYS.map((k) => (
+                <SelectItem key={k} value={k}>{t(`categoriesExt.${k}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {hasFilters && (
+          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+            <span>{filtered.length} résultat{filtered.length > 1 ? "s" : ""}</span>
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              <X className="mr-1 h-3 w-3" /> Réinitialiser
+            </Button>
+          </div>
+        )}
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
             <Card key={p.id} className="overflow-hidden">
               {p.images?.[0] && (
-                <div className="aspect-square w-full overflow-hidden bg-muted">
-                  <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
-                </div>
+                <Link to={`/product/${p.id}`} className="block aspect-square w-full overflow-hidden bg-muted">
+                  <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform hover:scale-105" loading="lazy" />
+                </Link>
               )}
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-serif text-lg font-semibold">{p.name}</h3>
+                  <Link to={`/product/${p.id}`} className="font-serif text-lg font-semibold hover:text-primary">
+                    {p.name}
+                  </Link>
                   {p.price != null && (
                     <span className="whitespace-nowrap font-bold text-primary">{p.price} {p.currency}</span>
                   )}
@@ -117,6 +206,8 @@ export default function Products() {
                 {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
 
                 <div className="flex flex-wrap gap-2 text-xs">
+                  {p.category && <Badge variant="secondary">{p.category}</Badge>}
+                  {p.delegation && <Badge variant="outline">{p.delegation}</Badge>}
                   <Badge variant="secondary">{t(`products.availability.${p.availability}`)}</Badge>
                   {p.delivery_available
                     ? <Badge variant="outline" className="gap-1"><Truck className="h-3 w-3"/>{t("products.delivery")}{p.delivery_fee != null && ` · ${p.delivery_fee} TND`}</Badge>
@@ -130,7 +221,7 @@ export default function Products() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Button size="sm" variant="ghost" onClick={() => toggleLike(p.id)} disabled={!user}>
+                  <Button size="sm" variant="ghost" onClick={() => toggleLike(p.id)} disabled={!user || p.isDemo}>
                     <Heart className="h-4 w-4" />
                   </Button>
                   {p.startups?.whatsapp_number && (
@@ -145,13 +236,13 @@ export default function Products() {
                       WhatsApp
                     </Button>
                   )}
-                  {user && p.startups && (
+                  {user && p.startups && !p.isDemo && (
                     <Button size="sm" variant="outline" onClick={() => confirmPurchase(p)}>
                       <ShoppingBag className="mr-1 h-4 w-4" />{t("products.iBoughtIt")}
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" disabled title={t("products.chatPrivate")}>
-                    <MessageCircle className="h-4 w-4" />
+                  <Button size="sm" variant="ghost" asChild title={t("products.chatPrivate")}>
+                    <Link to={`/product/${p.id}`}><MessageCircle className="h-4 w-4" /></Link>
                   </Button>
                 </div>
 
@@ -164,7 +255,9 @@ export default function Products() {
             </Card>
           ))}
           {filtered.length === 0 && (
-            <p className="col-span-full py-12 text-center text-muted-foreground">—</p>
+            <p className="col-span-full py-12 text-center text-muted-foreground">
+              Aucun produit ne correspond à vos filtres.
+            </p>
           )}
         </div>
       </section>
