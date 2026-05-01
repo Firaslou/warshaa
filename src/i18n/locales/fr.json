@@ -59,7 +59,7 @@
     "supportersBanner": "{{count}} personnes ont soutenu un créateur ce mois-ci",
     "categoriesTitle": "Explorer par univers",
     "becomeCreator": "Vous êtes créateur ?",
-    "becomeCreatorDesc": "Rejoignez Sanaa et donnez de la visibilité à votre marque. Candidature gratuite.",
+    "becomeCreatorDesc": "Rejoignez Warsha et donnez de la visibilité à votre marque. Candidature gratuite.",
     "applyNow": "Postuler maintenant",
     "stepsTitle": "Comment ça marche",
     "step1": "Découvrez",
@@ -184,7 +184,7 @@
     "supporters": "{{count}} soutiens",
     "likes": "{{count}} j'aime",
     "buyOnWhatsapp": "Acheter via WhatsApp",
-    "whatsappMessage": "Bonjour, je suis intéressé(e) par « {{product}} » vu sur Sanaa.",
+    "whatsappMessage": "Bonjour, je suis intéressé(e) par « {{product}} » vu sur Warsha.",
     "addFavorite": "Ajouter aux favoris",
     "removeFavorite": "Retirer des favoris",
     "writeReview": "Écrire un avis",
@@ -199,7 +199,7 @@
   "auth": {
     "loginTitle": "Bon retour",
     "loginSubtitle": "Connectez-vous pour soutenir vos créateurs préférés.",
-    "signupTitle": "Rejoignez Sanaa",
+    "signupTitle": "Rejoignez Warsha",
     "signupSubtitle": "Créez votre compte en quelques secondes.",
     "email": "Email",
     "password": "Mot de passe",
@@ -221,7 +221,7 @@
     }
   },
   "apply": {
-    "title": "Devenir créateur sur Sanaa",
+    "title": "Devenir créateur sur Warsha",
     "subtitle": "Remplissez ce formulaire — l'admin valide sous 48h.",
     "brandName": "Nom de la marque",
     "description": "Décrivez votre activité",

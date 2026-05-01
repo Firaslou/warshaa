@@ -59,7 +59,7 @@
     "supportersBanner": "{{count}} people supported a creator this month",
     "categoriesTitle": "Explore by world",
     "becomeCreator": "Are you a creator?",
-    "becomeCreatorDesc": "Join Sanaa and put your brand in the spotlight. Free to apply.",
+    "becomeCreatorDesc": "Join Warsha and put your brand in the spotlight. Free to apply.",
     "applyNow": "Apply now",
     "stepsTitle": "How it works",
     "step1": "Discover",
@@ -168,7 +168,7 @@
     "supporters": "{{count}} supporters",
     "likes": "{{count}} likes",
     "buyOnWhatsapp": "Buy on WhatsApp",
-    "whatsappMessage": "Hi, I'm interested in '{{product}}' seen on Sanaa.",
+    "whatsappMessage": "Hi, I'm interested in '{{product}}' seen on Warsha.",
     "addFavorite": "Add to favorites",
     "removeFavorite": "Remove from favorites",
     "writeReview": "Write a review",
@@ -183,7 +183,7 @@
   "auth": {
     "loginTitle": "Welcome back",
     "loginSubtitle": "Log in to support your favorite creators.",
-    "signupTitle": "Join Sanaa",
+    "signupTitle": "Join Warsha",
     "signupSubtitle": "Create your account in seconds.",
     "email": "Email",
     "password": "Password",
@@ -205,7 +205,7 @@
     }
   },
   "apply": {
-    "title": "Become a creator on Sanaa",
+    "title": "Become a creator on Warsha",
     "subtitle": "Fill this form — admin reviews within 48h.",
     "brandName": "Brand name",
     "description": "Describe your activity",
