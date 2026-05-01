@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
-  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn,
+  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +70,7 @@ export default function StartupDetail() {
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isSupporter, setIsSupporter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
@@ -107,6 +108,9 @@ export default function StartupDetail() {
           const { data: fav } = await supabase
             .from("favorites").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
           setIsFavorite(!!fav);
+          const { data: sup } = await supabase
+            .from("startup_supporters").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
+          setIsSupporter(!!sup);
         }
       } else {
         // Fallback to demo (ou slug de démo prioritaire)
@@ -154,6 +158,24 @@ export default function StartupDetail() {
     } else {
       await supabase.from("favorites").insert({ user_id: user.id, startup_id: startup.id });
       setIsFavorite(true);
+    }
+  };
+
+  const toggleSupport = async () => {
+    if (isDemo) { toast.info("Aperçu de démonstration — le soutien sera actif sur les vrais créateurs."); return; }
+    if (!user) { toast.info(t("apply.needAccount")); return; }
+    if (!startup) return;
+    if (isSupporter) {
+      await supabase.from("startup_supporters").delete().eq("user_id", user.id).eq("startup_id", startup.id);
+      setIsSupporter(false);
+      setStartup({ ...startup, supporters_count: Math.max(0, startup.supporters_count - 1) });
+      toast.success("Soutien retiré");
+    } else {
+      const { error } = await supabase.from("startup_supporters").insert({ user_id: user.id, startup_id: startup.id });
+      if (error) { toast.error("Impossible de soutenir ce créateur"); return; }
+      setIsSupporter(true);
+      setStartup({ ...startup, supporters_count: startup.supporters_count + 1 });
+      toast.success("Merci pour votre soutien !");
     }
   };
 
@@ -236,6 +258,14 @@ export default function StartupDetail() {
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="icon" onClick={toggleFavorite}>
                   <Heart className={cn("h-4 w-4", isFavorite && "fill-primary text-primary")} />
+                </Button>
+                <Button
+                  variant={isSupporter ? "default" : "outline"}
+                  onClick={toggleSupport}
+                  className={cn(isSupporter && "gradient-warm text-primary-foreground")}
+                >
+                  <HandHeart className={cn("mr-1 h-4 w-4", isSupporter && "fill-current")} />
+                  {isSupporter ? "Soutenu" : "Soutenir"}
                 </Button>
                 {startup.instagram_url && (
                   <Button variant="outline" size="icon" asChild><a href={startup.instagram_url} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4" /></a></Button>

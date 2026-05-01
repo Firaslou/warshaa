@@ -516,6 +516,27 @@ export type Database = {
         }
         Relationships: []
       }
+      startup_supporters: {
+        Row: {
+          created_at: string
+          id: string
+          startup_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          startup_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          startup_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       startups: {
         Row: {
           badge: Database["public"]["Enums"]["startup_badge"]
