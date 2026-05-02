@@ -32,10 +32,11 @@ export default function Apply() {
     description: "",
     city: "",
     delegation: "",
-    category: "",
+    categories: [] as string[],
     whatsapp_number: "",
     instagram_url: "",
     facebook_url: "",
+    tiktok_url: "",
     proof_video_url: "",
     creator_story: "",
     proof_photos: [] as string[],
@@ -56,7 +57,7 @@ export default function Apply() {
       navigate("/login");
       return;
     }
-    if (!form.brand_name || !form.description || !form.city || !form.category || !form.whatsapp_number) {
+    if (!form.brand_name || !form.description || !form.city || form.categories.length === 0 || !form.whatsapp_number) {
       toast({ title: t("common.required"), variant: "destructive" });
       return;
     }
@@ -73,15 +74,15 @@ export default function Apply() {
       brand_name: form.brand_name,
       description: form.description,
       city: form.city,
-      category: form.category,
+      category: form.categories[0],
+      categories: form.categories,
       whatsapp_number: form.whatsapp_number,
       instagram_url: form.instagram_url || null,
       facebook_url: form.facebook_url || null,
+      tiktok_url: form.tiktok_url || null,
       proof_video_url: form.proof_video_url || null,
       proof_photos: [...form.proof_photos, form.verification_photo_url].filter(Boolean),
-      admin_notes: form.creator_story
-        ? `Histoire du créateur:\n${form.creator_story}`
-        : null,
+      creator_story: form.creator_story || null,
     });
     if (error) {
       toast({ title: error.message, variant: "destructive" });
@@ -258,14 +259,29 @@ export default function Apply() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>{t("apply.category")} *</Label>
-                <Select value={form.category} onValueChange={(v)=>setForm({...form, category:v})}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {CATEGORIES_KEYS.map((c) => <SelectItem key={c} value={c}>{t(`categoriesExt.${c}`)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="md:col-span-2">
+                <Label>{t("apply.category")} * <span className="text-xs text-muted-foreground">(plusieurs possibles)</span></Label>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {CATEGORIES_KEYS.map((c) => {
+                    const checked = form.categories.includes(c);
+                    return (
+                      <label key={c} className="flex cursor-pointer items-center gap-2 rounded-md border border-border p-2 text-xs hover:bg-accent">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() =>
+                            setForm((f) => ({
+                              ...f,
+                              categories: checked
+                                ? f.categories.filter((k) => k !== c)
+                                : [...f.categories, c],
+                            }))
+                          }
+                        />
+                        {t(`categoriesExt.${c}`)}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <Label>{t("apply.whatsapp")} *</Label>
@@ -278,6 +294,10 @@ export default function Apply() {
               <div>
                 <Label>{t("apply.facebook")}</Label>
                 <Input value={form.facebook_url} onChange={(e)=>setForm({...form, facebook_url:e.target.value})} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>TikTok <span className="text-xs text-muted-foreground">(optionnel)</span></Label>
+                <Input placeholder="https://tiktok.com/@..." value={form.tiktok_url} onChange={(e)=>setForm({...form, tiktok_url:e.target.value})} />
               </div>
 
               {/* Histoire du créateur — optionnelle */}
