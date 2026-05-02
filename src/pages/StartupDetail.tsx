@@ -3,12 +3,13 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
-  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart,
+  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart, Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
+import { ComplaintDialog } from "@/components/ComplaintDialog";
 import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
