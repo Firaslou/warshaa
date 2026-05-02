@@ -3,12 +3,13 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
-  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart,
+  Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart, Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
+import { ComplaintDialog } from "@/components/ComplaintDialog";
 import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,6 +74,7 @@ export default function StartupDetail() {
   const [isSupporter, setIsSupporter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [complaintOpen, setComplaintOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
   const [isDemo, setIsDemo] = useState(false);
 
@@ -275,6 +277,17 @@ export default function StartupDetail() {
                 )}
                 <Button variant="outline" onClick={openChat}>
                   <Lock className="mr-1 h-4 w-4" /> Chat privé
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (isDemo) { toast.info("Les réclamations sont désactivées sur les profils de démonstration."); return; }
+                    if (!user) { toast.error("Connecte-toi pour envoyer une réclamation"); return; }
+                    setComplaintOpen(true);
+                  }}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  <Flag className="mr-1 h-4 w-4" /> Réclamer
                 </Button>
                 {startup.whatsapp_number && (
                   <Button className="gradient-warm text-primary-foreground" onClick={() => buy(startup.name)}>
@@ -501,6 +514,14 @@ export default function StartupDetail() {
       <PrivateChatDialog
         open={chatOpen}
         onOpenChange={setChatOpen}
+        startupId={startup.id}
+        startupName={startup.name}
+      />
+
+      {/* COMPLAINT DIALOG */}
+      <ComplaintDialog
+        open={complaintOpen}
+        onOpenChange={setComplaintOpen}
         startupId={startup.id}
         startupName={startup.name}
       />

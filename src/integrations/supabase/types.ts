@@ -73,6 +73,42 @@ export type Database = {
           },
         ]
       }
+      complaints: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          id: string
+          message: string
+          reporter_id: string
+          startup_id: string
+          status: Database["public"]["Enums"]["complaint_status"]
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          reporter_id: string
+          startup_id: string
+          status?: Database["public"]["Enums"]["complaint_status"]
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          reporter_id?: string
+          startup_id?: string
+          status?: Database["public"]["Enums"]["complaint_status"]
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string
@@ -670,6 +706,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "startup" | "client"
       application_status: "pending" | "approved" | "rejected"
+      complaint_status: "pending" | "reviewing" | "resolved" | "rejected"
       product_availability: "in_stock" | "arriving" | "out_of_stock"
       startup_badge: "new" | "verified" | "certified"
       startup_status: "pending" | "approved" | "rejected"
@@ -802,6 +839,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "startup", "client"],
       application_status: ["pending", "approved", "rejected"],
+      complaint_status: ["pending", "reviewing", "resolved", "rejected"],
       product_availability: ["in_stock", "arriving", "out_of_stock"],
       startup_badge: ["new", "verified", "certified"],
       startup_status: ["pending", "approved", "rejected"],
