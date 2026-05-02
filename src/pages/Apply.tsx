@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Camera, Video, Smartphone, Hand, BookOpen, ChevronRight, ChevronLeft, CheckCircle2, Clock } from "lucide-react";
+import { Camera, Video, Smartphone, Hand, BookOpen, ChevronRight, ChevronLeft, CheckCircle2, Clock, ShieldAlert, Heart, Upload, X } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ export default function Apply() {
   const [stepIdx, setStepIdx] = useState(0);
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [form, setForm] = useState({
     brand_name: "",
     description: "",
@@ -36,6 +37,9 @@ export default function Apply() {
     instagram_url: "",
     facebook_url: "",
     proof_video_url: "",
+    creator_story: "",
+    proof_photos: [] as string[],
+    verification_photo_url: "",
   });
 
   const docs = [
@@ -56,6 +60,14 @@ export default function Apply() {
       toast({ title: t("common.required"), variant: "destructive" });
       return;
     }
+    if (!form.proof_video_url || form.proof_photos.length < 3 || !form.verification_photo_url) {
+      toast({
+        title: "Section Sécurité incomplète",
+        description: "La vidéo (10s), 3 photos réelles et la photo de vérification sont obligatoires. Sans elles, la demande sera annulée.",
+        variant: "destructive",
+      });
+      return;
+    }
     const { error } = await supabase.from("startup_applications").insert({
       applicant_id: user.id,
       brand_name: form.brand_name,
@@ -66,7 +78,10 @@ export default function Apply() {
       instagram_url: form.instagram_url || null,
       facebook_url: form.facebook_url || null,
       proof_video_url: form.proof_video_url || null,
-      proof_photos: [],
+      proof_photos: [...form.proof_photos, form.verification_photo_url].filter(Boolean),
+      admin_notes: form.creator_story
+        ? `Histoire du créateur:\n${form.creator_story}`
+        : null,
     });
     if (error) {
       toast({ title: error.message, variant: "destructive" });
@@ -74,6 +89,58 @@ export default function Apply() {
     }
     setSubmitted(true);
     setStepIdx(3);
+  };
+
+  const uploadFile = async (
+    file: File,
+    field: "proof_video_url" | "verification_photo_url" | "proof_photos",
+  ) => {
+    if (!user) {
+      toast({ title: t("apply.needAccount"), variant: "destructive" });
+      return;
+    }
+    // Validate video duration (max 10s)
+    if (field === "proof_video_url") {
+      if (!file.type.startsWith("video/")) {
+        toast({ title: "Fichier vidéo requis", variant: "destructive" });
+        return;
+      }
+      const duration = await new Promise<number>((resolve) => {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => resolve(v.duration);
+        v.onerror = () => resolve(0);
+        v.src = URL.createObjectURL(file);
+      });
+      if (duration > 10.5) {
+        toast({
+          title: "Vidéo trop longue",
+          description: `Maximum 10 secondes (la tienne fait ${Math.round(duration)}s).`,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (!file.type.startsWith("image/")) {
+      toast({ title: "Image requise", variant: "destructive" });
+      return;
+    }
+
+    setUploadingField(field + (field === "proof_photos" ? `-${form.proof_photos.length}` : ""));
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${field}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("applications").upload(path, file, { upsert: false });
+    if (error) {
+      setUploadingField(null);
+      toast({ title: error.message, variant: "destructive" });
+      return;
+    }
+    const { data } = supabase.storage.from("applications").getPublicUrl(path);
+    if (field === "proof_photos") {
+      setForm((f) => ({ ...f, proof_photos: [...f.proof_photos, data.publicUrl] }));
+    } else {
+      setForm((f) => ({ ...f, [field]: data.publicUrl }));
+    }
+    setUploadingField(null);
   };
 
   const delegations = form.city ? TUNISIA_DELEGATIONS[form.city as keyof typeof TUNISIA_DELEGATIONS] ?? [] : [];
@@ -212,9 +279,110 @@ export default function Apply() {
                 <Label>{t("apply.facebook")}</Label>
                 <Input value={form.facebook_url} onChange={(e)=>setForm({...form, facebook_url:e.target.value})} />
               </div>
-              <div className="md:col-span-2">
-                <Label>{t("apply.proofVideo")} *</Label>
-                <Input value={form.proof_video_url} onChange={(e)=>setForm({...form, proof_video_url:e.target.value})} />
+
+              {/* Histoire du créateur — optionnelle */}
+              <div className="md:col-span-2 mt-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-primary" />
+                  <h3 className="font-serif text-lg font-bold">Histoire de ta création</h3>
+                  <Badge variant="secondary">Optionnel</Badge>
+                </div>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Raconte-nous comment cette idée est née, ton histoire d'amour avec ton métier, ce qui t'a inspiré… Cela touchera ton public et l'encouragera à te soutenir.
+                </p>
+                <Textarea
+                  rows={5}
+                  placeholder="Tout a commencé un jour où…"
+                  value={form.creator_story}
+                  onChange={(e)=>setForm({...form, creator_story:e.target.value})}
+                />
+              </div>
+
+              {/* Sécurité — obligatoire */}
+              <div className="md:col-span-2 mt-4 rounded-xl border-2 border-destructive/40 bg-destructive/5 p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-destructive" />
+                  <h3 className="font-serif text-lg font-bold">Sécurité & Vérification</h3>
+                  <Badge variant="destructive">Obligatoire</Badge>
+                </div>
+                <div className="mb-4 rounded-lg border border-destructive/30 bg-background p-3 text-sm">
+                  ⚠️ <strong>Attention :</strong> chaque élément manquant ci-dessous entraînera l'<strong>annulation directe</strong> de ta demande de devenir créateur. Ces preuves nous permettent de garantir l'authenticité de ta boutique.
+                </div>
+
+                {/* Vidéo 10s */}
+                <div className="mb-5">
+                  <Label className="flex items-center gap-2">
+                    <Video className="h-4 w-4" /> Vidéo de toi en train de créer (max 10 secondes) *
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">Une courte vidéo (≤ 10s) où l'on te voit fabriquer ton produit.</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <Input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_video_url")}
+                      disabled={uploadingField === "proof_video_url"}
+                    />
+                    {form.proof_video_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
+                  </div>
+                  {form.proof_video_url && (
+                    <video src={form.proof_video_url} controls className="mt-2 h-32 rounded-md border" />
+                  )}
+                </div>
+
+                {/* 3 photos réelles */}
+                <div className="mb-5">
+                  <Label className="flex items-center gap-2">
+                    <Camera className="h-4 w-4" /> 3 photos réelles de tes créations * ({form.proof_photos.length}/3)
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">Photos prises par toi, non retouchées, montrant clairement tes produits.</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {form.proof_photos.map((url, i) => (
+                      <div key={i} className="relative">
+                        <img src={url} alt={`Preuve ${i+1}`} className="h-24 w-full rounded-md border object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, proof_photos: f.proof_photos.filter((_, idx) => idx !== i) }))}
+                          className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {form.proof_photos.length < 3 && (
+                      <label className="flex h-24 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border hover:border-primary">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_photos")}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Photo de vérification */}
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Hand className="h-4 w-4" /> Photo de vérification *
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Selfie de toi tenant un papier avec « Warsha » écrit à la main + la date du jour.
+                  </p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "verification_photo_url")}
+                      disabled={uploadingField === "verification_photo_url"}
+                    />
+                    {form.verification_photo_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
+                  </div>
+                  {form.verification_photo_url && (
+                    <img src={form.verification_photo_url} alt="Vérification" className="mt-2 h-32 rounded-md border object-cover" />
+                  )}
+                </div>
               </div>
             </div>
             <div className="mt-8 flex justify-between">
