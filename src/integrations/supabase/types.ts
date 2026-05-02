@@ -467,9 +467,11 @@ export type Database = {
           admin_notes: string | null
           applicant_id: string
           brand_name: string
+          categories: string[]
           category: string
           city: string
           created_at: string
+          creator_story: string | null
           description: string
           facebook_url: string | null
           id: string
@@ -478,15 +480,18 @@ export type Database = {
           proof_video_url: string | null
           reviewed_at: string | null
           status: Database["public"]["Enums"]["application_status"]
+          tiktok_url: string | null
           whatsapp_number: string
         }
         Insert: {
           admin_notes?: string | null
           applicant_id: string
           brand_name: string
+          categories?: string[]
           category: string
           city: string
           created_at?: string
+          creator_story?: string | null
           description: string
           facebook_url?: string | null
           id?: string
@@ -495,15 +500,18 @@ export type Database = {
           proof_video_url?: string | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["application_status"]
+          tiktok_url?: string | null
           whatsapp_number: string
         }
         Update: {
           admin_notes?: string | null
           applicant_id?: string
           brand_name?: string
+          categories?: string[]
           category?: string
           city?: string
           created_at?: string
+          creator_story?: string | null
           description?: string
           facebook_url?: string | null
           id?: string
@@ -512,6 +520,7 @@ export type Database = {
           proof_video_url?: string | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["application_status"]
+          tiktok_url?: string | null
           whatsapp_number?: string
         }
         Relationships: []
@@ -540,6 +549,7 @@ export type Database = {
       startups: {
         Row: {
           badge: Database["public"]["Enums"]["startup_badge"]
+          categories: string[]
           category: string | null
           city: string | null
           cover_url: string | null
@@ -561,11 +571,13 @@ export type Database = {
           status: Database["public"]["Enums"]["startup_status"]
           supporters_count: number
           tagline: string | null
+          tiktok_url: string | null
           updated_at: string
           whatsapp_number: string | null
         }
         Insert: {
           badge?: Database["public"]["Enums"]["startup_badge"]
+          categories?: string[]
           category?: string | null
           city?: string | null
           cover_url?: string | null
@@ -587,11 +599,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["startup_status"]
           supporters_count?: number
           tagline?: string | null
+          tiktok_url?: string | null
           updated_at?: string
           whatsapp_number?: string | null
         }
         Update: {
           badge?: Database["public"]["Enums"]["startup_badge"]
+          categories?: string[]
           category?: string | null
           city?: string | null
           cover_url?: string | null
@@ -613,6 +627,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["startup_status"]
           supporters_count?: number
           tagline?: string | null
+          tiktok_url?: string | null
           updated_at?: string
           whatsapp_number?: string | null
         }
