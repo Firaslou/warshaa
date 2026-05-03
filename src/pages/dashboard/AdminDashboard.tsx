@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { Check, X, Flag, Trash2, Users, Store, MessageSquare, Star, FileText, TrendingUp, Eye, Heart, ShoppingBag } from "lucide-react";
+import { Check, X, Flag, Trash2, Users, Store, MessageSquare, Star, FileText, TrendingUp, Eye, Heart, ShoppingBag, Package, Radio, ShieldCheck, Award, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,10 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [activeConv, setActiveConv] = useState<string | null>(null);
+  const [convMessages, setConvMessages] = useState<any[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
 
@@ -91,6 +95,13 @@ export default function AdminDashboard() {
     setUsers(usersR.data ?? []);
     setComments(commentsR.data ?? []);
     setReviews(reviewsR.data ?? []);
+
+    const [productsR, convsR] = await Promise.all([
+      supabase.from("products").select("id, name, images, in_stock, created_at, startup_id, startups:startup_id(name, slug)").order("created_at", { ascending: false }).limit(100),
+      supabase.from("chat_conversations").select("id, created_at, last_message_at, buyer_id, startup_id, profiles:buyer_id(full_name), startups:startup_id(name, slug)").order("last_message_at", { ascending: false }).limit(100),
+    ]);
+    setProducts(productsR.data ?? []);
+    setConversations(convsR.data ?? []);
   };
 
   useEffect(() => { if (isAdmin) fetchAll(); }, [isAdmin]);
@@ -135,6 +146,29 @@ export default function AdminDashboard() {
     toast.success("Créateur supprimé"); fetchAll();
   };
 
+  const deleteProduct = async (id: string) => {
+    if (!confirm("Supprimer ce produit ?")) return;
+    await supabase.from("products").delete().eq("id", id);
+    toast.success("Produit supprimé"); fetchAll();
+  };
+
+  const stopLive = async (id: string) => {
+    await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", id);
+    toast.success("Live arrêté"); fetchAll();
+  };
+
+  const setBadge = async (id: string, badge: "new" | "verified" | "certified") => {
+    const { error } = await supabase.from("startups").update({ badge }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Badge: ${badge}`); fetchAll();
+  };
+
+  const openConversation = async (id: string) => {
+    setActiveConv(id);
+    const { data } = await supabase.from("chat_messages").select("id, content, created_at, sender_id, attachments, profiles:sender_id(full_name)").eq("conversation_id", id).order("created_at", { ascending: true });
+    setConvMessages(data ?? []);
+  };
+
   if (loading) return <PageLayout><div className="container py-20 text-center">Chargement…</div></PageLayout>;
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) return <PageLayout><div className="container py-20 text-center text-muted-foreground">403 — Accès admin uniquement</div></PageLayout>;
@@ -169,6 +203,8 @@ export default function AdminDashboard() {
             <TabsTrigger value="applications">Demandes ({stats?.pendingApps ?? 0})</TabsTrigger>
             <TabsTrigger value="complaints">Réclamations ({stats?.pendingComplaints ?? 0})</TabsTrigger>
             <TabsTrigger value="creators">Créateurs</TabsTrigger>
+            <TabsTrigger value="products">Produits</TabsTrigger>
+            <TabsTrigger value="chats">Conversations</TabsTrigger>
             <TabsTrigger value="users">Utilisateurs</TabsTrigger>
             <TabsTrigger value="comments">Commentaires</TabsTrigger>
             <TabsTrigger value="reviews">Avis</TabsTrigger>
@@ -249,9 +285,10 @@ export default function AdminDashboard() {
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Nom</TableHead><TableHead>Ville</TableHead><TableHead>Statut</TableHead>
+                  <TableHead>Badge</TableHead>
                   <TableHead className="text-right"><Heart className="inline h-3 w-3" /></TableHead>
                   <TableHead className="text-right">Soutiens</TableHead>
-                  <TableHead>Inscrit</TableHead><TableHead></TableHead>
+                  <TableHead>Inscrit</TableHead><TableHead className="text-right">Actions</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {filteredCreators.map((c) => (
@@ -259,15 +296,116 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium"><Link to={`/startup/${c.slug}`} className="hover:underline">{c.name}</Link></TableCell>
                       <TableCell>{c.city ?? "—"}</TableCell>
                       <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
+                      <TableCell>
+                        <Select defaultValue={c.badge ?? "new"} onValueChange={(v) => setBadge(c.id, v as any)}>
+                          <SelectTrigger className="h-8 w-[120px]"><SelectValue /></SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            <SelectItem value="new">Nouveau</SelectItem>
+                            <SelectItem value="verified">Vérifié</SelectItem>
+                            <SelectItem value="certified">Certifié</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell className="text-right">{c.likes_count}</TableCell>
                       <TableCell className="text-right">{c.supporters_count}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell><Button size="sm" variant="ghost" onClick={() => deleteStartup(c.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {c.is_live && (
+                            <Button size="sm" variant="outline" onClick={() => stopLive(c.id)} title="Arrêter le live">
+                              <Radio className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => deleteStartup(c.id)} title="Supprimer le créateur">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </CardContent></Card>
+          </TabsContent>
+
+          {/* PRODUCTS */}
+          <TabsContent value="products" className="mt-6">
+            <Card><CardContent className="p-0">
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead></TableHead>
+                  <TableHead>Produit</TableHead>
+                  <TableHead>Créateur</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Publié</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {products.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>{p.images?.[0] && <img src={p.images[0]} className="h-10 w-10 rounded object-cover" />}</TableCell>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell><Link to={`/startup/${p.startups?.slug}`} className="hover:underline text-sm">{p.startups?.name ?? "—"}</Link></TableCell>
+                      <TableCell><Badge variant={p.in_stock ? "outline" : "secondary"}>{p.in_stock ? "Oui" : "Non"}</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => deleteProduct(p.id)} title="Supprimer le produit">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* CHATS */}
+          <TabsContent value="chats" className="mt-6">
+            <div className="grid gap-4 md:grid-cols-[320px_1fr]">
+              <Card className="h-[600px] overflow-y-auto">
+                <CardContent className="p-2">
+                  {conversations.length === 0 ? (
+                    <p className="p-3 text-sm text-muted-foreground">Aucune conversation.</p>
+                  ) : conversations.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => openConversation(c.id)}
+                      className={`w-full rounded-md p-3 text-left text-sm transition-colors hover:bg-muted ${activeConv === c.id ? "bg-muted" : ""}`}
+                    >
+                      <div className="flex items-center gap-2 font-medium">
+                        <MessageCircle className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{c.profiles?.full_name ?? "Utilisateur"}</span>
+                      </div>
+                      <div className="mt-1 truncate text-xs text-muted-foreground">↔ {c.startups?.name ?? "—"}</div>
+                      <div className="mt-1 text-[10px] text-muted-foreground">{new Date(c.last_message_at).toLocaleString()}</div>
+                    </button>
+                  ))}
+                </CardContent>
+              </Card>
+              <Card className="h-[600px] overflow-y-auto">
+                <CardContent className="space-y-3 p-4">
+                  {!activeConv && <p className="text-sm text-muted-foreground">Sélectionnez une conversation.</p>}
+                  {activeConv && convMessages.length === 0 && <p className="text-sm text-muted-foreground">Aucun message.</p>}
+                  {convMessages.map((m) => (
+                    <div key={m.id} className="rounded-md border p-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <strong>{m.profiles?.full_name ?? "—"}</strong>
+                        <span>{new Date(m.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="mt-2 whitespace-pre-wrap text-sm">{m.content}</p>
+                      {m.attachments?.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {m.attachments.map((a: string, i: number) => (
+                            <a key={i} href={a} target="_blank" rel="noreferrer" className="text-xs underline">Pièce {i + 1}</a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* USERS */}
