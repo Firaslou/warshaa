@@ -1,42 +1,175 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, Users, MessageCircle } from "lucide-react";
+import {
+  Heart, Users, MessageCircle, Eye, Plus, Pencil, Trash2, Radio,
+  Image as ImageIcon, Save, Leaf, Loader2,
+} from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
+import { toast } from "@/hooks/use-toast";
+import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from "recharts";
 
 export default function CreatorDashboard() {
   const { t } = useTranslation();
-  const { user, loading, isCreator } = useAuth();
+  const { user, loading } = useAuth();
   const [startup, setStartup] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
-  const [stats, setStats] = useState({ clicks: 0 });
+  const [products, setProducts] = useState<any[]>([]);
+  const [clicks, setClicks] = useState(0);
+  const [views30d, setViews30d] = useState<{ date: string; count: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string; views: number }[]>([]);
+  const [productEdit, setProductEdit] = useState<any | null>(null);
+  const [productOpen, setProductOpen] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data: s } = await supabase.from("startups").select("*").eq("owner_id", user.id).maybeSingle();
-      setStartup(s);
-      if (s) {
-        const { count } = await supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).eq("startup_id", s.id);
-        setStats({ clicks: count ?? 0 });
-      } else {
-        const { data: a } = await supabase.from("startup_applications").select("*").eq("applicant_id", user.id).order("created_at", { ascending: false }).maybeSingle();
-        setApplication(a);
-      }
-    })();
-  }, [user]);
+  // Profile form state
+  const [pf, setPf] = useState({
+    name: "", tagline: "", description: "", creator_story: "",
+    city: "", delegation: "", categories: [] as string[],
+    instagram_url: "", facebook_url: "", tiktok_url: "", whatsapp_number: "",
+    logo_url: "", cover_url: "",
+  });
+
+  const refreshAll = async (uid: string) => {
+    const { data: s } = await supabase.from("startups").select("*").eq("owner_id", uid).maybeSingle();
+    setStartup(s);
+    if (!s) {
+      const { data: a } = await supabase.from("startup_applications").select("*").eq("applicant_id", uid).order("created_at", { ascending: false }).maybeSingle();
+      setApplication(a);
+      return;
+    }
+    setPf({
+      name: s.name ?? "",
+      tagline: s.tagline ?? "",
+      description: s.description ?? "",
+      creator_story: s.creator_story ?? "",
+      city: s.city ?? "",
+      delegation: s.delegation ?? "",
+      categories: s.categories ?? [],
+      instagram_url: s.instagram_url ?? "",
+      facebook_url: s.facebook_url ?? "",
+      tiktok_url: s.tiktok_url ?? "",
+      whatsapp_number: s.whatsapp_number ?? "",
+      logo_url: s.logo_url ?? "",
+      cover_url: s.cover_url ?? "",
+    });
+    const [{ count: clicksCount }, { data: prods }, { data: views }] = await Promise.all([
+      supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
+      supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
+      supabase.from("product_views")
+        .select("created_at, product_id, products!inner(name, startup_id)")
+        .eq("products.startup_id", s.id)
+        .gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString()),
+    ]);
+    setClicks(clicksCount ?? 0);
+    setProducts(prods ?? []);
+    // 30-day views series
+    const buckets: Record<string, number> = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      buckets[d.toISOString().slice(5, 10)] = 0;
+    }
+    const topMap: Record<string, { name: string; views: number }> = {};
+    (views ?? []).forEach((v: any) => {
+      const k = new Date(v.created_at).toISOString().slice(5, 10);
+      if (k in buckets) buckets[k]++;
+      const pid = v.product_id;
+      const pname = v.products?.name ?? "—";
+      topMap[pid] = { name: pname, views: (topMap[pid]?.views ?? 0) + 1 };
+    });
+    setViews30d(Object.entries(buckets).map(([date, count]) => ({ date, count })));
+    setTopProducts(Object.values(topMap).sort((a, b) => b.views - a.views).slice(0, 5));
+  };
+
+  useEffect(() => { if (user) refreshAll(user.id); }, [user]);
+
+  const delegations = pf.city ? TUNISIA_DELEGATIONS[pf.city as keyof typeof TUNISIA_DELEGATIONS] ?? [] : [];
+
+  const uploadAsset = async (file: File, kind: "logo_url" | "cover_url") => {
+    if (!user || !startup) return;
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${startup.id}/${kind}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("startup-assets").upload(path, file);
+    if (error) return toast({ title: error.message, variant: "destructive" });
+    const { data } = supabase.storage.from("startup-assets").getPublicUrl(path);
+    setPf((p) => ({ ...p, [kind]: data.publicUrl }));
+  };
+
+  const saveProfile = async () => {
+    if (!startup) return;
+    if (!pf.name.trim()) return toast({ title: "Nom requis", variant: "destructive" });
+    if (pf.categories.length === 0) return toast({ title: "Au moins 1 catégorie", variant: "destructive" });
+    setSavingProfile(true);
+    const { error } = await supabase.from("startups").update({
+      name: pf.name.trim(),
+      tagline: pf.tagline || null,
+      description: pf.description || null,
+      creator_story: pf.creator_story || null,
+      city: pf.city || null,
+      delegation: pf.delegation || null,
+      categories: pf.categories,
+      category: pf.categories[0] ?? null,
+      instagram_url: pf.instagram_url || null,
+      facebook_url: pf.facebook_url || null,
+      tiktok_url: pf.tiktok_url || null,
+      whatsapp_number: pf.whatsapp_number || null,
+      logo_url: pf.logo_url || null,
+      cover_url: pf.cover_url || null,
+    }).eq("id", startup.id);
+    setSavingProfile(false);
+    if (error) return toast({ title: error.message, variant: "destructive" });
+    toast({ title: "Profil mis à jour" });
+    refreshAll(user!.id);
+  };
+
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) return toast({ title: error.message, variant: "destructive" });
+    toast({ title: "Produit supprimé" });
+    refreshAll(user!.id);
+  };
+
+  const toggleLive = async () => {
+    if (!startup) return;
+    const newLive = !startup.is_live;
+    const { error } = await supabase.from("startups").update({
+      is_live: newLive,
+      live_started_at: newLive ? new Date().toISOString() : null,
+    }).eq("id", startup.id);
+    if (error) return toast({ title: error.message, variant: "destructive" });
+    toast({ title: newLive ? "Tu es en live !" : "Live terminé" });
+    refreshAll(user!.id);
+  };
+
+  const markNewPost = async () => {
+    if (!startup) return;
+    await supabase.from("startups").update({ last_post_at: new Date().toISOString() }).eq("id", startup.id);
+    toast({ title: "Nouveau post signalé à ta communauté" });
+    refreshAll(user!.id);
+  };
 
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
   if (!user) return <Navigate to="/login" replace />;
 
-  return (
-    <PageLayout>
-      <div className="container py-12">
-        <h1 className="font-serif text-4xl font-bold">{t("dashboard.creator.title")}</h1>
-        {!startup ? (
+  if (!startup) {
+    return (
+      <PageLayout>
+        <div className="container py-12">
+          <h1 className="font-serif text-4xl font-bold">{t("dashboard.creator.title")}</h1>
           <div className="mt-8 rounded-2xl bg-card p-8 text-center shadow-card">
             {application ? (
               <>
@@ -47,19 +180,241 @@ export default function CreatorDashboard() {
               <p className="text-muted-foreground">{t("dashboard.creator.noStartup")}</p>
             )}
           </div>
-        ) : (
-          <>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <StatCard icon={Heart} label={t("dashboard.creator.totalLikes")} value={startup.likes_count} />
-              <StatCard icon={Users} label={t("dashboard.creator.totalSupporters")} value={startup.supporters_count} />
-              <StatCard icon={MessageCircle} label={t("dashboard.creator.totalClicks")} value={stats.clicks} />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  const totalViews = views30d.reduce((s, d) => s + d.count, 0);
+
+  return (
+    <PageLayout>
+      <div className="container py-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-4xl font-bold">{startup.name}</h1>
+            <p className="text-muted-foreground">{startup.tagline}</p>
+          </div>
+          <Badge variant={startup.is_live ? "destructive" : "secondary"} className="gap-1">
+            <Radio className="h-3 w-3" /> {startup.is_live ? "EN LIVE" : "Hors ligne"}
+          </Badge>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard icon={Heart} label="J'aime" value={startup.likes_count} />
+          <StatCard icon={Users} label="Soutiens" value={startup.supporters_count} />
+          <StatCard icon={MessageCircle} label="Clics achat" value={clicks} />
+          <StatCard icon={Eye} label="Vues (30j)" value={totalViews} />
+        </div>
+
+        <Tabs defaultValue="stats" className="mt-8">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="stats">Statistiques</TabsTrigger>
+            <TabsTrigger value="profile">Profil & vitrine</TabsTrigger>
+            <TabsTrigger value="products">Produits ({products.length})</TabsTrigger>
+            <TabsTrigger value="live">Live & posts</TabsTrigger>
+          </TabsList>
+
+          {/* STATS */}
+          <TabsContent value="stats" className="space-y-6">
+            <Card>
+              <CardHeader><CardTitle>Vues sur 30 jours</CardTitle></CardHeader>
+              <CardContent className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={views30d}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="date" className="text-xs" />
+                    <YAxis allowDecimals={false} className="text-xs" />
+                    <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))" }} />
+                    <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Top 5 produits (vues 30j)</CardTitle></CardHeader>
+              <CardContent className="h-72">
+                {topProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucune vue encore.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topProducts}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="name" className="text-xs" />
+                      <YAxis allowDecimals={false} className="text-xs" />
+                      <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))" }} />
+                      <Bar dataKey="views" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* PROFILE */}
+          <TabsContent value="profile">
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <AssetUploader label="Logo" url={pf.logo_url} onPick={(f) => uploadAsset(f, "logo_url")} onClear={() => setPf((p) => ({ ...p, logo_url: "" }))} />
+                  <AssetUploader label="Couverture" url={pf.cover_url} onPick={(f) => uploadAsset(f, "cover_url")} onClear={() => setPf((p) => ({ ...p, cover_url: "" }))} wide />
+                </div>
+                <div>
+                  <Label>Nom de la marque *</Label>
+                  <Input value={pf.name} onChange={(e) => setPf({ ...pf, name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Slogan</Label>
+                  <Input value={pf.tagline} onChange={(e) => setPf({ ...pf, tagline: e.target.value })} maxLength={120} />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea rows={3} value={pf.description} onChange={(e) => setPf({ ...pf, description: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Histoire de ta création</Label>
+                  <Textarea rows={4} value={pf.creator_story} onChange={(e) => setPf({ ...pf, creator_story: e.target.value })} />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Ville</Label>
+                    <Select value={pf.city} onValueChange={(v) => setPf({ ...pf, city: v, delegation: "" })}>
+                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Délégation</Label>
+                    <Select value={pf.delegation} onValueChange={(v) => setPf({ ...pf, delegation: v })} disabled={!pf.city}>
+                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {delegations.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>Catégories *</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {CATEGORIES_KEYS.map((c) => {
+                      const checked = pf.categories.includes(c);
+                      return (
+                        <label key={c} className="flex cursor-pointer items-center gap-2 rounded-md border border-border p-2 text-xs hover:bg-accent">
+                          <Checkbox checked={checked} onCheckedChange={() =>
+                            setPf((f) => ({ ...f, categories: checked ? f.categories.filter((k) => k !== c) : [...f.categories, c] }))
+                          } />
+                          {t(`categoriesExt.${c}`)}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div><Label>WhatsApp</Label><Input value={pf.whatsapp_number} onChange={(e) => setPf({ ...pf, whatsapp_number: e.target.value })} /></div>
+                  <div><Label>Instagram</Label><Input value={pf.instagram_url} onChange={(e) => setPf({ ...pf, instagram_url: e.target.value })} /></div>
+                  <div><Label>Facebook</Label><Input value={pf.facebook_url} onChange={(e) => setPf({ ...pf, facebook_url: e.target.value })} /></div>
+                  <div><Label>TikTok</Label><Input value={pf.tiktok_url} onChange={(e) => setPf({ ...pf, tiktok_url: e.target.value })} /></div>
+                </div>
+                <Button onClick={saveProfile} disabled={savingProfile} className="gradient-warm text-primary-foreground">
+                  {savingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Enregistrer
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* PRODUCTS */}
+          <TabsContent value="products">
+            <div className="mb-4 flex justify-end">
+              <Button onClick={() => { setProductEdit(null); setProductOpen(true); }} className="gradient-warm text-primary-foreground">
+                <Plus className="mr-2 h-4 w-4" /> Nouveau produit
+              </Button>
             </div>
-            <div className="mt-8 rounded-2xl bg-card p-6 shadow-card">
-              <h2 className="font-serif text-2xl font-semibold">{startup.name}</h2>
-              <p className="mt-2 text-muted-foreground">{startup.tagline}</p>
-            </div>
-          </>
-        )}
+            {products.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun produit pour l'instant.</CardContent></Card>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {products.map((p) => (
+                  <Card key={p.id} className="overflow-hidden">
+                    <div className="aspect-square bg-muted">
+                      {p.images?.[0] ? (
+                        <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted-foreground"><ImageIcon /></div>
+                      )}
+                    </div>
+                    <CardContent className="space-y-2 p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold leading-tight">{p.name}</h3>
+                        {p.is_eco && <Leaf className="h-4 w-4 shrink-0 text-green-600" />}
+                      </div>
+                      <p className="text-sm text-primary">{p.price} {p.currency}</p>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
+                      <div className="flex gap-2 pt-2">
+                        <Button size="sm" variant="outline" className="flex-1" onClick={() => { setProductEdit(p); setProductOpen(true); }}>
+                          <Pencil className="mr-1 h-3 w-3" /> Modifier
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive"><Trash2 className="h-3 w-3" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-background">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
+                              <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteProduct(p.id)}>Supprimer</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <ProductFormDialog
+              open={productOpen}
+              onOpenChange={setProductOpen}
+              startupId={startup.id}
+              ownerId={user.id}
+              product={productEdit}
+              onSaved={() => refreshAll(user.id)}
+            />
+          </TabsContent>
+
+          {/* LIVE */}
+          <TabsContent value="live">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Radio className="h-5 w-5 text-primary" /> Live</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {startup.is_live
+                    ? `Tu es en live depuis ${startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—"}.`
+                    : "Annonce un live à ta communauté pour booster ta visibilité."}
+                </p>
+                <Button onClick={toggleLive} variant={startup.is_live ? "destructive" : "default"} className={startup.is_live ? "" : "gradient-warm text-primary-foreground"}>
+                  {startup.is_live ? "Arrêter le live" : "Démarrer un live"}
+                </Button>
+              </CardContent>
+            </Card>
+            <Card className="mt-6">
+              <CardHeader><CardTitle>Nouveau post</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Marque la mise à jour de ta vitrine. Dernier signal :{" "}
+                  {startup.last_post_at ? new Date(startup.last_post_at).toLocaleString() : "jamais"}.
+                </p>
+                <Button onClick={markNewPost} variant="outline">Signaler une nouveauté</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </PageLayout>
   );
@@ -71,6 +426,27 @@ function StatCard({ icon: Icon, label, value }: any) {
       <Icon className="h-6 w-6 text-primary" />
       <div className="mt-3 text-3xl font-bold">{value}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function AssetUploader({ label, url, onPick, onClear, wide }: { label: string; url: string; onPick: (f: File) => void; onClear: () => void; wide?: boolean }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className={`mt-2 flex ${wide ? "h-32" : "h-32 w-32"} items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-muted`}>
+        {url ? (
+          <div className="relative h-full w-full">
+            <img src={url} alt="" className="h-full w-full object-cover" />
+            <Button size="sm" variant="destructive" className="absolute right-1 top-1 h-6 px-2" onClick={onClear}>×</Button>
+          </div>
+        ) : (
+          <label className="flex h-full w-full cursor-pointer items-center justify-center text-xs text-muted-foreground">
+            + ajouter
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])} />
+          </label>
+        )}
+      </div>
     </div>
   );
 }

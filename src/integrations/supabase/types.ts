@@ -290,12 +290,14 @@ export type Database = {
           id: string
           images: string[]
           in_stock: boolean
+          is_eco: boolean
           last_stock_check: string | null
           name: string
           price: number | null
           startup_id: string
           updated_at: string
           video_url: string | null
+          videos: string[]
         }
         Insert: {
           availability?: Database["public"]["Enums"]["product_availability"]
@@ -309,12 +311,14 @@ export type Database = {
           id?: string
           images?: string[]
           in_stock?: boolean
+          is_eco?: boolean
           last_stock_check?: string | null
           name: string
           price?: number | null
           startup_id: string
           updated_at?: string
           video_url?: string | null
+          videos?: string[]
         }
         Update: {
           availability?: Database["public"]["Enums"]["product_availability"]
@@ -328,12 +332,14 @@ export type Database = {
           id?: string
           images?: string[]
           in_stock?: boolean
+          is_eco?: boolean
           last_stock_check?: string | null
           name?: string
           price?: number | null
           startup_id?: string
           updated_at?: string
           video_url?: string | null
+          videos?: string[]
         }
         Relationships: [
           {
