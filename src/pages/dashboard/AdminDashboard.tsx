@@ -13,6 +13,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 type Stats = {
   users: number;
@@ -31,6 +32,7 @@ type Stats = {
 };
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { user, loading, isAdmin } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [apps, setApps] = useState<any[]>([]);
@@ -111,10 +113,10 @@ export default function AdminDashboard() {
       const { data, error } = await supabase.functions.invoke("approve-creator-application", { body: { application_id: app.id } });
       if (error) { toast.error(error.message); return; }
       if ((data as any)?.error) { toast.error((data as any).error); return; }
-      toast.success("Créateur approuvé");
+      toast.success(t("dashboard.admin.approved"));
     } else {
       await supabase.from("startup_applications").update({ status, reviewed_at: new Date().toISOString() }).eq("id", app.id);
-      toast.success("Candidature rejetée");
+      toast.success(t("dashboard.admin.rejectedToast"));
     }
     fetchAll();
   };
@@ -122,39 +124,39 @@ export default function AdminDashboard() {
   const updateComplaint = async (id: string, status: string) => {
     const { error } = await supabase.from("complaints").update({ status: status as any, admin_response: responses[id] ?? null }).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Mis à jour"); fetchAll();
+    toast.success(t("dashboard.admin.updated")); fetchAll();
   };
 
   const deleteComplaint = async (id: string) => {
     await supabase.from("complaints").delete().eq("id", id);
-    toast.success("Supprimée"); fetchAll();
+    toast.success(t("dashboard.admin.complaintDeleted")); fetchAll();
   };
 
   const deleteComment = async (id: string) => {
     await supabase.from("product_comments").delete().eq("id", id);
-    toast.success("Commentaire supprimé"); fetchAll();
+    toast.success(t("dashboard.admin.commentDeleted")); fetchAll();
   };
 
   const deleteReview = async (id: string) => {
     await supabase.from("reviews").delete().eq("id", id);
-    toast.success("Avis supprimé"); fetchAll();
+    toast.success(t("dashboard.admin.reviewDeleted")); fetchAll();
   };
 
   const deleteStartup = async (id: string) => {
-    if (!confirm("Supprimer ce créateur définitivement ?")) return;
+    if (!confirm(t("dashboard.admin.confirmDeleteCreator"))) return;
     await supabase.from("startups").delete().eq("id", id);
-    toast.success("Créateur supprimé"); fetchAll();
+    toast.success(t("dashboard.admin.creatorDeleted")); fetchAll();
   };
 
   const deleteProduct = async (id: string) => {
-    if (!confirm("Supprimer ce produit ?")) return;
+    if (!confirm(t("dashboard.admin.confirmDeleteProduct"))) return;
     await supabase.from("products").delete().eq("id", id);
-    toast.success("Produit supprimé"); fetchAll();
+    toast.success(t("dashboard.admin.productDeleted")); fetchAll();
   };
 
   const stopLive = async (id: string) => {
     await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", id);
-    toast.success("Live arrêté"); fetchAll();
+    toast.success(t("dashboard.admin.liveStopped")); fetchAll();
   };
 
   const setBadge = async (id: string, badge: "new" | "verified" | "certified") => {
@@ -169,9 +171,9 @@ export default function AdminDashboard() {
     setConvMessages(data ?? []);
   };
 
-  if (loading) return <PageLayout><div className="container py-20 text-center">Chargement…</div></PageLayout>;
+  if (loading) return <PageLayout><div className="container py-20 text-center">{t("dashboard.admin.loading")}</div></PageLayout>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <PageLayout><div className="container py-20 text-center text-muted-foreground">403 — Accès admin uniquement</div></PageLayout>;
+  if (!isAdmin) return <PageLayout><div className="container py-20 text-center text-muted-foreground">{t("dashboard.admin.accessDenied")}</div></PageLayout>;
 
   const filteredCreators = creators.filter((c) => c.name?.toLowerCase().includes(search.toLowerCase()) || c.city?.toLowerCase().includes(search.toLowerCase()));
   const filteredUsers = users.filter((u) => u.full_name?.toLowerCase().includes(search.toLowerCase()));
@@ -180,40 +182,40 @@ export default function AdminDashboard() {
     <PageLayout>
       <div className="container py-10">
         <div className="mb-8">
-          <h1 className="font-serif text-4xl font-bold">Tableau de bord Admin</h1>
-          <p className="mt-2 text-muted-foreground">Vue d'ensemble complète de la plateforme Warsha</p>
+          <h1 className="font-serif text-4xl font-bold">{t("dashboard.admin.headerTitle")}</h1>
+          <p className="mt-2 text-muted-foreground">{t("dashboard.admin.headerSubtitle")}</p>
         </div>
 
         {/* STAT CARDS */}
         {stats && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={<Users className="h-5 w-5" />} label="Utilisateurs" value={stats.users} sub={`+${stats.signups7d} cette semaine`} />
-            <StatCard icon={<Store className="h-5 w-5" />} label="Créateurs actifs" value={stats.startups} sub={`${stats.creators} comptes créateur`} />
-            <StatCard icon={<ShoppingBag className="h-5 w-5" />} label="Produits" value={stats.products} sub={`${stats.purchases} clics achat`} />
-            <StatCard icon={<Eye className="h-5 w-5" />} label="Vues produits" value={stats.views} sub={`${stats.likes} likes`} />
-            <StatCard icon={<Star className="h-5 w-5" />} label="Avis" value={stats.reviews} />
-            <StatCard icon={<MessageSquare className="h-5 w-5" />} label="Commentaires" value={stats.comments} />
-            <StatCard icon={<FileText className="h-5 w-5" />} label="Demandes en attente" value={stats.pendingApps} highlight={stats.pendingApps > 0} />
-            <StatCard icon={<Flag className="h-5 w-5" />} label="Réclamations en attente" value={stats.pendingComplaints} highlight={stats.pendingComplaints > 0} />
+            <StatCard icon={<Users className="h-5 w-5" />} label={t("dashboard.admin.users")} value={stats.users} sub={t("dashboard.admin.thisWeek", { n: stats.signups7d })} />
+            <StatCard icon={<Store className="h-5 w-5" />} label={t("dashboard.admin.activeCreators")} value={stats.startups} sub={t("dashboard.admin.creatorAccounts", { n: stats.creators })} />
+            <StatCard icon={<ShoppingBag className="h-5 w-5" />} label={t("dashboard.admin.products")} value={stats.products} sub={t("dashboard.admin.purchaseClicks", { n: stats.purchases })} />
+            <StatCard icon={<Eye className="h-5 w-5" />} label={t("dashboard.admin.productViews")} value={stats.views} sub={t("dashboard.admin.likes", { n: stats.likes })} />
+            <StatCard icon={<Star className="h-5 w-5" />} label={t("dashboard.admin.reviews")} value={stats.reviews} />
+            <StatCard icon={<MessageSquare className="h-5 w-5" />} label={t("dashboard.admin.comments")} value={stats.comments} />
+            <StatCard icon={<FileText className="h-5 w-5" />} label={t("dashboard.admin.pendingApplications")} value={stats.pendingApps} highlight={stats.pendingApps > 0} />
+            <StatCard icon={<Flag className="h-5 w-5" />} label={t("dashboard.admin.pendingComplaints")} value={stats.pendingComplaints} highlight={stats.pendingComplaints > 0} />
           </div>
         )}
 
         <Tabs defaultValue="applications" className="mt-10">
           <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto">
-            <TabsTrigger value="applications">Demandes ({stats?.pendingApps ?? 0})</TabsTrigger>
-            <TabsTrigger value="complaints">Réclamations ({stats?.pendingComplaints ?? 0})</TabsTrigger>
-            <TabsTrigger value="creators">Créateurs</TabsTrigger>
-            <TabsTrigger value="products">Produits</TabsTrigger>
-            <TabsTrigger value="chats">Conversations</TabsTrigger>
-            <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-            <TabsTrigger value="comments">Commentaires</TabsTrigger>
-            <TabsTrigger value="reviews">Avis</TabsTrigger>
+            <TabsTrigger value="applications">{t("dashboard.admin.tabApps")} ({stats?.pendingApps ?? 0})</TabsTrigger>
+            <TabsTrigger value="complaints">{t("dashboard.admin.tabComplaints")} ({stats?.pendingComplaints ?? 0})</TabsTrigger>
+            <TabsTrigger value="creators">{t("dashboard.admin.tabCreators")}</TabsTrigger>
+            <TabsTrigger value="products">{t("dashboard.admin.tabProducts")}</TabsTrigger>
+            <TabsTrigger value="chats">{t("dashboard.admin.tabChats")}</TabsTrigger>
+            <TabsTrigger value="users">{t("dashboard.admin.tabUsers")}</TabsTrigger>
+            <TabsTrigger value="comments">{t("dashboard.admin.tabComments")}</TabsTrigger>
+            <TabsTrigger value="reviews">{t("dashboard.admin.tabReviews")}</TabsTrigger>
           </TabsList>
 
           {/* APPLICATIONS */}
           <TabsContent value="applications" className="mt-6 space-y-4">
             {apps.length === 0 ? (
-              <p className="text-muted-foreground">Aucune demande.</p>
+              <p className="text-muted-foreground">{t("dashboard.admin.noApps")}</p>
             ) : apps.map((a) => (
               <Card key={a.id}>
                 <CardContent className="pt-6">
@@ -232,8 +234,8 @@ export default function AdminDashboard() {
                     </div>
                     {a.status === "pending" && (
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => decide(a, "approved")} className="gradient-warm text-primary-foreground"><Check className="mr-1 h-3 w-3" /> Approuver</Button>
-                        <Button size="sm" variant="outline" onClick={() => decide(a, "rejected")}><X className="mr-1 h-3 w-3" /> Rejeter</Button>
+                        <Button size="sm" onClick={() => decide(a, "approved")} className="gradient-warm text-primary-foreground"><Check className="mr-1 h-3 w-3" /> {t("dashboard.admin.approve")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => decide(a, "rejected")}><X className="mr-1 h-3 w-3" /> {t("dashboard.admin.reject")}</Button>
                       </div>
                     )}
                   </div>
@@ -244,7 +246,7 @@ export default function AdminDashboard() {
 
           {/* COMPLAINTS */}
           <TabsContent value="complaints" className="mt-6 space-y-4">
-            {complaints.length === 0 ? <p className="text-muted-foreground">Aucune réclamation.</p> : complaints.map((c) => (
+            {complaints.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComplaints")}</p> : complaints.map((c) => (
               <Card key={c.id}>
                 <CardContent className="pt-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -254,24 +256,24 @@ export default function AdminDashboard() {
                         <Badge variant="outline">{c.status}</Badge>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Contre <strong>{c.startups?.name ?? "—"}</strong> · Par {c.profiles?.full_name ?? "Utilisateur"} · {new Date(c.created_at).toLocaleString()}
+                        {t("dashboard.admin.against")} <strong>{c.startups?.name ?? "—"}</strong> · {t("dashboard.admin.by")} {c.profiles?.full_name ?? t("dashboard.admin.user")} · {new Date(c.created_at).toLocaleString()}
                       </p>
                       <p className="mt-3 whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-sm">{c.message}</p>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => deleteComplaint(c.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                   <div className="mt-4 grid gap-2 md:grid-cols-[1fr_200px_auto]">
-                    <Textarea rows={2} placeholder="Réponse interne…" defaultValue={c.admin_response ?? ""} onChange={(e) => setResponses((r) => ({ ...r, [c.id]: e.target.value }))} />
+                    <Textarea rows={2} placeholder={t("dashboard.admin.internalReply")} defaultValue={c.admin_response ?? ""} onChange={(e) => setResponses((r) => ({ ...r, [c.id]: e.target.value }))} />
                     <Select defaultValue={c.status} onValueChange={(v) => updateComplaint(c.id, v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-popover">
-                        <SelectItem value="pending">En attente</SelectItem>
-                        <SelectItem value="reviewing">En cours</SelectItem>
-                        <SelectItem value="resolved">Résolu</SelectItem>
-                        <SelectItem value="rejected">Rejeté</SelectItem>
+                        <SelectItem value="pending">{t("dashboard.admin.statusPending")}</SelectItem>
+                        <SelectItem value="reviewing">{t("dashboard.admin.statusReviewing")}</SelectItem>
+                        <SelectItem value="resolved">{t("dashboard.admin.statusResolved")}</SelectItem>
+                        <SelectItem value="rejected">{t("dashboard.admin.statusRejected")}</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button onClick={() => updateComplaint(c.id, c.status)} className="gradient-warm text-primary-foreground">Enregistrer</Button>
+                    <Button onClick={() => updateComplaint(c.id, c.status)} className="gradient-warm text-primary-foreground">{t("dashboard.admin.save")}</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -280,15 +282,15 @@ export default function AdminDashboard() {
 
           {/* CREATORS */}
           <TabsContent value="creators" className="mt-6">
-            <Input placeholder="Rechercher un créateur…" value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4 max-w-sm" />
+            <Input placeholder={t("dashboard.admin.searchCreator")} value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4 max-w-sm" />
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Nom</TableHead><TableHead>Ville</TableHead><TableHead>Statut</TableHead>
-                  <TableHead>Badge</TableHead>
+                  <TableHead>{t("dashboard.admin.name")}</TableHead><TableHead>{t("dashboard.admin.city")}</TableHead><TableHead>{t("dashboard.admin.status")}</TableHead>
+                  <TableHead>{t("dashboard.admin.badge")}</TableHead>
                   <TableHead className="text-right"><Heart className="inline h-3 w-3" /></TableHead>
-                  <TableHead className="text-right">Soutiens</TableHead>
-                  <TableHead>Inscrit</TableHead><TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">{t("dashboard.admin.supporters")}</TableHead>
+                  <TableHead>{t("dashboard.admin.registered")}</TableHead><TableHead className="text-right">{t("dashboard.admin.actions")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {filteredCreators.map((c) => (
@@ -300,9 +302,9 @@ export default function AdminDashboard() {
                         <Select defaultValue={c.badge ?? "new"} onValueChange={(v) => setBadge(c.id, v as any)}>
                           <SelectTrigger className="h-8 w-[120px]"><SelectValue /></SelectTrigger>
                           <SelectContent className="bg-popover">
-                            <SelectItem value="new">Nouveau</SelectItem>
-                            <SelectItem value="verified">Vérifié</SelectItem>
-                            <SelectItem value="certified">Certifié</SelectItem>
+                            <SelectItem value="new">{t("dashboard.admin.badgeNew")}</SelectItem>
+                            <SelectItem value="verified">{t("dashboard.admin.badgeVerified")}</SelectItem>
+                            <SelectItem value="certified">{t("dashboard.admin.badgeCertified")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -312,11 +314,11 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           {c.is_live && (
-                            <Button size="sm" variant="outline" onClick={() => stopLive(c.id)} title="Arrêter le live">
+                            <Button size="sm" variant="outline" onClick={() => stopLive(c.id)} title={t("dashboard.admin.stopLiveTitle")}>
                               <Radio className="h-4 w-4 text-red-500" />
                             </Button>
                           )}
-                          <Button size="sm" variant="ghost" onClick={() => deleteStartup(c.id)} title="Supprimer le créateur">
+                          <Button size="sm" variant="ghost" onClick={() => deleteStartup(c.id)} title={t("dashboard.admin.deleteCreator")}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -334,11 +336,11 @@ export default function AdminDashboard() {
               <Table>
                 <TableHeader><TableRow>
                   <TableHead></TableHead>
-                  <TableHead>Produit</TableHead>
-                  <TableHead>Créateur</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Publié</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("dashboard.admin.product")}</TableHead>
+                  <TableHead>{t("dashboard.admin.creator")}</TableHead>
+                  <TableHead>{t("dashboard.admin.stock")}</TableHead>
+                  <TableHead>{t("dashboard.admin.published")}</TableHead>
+                  <TableHead className="text-right">{t("dashboard.admin.actions")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {products.map((p) => (
@@ -346,10 +348,10 @@ export default function AdminDashboard() {
                       <TableCell>{p.images?.[0] && <img src={p.images[0]} className="h-10 w-10 rounded object-cover" />}</TableCell>
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell><Link to={`/startup/${p.startups?.slug}`} className="hover:underline text-sm">{p.startups?.name ?? "—"}</Link></TableCell>
-                      <TableCell><Badge variant={p.in_stock ? "outline" : "secondary"}>{p.in_stock ? "Oui" : "Non"}</Badge></TableCell>
+                      <TableCell><Badge variant={p.in_stock ? "outline" : "secondary"}>{p.in_stock ? t("common.yes") : t("common.no")}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="ghost" onClick={() => deleteProduct(p.id)} title="Supprimer le produit">
+                        <Button size="sm" variant="ghost" onClick={() => deleteProduct(p.id)} title={t("dashboard.admin.deleteProduct")}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -366,7 +368,7 @@ export default function AdminDashboard() {
               <Card className="h-[600px] overflow-y-auto">
                 <CardContent className="p-2">
                   {conversations.length === 0 ? (
-                    <p className="p-3 text-sm text-muted-foreground">Aucune conversation.</p>
+                    <p className="p-3 text-sm text-muted-foreground">{t("dashboard.admin.noConversations")}</p>
                   ) : conversations.map((c) => (
                     <button
                       key={c.id}
@@ -375,7 +377,7 @@ export default function AdminDashboard() {
                     >
                       <div className="flex items-center gap-2 font-medium">
                         <MessageCircle className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{c.profiles?.full_name ?? "Utilisateur"}</span>
+                        <span className="truncate">{c.profiles?.full_name ?? t("dashboard.admin.user")}</span>
                       </div>
                       <div className="mt-1 truncate text-xs text-muted-foreground">↔ {c.startups?.name ?? "—"}</div>
                       <div className="mt-1 text-[10px] text-muted-foreground">{new Date(c.last_message_at).toLocaleString()}</div>
@@ -385,8 +387,8 @@ export default function AdminDashboard() {
               </Card>
               <Card className="h-[600px] overflow-y-auto">
                 <CardContent className="space-y-3 p-4">
-                  {!activeConv && <p className="text-sm text-muted-foreground">Sélectionnez une conversation.</p>}
-                  {activeConv && convMessages.length === 0 && <p className="text-sm text-muted-foreground">Aucun message.</p>}
+                  {!activeConv && <p className="text-sm text-muted-foreground">{t("dashboard.admin.selectConversation")}</p>}
+                  {activeConv && convMessages.length === 0 && <p className="text-sm text-muted-foreground">{t("dashboard.admin.noMessages")}</p>}
                   {convMessages.map((m) => (
                     <div key={m.id} className="rounded-md border p-3">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -397,7 +399,7 @@ export default function AdminDashboard() {
                       {m.attachments?.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {m.attachments.map((a: string, i: number) => (
-                            <a key={i} href={a} target="_blank" rel="noreferrer" className="text-xs underline">Pièce {i + 1}</a>
+                            <a key={i} href={a} target="_blank" rel="noreferrer" className="text-xs underline">{t("dashboard.admin.attachment", { n: i + 1 })}</a>
                           ))}
                         </div>
                       )}
@@ -410,11 +412,11 @@ export default function AdminDashboard() {
 
           {/* USERS */}
           <TabsContent value="users" className="mt-6">
-            <Input placeholder="Rechercher un utilisateur…" value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4 max-w-sm" />
+            <Input placeholder={t("dashboard.admin.searchUser")} value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4 max-w-sm" />
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Nom</TableHead><TableHead>Ville</TableHead><TableHead>Langue</TableHead><TableHead>Inscrit le</TableHead>
+                  <TableHead>{t("dashboard.admin.name")}</TableHead><TableHead>{t("dashboard.admin.city")}</TableHead><TableHead>{t("dashboard.admin.language")}</TableHead><TableHead>{t("dashboard.admin.registeredAt")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {filteredUsers.map((u) => (
@@ -432,12 +434,12 @@ export default function AdminDashboard() {
 
           {/* COMMENTS */}
           <TabsContent value="comments" className="mt-6 space-y-3">
-            {comments.length === 0 ? <p className="text-muted-foreground">Aucun commentaire.</p> : comments.map((c) => (
+            {comments.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComments")}</p> : comments.map((c) => (
               <Card key={c.id}><CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">
-                      <strong>{c.is_anonymous ? "Anonyme" : (c.profiles?.full_name ?? "Utilisateur")}</strong> · sur <em>{c.products?.name ?? "—"}</em> · {new Date(c.created_at).toLocaleString()}
+                      <strong>{c.is_anonymous ? t("dashboard.admin.anonymous") : (c.profiles?.full_name ?? t("dashboard.admin.user"))}</strong> · {t("dashboard.admin.on")} <em>{c.products?.name ?? "—"}</em> · {new Date(c.created_at).toLocaleString()}
                     </p>
                     <p className="mt-2 text-sm">{c.content}</p>
                   </div>
@@ -449,12 +451,12 @@ export default function AdminDashboard() {
 
           {/* REVIEWS */}
           <TabsContent value="reviews" className="mt-6 space-y-3">
-            {reviews.length === 0 ? <p className="text-muted-foreground">Aucun avis.</p> : reviews.map((r) => (
+            {reviews.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noReviews")}</p> : reviews.map((r) => (
               <Card key={r.id}><CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">
-                      <strong>{r.profiles?.full_name ?? "Utilisateur"}</strong> · sur <Link className="hover:underline" to={`/startup/${r.startups?.slug}`}><em>{r.startups?.name}</em></Link> · {new Date(r.created_at).toLocaleString()}
+                      <strong>{r.profiles?.full_name ?? t("dashboard.admin.user")}</strong> · {t("dashboard.admin.on")} <Link className="hover:underline" to={`/startup/${r.startups?.slug}`}><em>{r.startups?.name}</em></Link> · {new Date(r.created_at).toLocaleString()}
                     </p>
                     <div className="mt-1 flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-amber-500 text-amber-500" : "text-muted"}`} />)}</div>
                     {r.comment && <p className="mt-2 text-sm">{r.comment}</p>}

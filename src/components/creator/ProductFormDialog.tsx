@@ -63,11 +63,11 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
 
   const uploadImage = async (file: File) => {
     if (images.length >= 5) {
-      toast({ title: "Maximum 5 photos", variant: "destructive" });
+      toast({ title: t("productForm.errMax5"), variant: "destructive" });
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast({ title: "Image requise", variant: "destructive" });
+      toast({ title: t("productForm.errImage"), variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -85,11 +85,11 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
 
   const uploadVideo = async (file: File) => {
     if (videos.length >= 2) {
-      toast({ title: "Maximum 2 vidéos", variant: "destructive" });
+      toast({ title: t("productForm.errMax2"), variant: "destructive" });
       return;
     }
     if (!file.type.startsWith("video/")) {
-      toast({ title: "Fichier vidéo requis", variant: "destructive" });
+      toast({ title: t("productForm.errVideoFile"), variant: "destructive" });
       return;
     }
     const duration = await new Promise<number>((resolve) => {
@@ -101,8 +101,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     });
     if (duration > 61) {
       toast({
-        title: "Vidéo trop longue",
-        description: `Maximum 1 minute (la tienne fait ${Math.round(duration)}s).`,
+        title: t("productForm.errVideoLong"),
+        description: t("productForm.errVideoLongDesc", { n: Math.round(duration) }),
         variant: "destructive",
       });
       return;
@@ -121,20 +121,20 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
   };
 
   const submit = async () => {
-    if (!name.trim()) return toast({ title: "Nom du produit requis", variant: "destructive" });
-    if (!description.trim()) return toast({ title: "Description requise", variant: "destructive" });
-    if (!category) return toast({ title: "Catégorie requise", variant: "destructive" });
-    if (!priceStr.trim()) return toast({ title: "Prix obligatoire", variant: "destructive" });
+    if (!name.trim()) return toast({ title: t("productForm.errName"), variant: "destructive" });
+    if (!description.trim()) return toast({ title: t("productForm.errDesc"), variant: "destructive" });
+    if (!category) return toast({ title: t("productForm.errCategory"), variant: "destructive" });
+    if (!priceStr.trim()) return toast({ title: t("productForm.errPriceReq"), variant: "destructive" });
     if (!PRICE_REGEX.test(priceStr.trim())) {
-      return toast({ title: "Prix invalide", description: "Uniquement des chiffres, un point ou une virgule.", variant: "destructive" });
+      return toast({ title: t("productForm.errPriceInvalid"), description: t("productForm.errPriceInvalidDesc"), variant: "destructive" });
     }
     const price = parseFloat(priceStr.replace(",", "."));
-    if (!(price > 0)) return toast({ title: "Le prix doit être supérieur à 0", variant: "destructive" });
-    if (images.length === 0) return toast({ title: "Au moins 1 photo est obligatoire", variant: "destructive" });
+    if (!(price > 0)) return toast({ title: t("productForm.errPriceZero"), variant: "destructive" });
+    if (images.length === 0) return toast({ title: t("productForm.errPhotoReq"), variant: "destructive" });
     let fee: number | null = null;
     if (deliveryAvailable && deliveryFee.trim()) {
       if (!PRICE_REGEX.test(deliveryFee.trim())) {
-        return toast({ title: "Frais de livraison invalides", variant: "destructive" });
+        return toast({ title: t("productForm.errDeliveryFee"), variant: "destructive" });
       }
       fee = parseFloat(deliveryFee.replace(",", "."));
     }
@@ -157,7 +157,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       : await supabase.from("products").insert(payload);
     setSaving(false);
     if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: product ? "Produit mis à jour" : "Produit publié" });
+    toast({ title: product ? t("productForm.okUpdated") : t("productForm.okPublished") });
     onSaved();
     onOpenChange(false);
   };
@@ -166,21 +166,21 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-background">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl">{product ? "Modifier le produit" : "Nouveau produit"}</DialogTitle>
+          <DialogTitle className="font-serif text-2xl">{product ? t("productForm.editTitle") : t("productForm.newTitle")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label>Nom du produit *</Label>
+            <Label>{t("productForm.name")} *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
           </div>
           <div>
-            <Label>Description courte *</Label>
+            <Label>{t("productForm.shortDescription")} *</Label>
             <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Catégorie *</Label>
+              <Label>{t("productForm.category")} *</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent className="bg-popover">
@@ -189,10 +189,10 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
               </Select>
             </div>
             <div>
-              <Label>Prix (TND) *</Label>
+              <Label>{t("productForm.price")} *</Label>
               <Input
                 inputMode="decimal"
-                placeholder="ex : 49,90"
+                placeholder={t("productForm.pricePlaceholder")}
                 value={priceStr}
                 onChange={(e) => handlePriceChange(e.target.value)}
               />
@@ -201,20 +201,20 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
 
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs">
             <AlertTriangle className="mr-1 inline h-4 w-4 text-destructive" />
-            <strong>Affiche un prix réel.</strong> Toute réclamation justifiée prouvant que le prix est faux entraînera la <strong>suppression du produit</strong>.
+            <strong>{t("productForm.priceWarning1")}</strong> {t("productForm.priceWarning2")} <strong>{t("productForm.priceWarning3")}</strong>.
           </div>
 
           <div className="rounded-lg border p-3">
             <label className="flex cursor-pointer items-center gap-2">
               <Checkbox checked={deliveryAvailable} onCheckedChange={(v) => setDeliveryAvailable(!!v)} />
-              <span className="text-sm font-medium">Livraison disponible</span>
+              <span className="text-sm font-medium">{t("productForm.deliveryAvailable")}</span>
             </label>
             {deliveryAvailable && (
               <div className="mt-3">
-                <Label>Frais de livraison (TND)</Label>
+                <Label>{t("productForm.deliveryFee")}</Label>
                 <Input
                   inputMode="decimal"
-                  placeholder="ex : 7"
+                  placeholder={t("productForm.deliveryFeePlaceholder")}
                   value={deliveryFee}
                   onChange={(e) => setDeliveryFee(e.target.value.replace(/[^0-9.,]/g, ""))}
                 />
@@ -225,13 +225,13 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border p-3">
             <Checkbox checked={isEco} onCheckedChange={(v) => setIsEco(!!v)} />
             <Leaf className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-medium">Produit éco-responsable</span>
+            <span className="text-sm font-medium">{t("productForm.ecoLabel")}</span>
           </label>
 
           {/* Photos */}
           <div>
-            <Label className="flex items-center gap-2"><Camera className="h-4 w-4" /> Photos * ({images.length}/5)</Label>
-            <p className="mt-1 text-xs text-muted-foreground">Au moins 1 photo, jusqu'à 5.</p>
+            <Label className="flex items-center gap-2"><Camera className="h-4 w-4" /> {t("productForm.photos")} * ({images.length}/5)</Label>
+            <p className="mt-1 text-xs text-muted-foreground">{t("productForm.photosHint")}</p>
             <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
               {images.map((url, i) => (
                 <div key={url} className="relative">
@@ -247,7 +247,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
               ))}
               {images.length < 5 && (
                 <label className="flex h-20 cursor-pointer items-center justify-center rounded-md border-2 border-dashed text-xs text-muted-foreground hover:border-primary">
-                  + ajouter
+                  {t("productForm.addPhoto")}
                   <input
                     type="file"
                     accept="image/*"
@@ -261,8 +261,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
 
           {/* Vidéos */}
           <div>
-            <Label className="flex items-center gap-2"><Video className="h-4 w-4" /> Vidéos ({videos.length}/2)</Label>
-            <p className="mt-1 text-xs text-muted-foreground">Optionnel — jusqu'à 2 vidéos d'1 minute max.</p>
+            <Label className="flex items-center gap-2"><Video className="h-4 w-4" /> {t("productForm.videos")} ({videos.length}/2)</Label>
+            <p className="mt-1 text-xs text-muted-foreground">{t("productForm.videosHint")}</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {videos.map((url, i) => (
                 <div key={url} className="relative">
@@ -278,7 +278,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
               ))}
               {videos.length < 2 && (
                 <label className="flex h-32 cursor-pointer items-center justify-center rounded-md border-2 border-dashed text-xs text-muted-foreground hover:border-primary">
-                  + ajouter une vidéo
+                  {t("productForm.addVideo")}
                   <input
                     type="file"
                     accept="video/*"
@@ -292,15 +292,15 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
 
           {uploading && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Téléversement…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("productForm.uploading")}
             </p>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("productForm.cancel")}</Button>
           <Button onClick={submit} disabled={saving || uploading} className="gradient-warm text-primary-foreground">
-            {saving ? "Enregistrement…" : product ? "Mettre à jour" : "Publier"}
+            {saving ? t("productForm.saving") : product ? t("productForm.update") : t("productForm.publish")}
           </Button>
         </DialogFooter>
       </DialogContent>
