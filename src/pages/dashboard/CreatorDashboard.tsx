@@ -111,8 +111,8 @@ export default function CreatorDashboard() {
 
   const saveProfile = async () => {
     if (!startup) return;
-    if (!pf.name.trim()) return toast({ title: "Nom requis", variant: "destructive" });
-    if (pf.categories.length === 0) return toast({ title: "Au moins 1 catégorie", variant: "destructive" });
+    if (!pf.name.trim()) return toast({ title: t("dashboard.creator.toastBrandRequired"), variant: "destructive" });
+    if (pf.categories.length === 0) return toast({ title: t("dashboard.creator.toastCategoryRequired"), variant: "destructive" });
     setSavingProfile(true);
     const { error } = await supabase.from("startups").update({
       name: pf.name.trim(),
@@ -132,14 +132,14 @@ export default function CreatorDashboard() {
     }).eq("id", startup.id);
     setSavingProfile(false);
     if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: "Profil mis à jour" });
+    toast({ title: t("dashboard.creator.toastProfileUpdated") });
     refreshAll(user!.id);
   };
 
   const deleteProduct = async (id: string) => {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: "Produit supprimé" });
+    toast({ title: t("dashboard.creator.toastProductDeleted") });
     refreshAll(user!.id);
   };
 
@@ -151,14 +151,14 @@ export default function CreatorDashboard() {
       live_started_at: newLive ? new Date().toISOString() : null,
     }).eq("id", startup.id);
     if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: newLive ? "Tu es en live !" : "Live terminé" });
+    toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
     refreshAll(user!.id);
   };
 
   const markNewPost = async () => {
     if (!startup) return;
     await supabase.from("startups").update({ last_post_at: new Date().toISOString() }).eq("id", startup.id);
-    toast({ title: "Nouveau post signalé à ta communauté" });
+    toast({ title: t("dashboard.creator.toastNewPost") });
     refreshAll(user!.id);
   };
 
@@ -196,29 +196,29 @@ export default function CreatorDashboard() {
             <p className="text-muted-foreground">{startup.tagline}</p>
           </div>
           <Badge variant={startup.is_live ? "destructive" : "secondary"} className="gap-1">
-            <Radio className="h-3 w-3" /> {startup.is_live ? "EN LIVE" : "Hors ligne"}
+            <Radio className="h-3 w-3" /> {startup.is_live ? t("dashboard.creator.live") : t("dashboard.creator.offline")}
           </Badge>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={Heart} label="J'aime" value={startup.likes_count} />
-          <StatCard icon={Users} label="Soutiens" value={startup.supporters_count} />
-          <StatCard icon={MessageCircle} label="Clics achat" value={clicks} />
-          <StatCard icon={Eye} label="Vues (30j)" value={totalViews} />
+          <StatCard icon={Heart} label={t("dashboard.creator.totalLikes")} value={startup.likes_count} />
+          <StatCard icon={Users} label={t("dashboard.creator.totalSupporters")} value={startup.supporters_count} />
+          <StatCard icon={MessageCircle} label={t("dashboard.creator.purchaseClicks")} value={clicks} />
+          <StatCard icon={Eye} label={t("dashboard.creator.views30d")} value={totalViews} />
         </div>
 
         <Tabs defaultValue="stats" className="mt-8">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="stats">Statistiques</TabsTrigger>
-            <TabsTrigger value="profile">Profil & vitrine</TabsTrigger>
-            <TabsTrigger value="products">Produits ({products.length})</TabsTrigger>
-            <TabsTrigger value="live">Live & posts</TabsTrigger>
+            <TabsTrigger value="stats">{t("dashboard.creator.tabStats")}</TabsTrigger>
+            <TabsTrigger value="profile">{t("dashboard.creator.tabProfile")}</TabsTrigger>
+            <TabsTrigger value="products">{t("dashboard.creator.tabProducts")} ({products.length})</TabsTrigger>
+            <TabsTrigger value="live">{t("dashboard.creator.tabLive")}</TabsTrigger>
           </TabsList>
 
           {/* STATS */}
           <TabsContent value="stats" className="space-y-6">
             <Card>
-              <CardHeader><CardTitle>Vues sur 30 jours</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t("dashboard.creator.chartViews")}</CardTitle></CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={views30d}>
@@ -232,10 +232,10 @@ export default function CreatorDashboard() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle>Top 5 produits (vues 30j)</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t("dashboard.creator.chartTop5")}</CardTitle></CardHeader>
               <CardContent className="h-72">
                 {topProducts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune vue encore.</p>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.creator.noViewsYet")}</p>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={topProducts}>
@@ -256,28 +256,28 @@ export default function CreatorDashboard() {
             <Card>
               <CardContent className="space-y-4 pt-6">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <AssetUploader label="Logo" url={pf.logo_url} onPick={(f) => uploadAsset(f, "logo_url")} onClear={() => setPf((p) => ({ ...p, logo_url: "" }))} />
-                  <AssetUploader label="Couverture" url={pf.cover_url} onPick={(f) => uploadAsset(f, "cover_url")} onClear={() => setPf((p) => ({ ...p, cover_url: "" }))} wide />
+                  <AssetUploader label={t("dashboard.creator.logo")} url={pf.logo_url} onPick={(f) => uploadAsset(f, "logo_url")} onClear={() => setPf((p) => ({ ...p, logo_url: "" }))} />
+                  <AssetUploader label={t("dashboard.creator.cover")} url={pf.cover_url} onPick={(f) => uploadAsset(f, "cover_url")} onClear={() => setPf((p) => ({ ...p, cover_url: "" }))} wide />
                 </div>
                 <div>
-                  <Label>Nom de la marque *</Label>
+                  <Label>{t("dashboard.creator.brandName")} *</Label>
                   <Input value={pf.name} onChange={(e) => setPf({ ...pf, name: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Slogan</Label>
+                  <Label>{t("dashboard.creator.tagline")}</Label>
                   <Input value={pf.tagline} onChange={(e) => setPf({ ...pf, tagline: e.target.value })} maxLength={120} />
                 </div>
                 <div>
-                  <Label>Description</Label>
+                  <Label>{t("dashboard.creator.description")}</Label>
                   <Textarea rows={3} value={pf.description} onChange={(e) => setPf({ ...pf, description: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Histoire de ta création</Label>
+                  <Label>{t("dashboard.creator.creatorStory")}</Label>
                   <Textarea rows={4} value={pf.creator_story} onChange={(e) => setPf({ ...pf, creator_story: e.target.value })} />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label>Ville</Label>
+                    <Label>{t("dashboard.creator.city")}</Label>
                     <Select value={pf.city} onValueChange={(v) => setPf({ ...pf, city: v, delegation: "" })}>
                       <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent className="bg-popover">
@@ -286,7 +286,7 @@ export default function CreatorDashboard() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Délégation</Label>
+                    <Label>{t("dashboard.creator.delegation")}</Label>
                     <Select value={pf.delegation} onValueChange={(v) => setPf({ ...pf, delegation: v })} disabled={!pf.city}>
                       <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent className="bg-popover">
@@ -296,7 +296,7 @@ export default function CreatorDashboard() {
                   </div>
                 </div>
                 <div>
-                  <Label>Catégories *</Label>
+                  <Label>{t("dashboard.creator.categories")} *</Label>
                   <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {CATEGORIES_KEYS.map((c) => {
                       const checked = pf.categories.includes(c);
@@ -312,14 +312,14 @@ export default function CreatorDashboard() {
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div><Label>WhatsApp</Label><Input value={pf.whatsapp_number} onChange={(e) => setPf({ ...pf, whatsapp_number: e.target.value })} /></div>
-                  <div><Label>Instagram</Label><Input value={pf.instagram_url} onChange={(e) => setPf({ ...pf, instagram_url: e.target.value })} /></div>
-                  <div><Label>Facebook</Label><Input value={pf.facebook_url} onChange={(e) => setPf({ ...pf, facebook_url: e.target.value })} /></div>
-                  <div><Label>TikTok</Label><Input value={pf.tiktok_url} onChange={(e) => setPf({ ...pf, tiktok_url: e.target.value })} /></div>
+                  <div><Label>{t("dashboard.creator.whatsapp")}</Label><Input value={pf.whatsapp_number} onChange={(e) => setPf({ ...pf, whatsapp_number: e.target.value })} /></div>
+                  <div><Label>{t("dashboard.creator.instagram")}</Label><Input value={pf.instagram_url} onChange={(e) => setPf({ ...pf, instagram_url: e.target.value })} /></div>
+                  <div><Label>{t("dashboard.creator.facebook")}</Label><Input value={pf.facebook_url} onChange={(e) => setPf({ ...pf, facebook_url: e.target.value })} /></div>
+                  <div><Label>{t("dashboard.creator.tiktok")}</Label><Input value={pf.tiktok_url} onChange={(e) => setPf({ ...pf, tiktok_url: e.target.value })} /></div>
                 </div>
                 <Button onClick={saveProfile} disabled={savingProfile} className="gradient-warm text-primary-foreground">
                   {savingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Enregistrer
+                  {t("dashboard.creator.save")}
                 </Button>
               </CardContent>
             </Card>
@@ -329,11 +329,11 @@ export default function CreatorDashboard() {
           <TabsContent value="products">
             <div className="mb-4 flex justify-end">
               <Button onClick={() => { setProductEdit(null); setProductOpen(true); }} className="gradient-warm text-primary-foreground">
-                <Plus className="mr-2 h-4 w-4" /> Nouveau produit
+                <Plus className="mr-2 h-4 w-4" /> {t("dashboard.creator.newProduct")}
               </Button>
             </div>
             {products.length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun produit pour l'instant.</CardContent></Card>
+              <Card><CardContent className="py-12 text-center text-muted-foreground">{t("dashboard.creator.noProducts")}</CardContent></Card>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {products.map((p) => (
@@ -354,7 +354,7 @@ export default function CreatorDashboard() {
                       <p className="line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
                       <div className="flex gap-2 pt-2">
                         <Button size="sm" variant="outline" className="flex-1" onClick={() => { setProductEdit(p); setProductOpen(true); }}>
-                          <Pencil className="mr-1 h-3 w-3" /> Modifier
+                          <Pencil className="mr-1 h-3 w-3" /> {t("dashboard.creator.edit")}
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -362,12 +362,12 @@ export default function CreatorDashboard() {
                           </AlertDialogTrigger>
                           <AlertDialogContent className="bg-background">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
-                              <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                              <AlertDialogTitle>{t("dashboard.creator.deleteProductTitle")}</AlertDialogTitle>
+                              <AlertDialogDescription>{t("dashboard.creator.deleteProductDesc")}</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteProduct(p.id)}>Supprimer</AlertDialogAction>
+                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteProduct(p.id)}>{t("common.delete")}</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -391,26 +391,25 @@ export default function CreatorDashboard() {
           {/* LIVE */}
           <TabsContent value="live">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Radio className="h-5 w-5 text-primary" /> Live</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Radio className="h-5 w-5 text-primary" /> {t("dashboard.creator.liveTitle")}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   {startup.is_live
-                    ? `Tu es en live depuis ${startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—"}.`
-                    : "Annonce un live à ta communauté pour booster ta visibilité."}
+                    ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
+                    : t("dashboard.creator.liveInvite")}
                 </p>
                 <Button onClick={toggleLive} variant={startup.is_live ? "destructive" : "default"} className={startup.is_live ? "" : "gradient-warm text-primary-foreground"}>
-                  {startup.is_live ? "Arrêter le live" : "Démarrer un live"}
+                  {startup.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
                 </Button>
               </CardContent>
             </Card>
             <Card className="mt-6">
-              <CardHeader><CardTitle>Nouveau post</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t("dashboard.creator.newPostTitle")}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Marque la mise à jour de ta vitrine. Dernier signal :{" "}
-                  {startup.last_post_at ? new Date(startup.last_post_at).toLocaleString() : "jamais"}.
+                  {t("dashboard.creator.newPostDesc", { time: startup.last_post_at ? new Date(startup.last_post_at).toLocaleString() : t("dashboard.creator.never") })}
                 </p>
-                <Button onClick={markNewPost} variant="outline">Signaler une nouveauté</Button>
+                <Button onClick={markNewPost} variant="outline">{t("dashboard.creator.signalNew")}</Button>
               </CardContent>
             </Card>
           </TabsContent>
