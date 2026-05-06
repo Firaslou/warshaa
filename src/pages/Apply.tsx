@@ -251,7 +251,7 @@ export default function Apply() {
                 </Select>
               </div>
               <div>
-                <Label>Délégation</Label>
+                <Label>{t("applyExtra.delegation")}</Label>
                 <Select value={form.delegation} onValueChange={(v)=>setForm({...form, delegation:v})} disabled={!form.city}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent className="bg-popover">
@@ -260,7 +260,7 @@ export default function Apply() {
                 </Select>
               </div>
               <div className="md:col-span-2">
-                <Label>{t("apply.category")} * <span className="text-xs text-muted-foreground">(plusieurs possibles)</span></Label>
+                <Label>{t("apply.category")} * <span className="text-xs text-muted-foreground">{t("applyExtra.multipleAllowed")}</span></Label>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {CATEGORIES_KEYS.map((c) => {
                     const checked = form.categories.includes(c);
@@ -296,7 +296,7 @@ export default function Apply() {
                 <Input value={form.facebook_url} onChange={(e)=>setForm({...form, facebook_url:e.target.value})} />
               </div>
               <div className="md:col-span-2">
-                <Label>TikTok <span className="text-xs text-muted-foreground">(optionnel)</span></Label>
+                <Label>TikTok <span className="text-xs text-muted-foreground">{t("applyExtra.optional")}</span></Label>
                 <Input placeholder="https://tiktok.com/@..." value={form.tiktok_url} onChange={(e)=>setForm({...form, tiktok_url:e.target.value})} />
               </div>
 
@@ -304,15 +304,13 @@ export default function Apply() {
               <div className="md:col-span-2 mt-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Heart className="h-5 w-5 text-primary" />
-                  <h3 className="font-serif text-lg font-bold">Histoire de ta création</h3>
-                  <Badge variant="secondary">Optionnel</Badge>
+                  <h3 className="font-serif text-lg font-bold">{t("applyExtra.storyTitle")}</h3>
+                  <Badge variant="secondary">{t("applyExtra.storyOptional")}</Badge>
                 </div>
-                <p className="mb-3 text-sm text-muted-foreground">
-                  Raconte-nous comment cette idée est née, ton histoire d'amour avec ton métier, ce qui t'a inspiré… Cela touchera ton public et l'encouragera à te soutenir.
-                </p>
+                <p className="mb-3 text-sm text-muted-foreground">{t("applyExtra.storyDesc")}</p>
                 <Textarea
                   rows={5}
-                  placeholder="Tout a commencé un jour où…"
+                  placeholder={t("applyExtra.storyPlaceholder")}
                   value={form.creator_story}
                   onChange={(e)=>setForm({...form, creator_story:e.target.value})}
                 />
@@ -322,19 +320,19 @@ export default function Apply() {
               <div className="md:col-span-2 mt-4 rounded-xl border-2 border-destructive/40 bg-destructive/5 p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5 text-destructive" />
-                  <h3 className="font-serif text-lg font-bold">Sécurité & Vérification</h3>
-                  <Badge variant="destructive">Obligatoire</Badge>
+                  <h3 className="font-serif text-lg font-bold">{t("applyExtra.securityTitle")}</h3>
+                  <Badge variant="destructive">{t("applyExtra.obligatory")}</Badge>
                 </div>
                 <div className="mb-4 rounded-lg border border-destructive/30 bg-background p-3 text-sm">
-                  ⚠️ <strong>Attention :</strong> chaque élément manquant ci-dessous entraînera l'<strong>annulation directe</strong> de ta demande de devenir créateur. Ces preuves nous permettent de garantir l'authenticité de ta boutique.
+                  ⚠️ <strong>{t("applyExtra.warning")}</strong> {t("applyExtra.warningDesc")}
                 </div>
 
                 {/* Vidéo 10s */}
                 <div className="mb-5">
                   <Label className="flex items-center gap-2">
-                    <Video className="h-4 w-4" /> Vidéo de toi en train de créer (max 10 secondes) *
+                    <Video className="h-4 w-4" /> {t("applyExtra.videoLabel")} *
                   </Label>
-                  <p className="mt-1 text-xs text-muted-foreground">Une courte vidéo (≤ 10s) où l'on te voit fabriquer ton produit.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.videoHint")}</p>
                   <div className="mt-2 flex items-center gap-3">
                     <Input
                       type="file"
@@ -352,9 +350,9 @@ export default function Apply() {
                 {/* 3 photos réelles */}
                 <div className="mb-5">
                   <Label className="flex items-center gap-2">
-                    <Camera className="h-4 w-4" /> 3 photos réelles de tes créations * ({form.proof_photos.length}/3)
+                    <Camera className="h-4 w-4" /> {t("applyExtra.photosLabel")} * ({form.proof_photos.length}/3)
                   </Label>
-                  <p className="mt-1 text-xs text-muted-foreground">Photos prises par toi, non retouchées, montrant clairement tes produits.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.photosHint")}</p>
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     {form.proof_photos.map((url, i) => (
                       <div key={i} className="relative">
@@ -385,11 +383,9 @@ export default function Apply() {
                 {/* Photo de vérification */}
                 <div>
                   <Label className="flex items-center gap-2">
-                    <Hand className="h-4 w-4" /> Photo de vérification *
+                    <Hand className="h-4 w-4" /> {t("applyExtra.verifLabel")} *
                   </Label>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Selfie de toi tenant un papier avec « Warsha » écrit à la main + la date du jour.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.verifHint")}</p>
                   <div className="mt-2 flex items-center gap-3">
                     <Input
                       type="file"
