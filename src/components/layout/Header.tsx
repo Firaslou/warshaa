@@ -64,7 +64,7 @@ export function Header() {
                   <UserIcon className="mr-2 h-4 w-4" /> {t("nav.myAccount")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/messages")}>
-                  <MessageCircle className="mr-2 h-4 w-4" /> Messages
+                  <MessageCircle className="mr-2 h-4 w-4" /> {t("header.messages")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                   <LayoutDashboard className="mr-2 h-4 w-4" /> {t("nav.dashboard")}
