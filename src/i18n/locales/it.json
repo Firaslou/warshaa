@@ -78,7 +78,10 @@
     "randomTitle": "Nessuna idea?",
     "randomSubtitle": "Lascia che il caso decida. Scopri un creatore a caso — il tuo prossimo colpo di fulmine ti aspetta.",
     "randomCta": "Colpo di fulmine",
-    "supportLine": "Ogni acquisto è un atto di sostegno all'imprenditoria tunisina."
+    "supportLine": "Ogni acquisto è un atto di sostegno all'imprenditoria tunisina.",
+    "dailyBadge": "Preferito del giorno",
+    "dailyTitle": "Il creatore da scoprire oggi",
+    "dailyCta": "Visita la sua bottega"
   },
   "products": {
     "title": "Tutti i prodotti",

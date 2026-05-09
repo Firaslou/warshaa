@@ -78,7 +78,10 @@
     "randomTitle": "Keine Idee?",
     "randomSubtitle": "Lassen Sie den Zufall entscheiden. Entdecken Sie einen zufälligen Kreativen – Ihr nächster Favorit wartet auf Sie.",
     "randomCta": "Zufälliger Favorit",
-    "supportLine": "Jeder Kauf ist ein Akt der Unterstützung für das tunesische Unternehmertum."
+    "supportLine": "Jeder Kauf ist ein Akt der Unterstützung für das tunesische Unternehmertum.",
+    "dailyBadge": "Favorit des Tages",
+    "dailyTitle": "Der Kreative, den du heute entdecken solltest",
+    "dailyCta": "Shop besuchen"
   },
   "products": {
     "title": "Alle Produkte",
