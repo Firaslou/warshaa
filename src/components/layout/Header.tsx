@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, ShoppingBag, MessageCircle } from "lucide-react";
+import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, ShoppingBag, MessageCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ export function Header() {
       <NavLink to="/creators" className={navLinkClass}>{t("nav.creators")}</NavLink>
       <NavLink to="/products" className={navLinkClass}>{t("nav.products")}</NavLink>
       <NavLink to="/discover" className={navLinkClass}>{t("nav.discover")}</NavLink>
+      <NavLink to="/map" className={navLinkClass}>{t("nav.map")}</NavLink>
       <NavLink to="/apply" className={navLinkClass}>{t("nav.apply")}</NavLink>
     </>
   );
