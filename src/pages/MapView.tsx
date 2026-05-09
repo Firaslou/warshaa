@@ -110,8 +110,8 @@ export default function MapView() {
                     center={coord}
                     radius={radius}
                     pathOptions={{
-                      color: count > 0 ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
-                      fillColor: count > 0 ? "hsl(var(--primary))" : "hsl(var(--muted))",
+                      color: count > 0 ? "hsl(16, 55%, 45%)" : "hsl(220, 9%, 55%)",
+                      fillColor: count > 0 ? "hsl(22, 70%, 60%)" : "hsl(220, 14%, 90%)",
                       fillOpacity: count > 0 ? (isActive ? 0.85 : 0.55) : 0.25,
                       weight: isActive ? 3 : 1.5,
                     }}
