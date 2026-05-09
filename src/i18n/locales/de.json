@@ -35,7 +35,8 @@
     "profile": "Profil",
     "admin": "Administration",
     "products": "Produkte",
-    "myAccount": "Mein Konto"
+    "myAccount": "Mein Konto",
+    "map": "Karte"
   },
   "language": {
     "choose": "Wählen Sie Ihre Sprache",
@@ -491,5 +492,17 @@
     "title": "Seite nicht gefunden",
     "subtitle": "Diese Seite existiert nicht oder wurde verschoben.",
     "back": "Zurück zur Startseite"
+  },
+  "map": {
+    "badge": "Interaktive Karte",
+    "title": "Entdecke Kreative nach Region",
+    "subtitle": "{{count}} Kreative in {{govs}} Gouvernoraten",
+    "creator": "Kreativer",
+    "creators": "Kreative",
+    "selectHint": "Klicke einen Punkt auf der Karte, um Kreative der Region zu entdecken",
+    "topRegions": "Aktivste Regionen",
+    "region": "Region",
+    "empty": "Noch keine Kreativen in dieser Region",
+    "viewList": "Liste ansehen"
   }
 }

@@ -35,7 +35,8 @@
     "profile": "Profil",
     "admin": "Administration",
     "products": "Produits",
-    "myAccount": "Mon compte"
+    "myAccount": "Mon compte",
+    "map": "Carte"
   },
   "language": {
     "choose": "Choisissez votre langue",
@@ -491,5 +492,17 @@
     "title": "Page introuvable",
     "subtitle": "Cette page n'existe pas ou a été déplacée.",
     "back": "Retour à l'accueil"
+  },
+  "map": {
+    "badge": "Carte interactive",
+    "title": "Explorer les créateurs par région",
+    "subtitle": "{{count}} créateurs répartis sur {{govs}} gouvernorats",
+    "creator": "créateur",
+    "creators": "créateurs",
+    "selectHint": "Cliquez sur un point de la carte pour découvrir les créateurs de la région",
+    "topRegions": "Régions les plus actives",
+    "region": "Région",
+    "empty": "Aucun créateur dans cette région pour le moment",
+    "viewList": "Voir la liste"
   }
 }

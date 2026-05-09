@@ -35,7 +35,8 @@
     "profile": "个人资料",
     "admin": "管理",
     "products": "产品",
-    "myAccount": "我的账户"
+    "myAccount": "我的账户",
+    "map": "地图"
   },
   "language": {
     "choose": "选择您的语言",
@@ -491,5 +492,17 @@
     "title": "页面未找到",
     "subtitle": "此页面不存在或已被移动。",
     "back": "返回首页"
+  },
+  "map": {
+    "badge": "互动地图",
+    "title": "按地区探索创作者",
+    "subtitle": "{{govs}} 个省份共有 {{count}} 位创作者",
+    "creator": "位创作者",
+    "creators": "位创作者",
+    "selectHint": "点击地图上的点以发现该地区的创作者",
+    "topRegions": "最活跃的地区",
+    "region": "地区",
+    "empty": "该地区暂无创作者",
+    "viewList": "查看列表"
   }
 }
