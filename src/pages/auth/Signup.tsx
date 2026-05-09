@@ -96,9 +96,8 @@ export default function Signup() {
         preferred_language: i18n.language,
       }).eq("id", data.user.id);
 
-      if (accountType === "startup") {
-        await supabase.from("user_roles").insert({ user_id: data.user.id, role: "startup" });
-      }
+      // NOTE: The "startup" role is NEVER self-assigned. It is granted only by an admin
+      // after the creator submits an application via /apply and gets approved.
     }
 
     setLoading(false);
