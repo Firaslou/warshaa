@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight, Sparkles, Heart, MessageCircle, Search,
-  Users, ShoppingBag, BadgeCheck, Shuffle,
+  Users, ShoppingBag, BadgeCheck, MapPin, Quote,
   Gem, Flame, Palette, Shirt, Briefcase, Coffee, Droplet, Cookie,
   Home as HomeIcon, Recycle, User, UserCheck, Baby, Gift, Star, MoreHorizontal,
 } from "lucide-react";
@@ -20,17 +20,22 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   women: User, men: UserCheck, kids: Baby, gifts: Gift, personalized: Star, other: MoreHorizontal,
 };
 
+interface CoupDeCoeurData extends StartupCardData {
+  logo_url?: string | null;
+  creator_story?: string | null;
+}
+
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
+  const [pool, setPool] = useState<CoupDeCoeurData[]>([]);
   const [stats, setStats] = useState({
     activeCreators: 12,
     monthSupporters: 842,
     confirmedPurchases: 318,
     verifiedPercent: 78,
   });
-  const [randomSeed, setRandomSeed] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +46,13 @@ const Index = () => {
         .order("supporters_count", { ascending: false })
         .limit(10);
       if (data && data.length > 0) setStartups(data as StartupCardData[]);
+
+      // Pool for daily pick: include logo and story
+      const { data: poolData } = await supabase
+        .from("startups")
+        .select("id, slug, name, tagline, city, category, cover_url, logo_url, creator_story, badge, likes_count, supporters_count")
+        .eq("status", "approved");
+      if (poolData && poolData.length > 0) setPool(poolData as CoupDeCoeurData[]);
 
       const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
       const [{ count: creatorsCount }, { count: supportersCount }, { count: purchasesCount }, { data: allStartups }] = await Promise.all([
@@ -60,11 +72,21 @@ const Index = () => {
     })();
   }, []);
 
-  const coupDeCoeur = useMemo(() => {
-    if (startups.length === 0) return null;
-    return startups[Math.floor(Math.random() * startups.length)];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startups, randomSeed]);
+  // Deterministic daily pick: same creator highlighted for the whole day for everyone
+  const coupDeCoeur = useMemo<CoupDeCoeurData | null>(() => {
+    const list = pool.length > 0 ? pool : (startups as CoupDeCoeurData[]);
+    if (list.length === 0) return null;
+    const today = new Date();
+    const key = `${today.getUTCFullYear()}-${today.getUTCMonth()}-${today.getUTCDate()}`;
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    return list[hash % list.length];
+  }, [pool, startups]);
+
+  const todayLabel = useMemo(
+    () => new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
+    [],
+  );
 
   const featured = startups.slice(0, 10);
 
@@ -124,35 +146,77 @@ const Index = () => {
         <p className="mt-4 text-center text-xs text-muted-foreground italic">{t("stats.supportLine")}</p>
       </section>
 
-      {/* COUP DE CŒUR ALÉATOIRE */}
+      {/* COUP DE CŒUR DU JOUR */}
       {coupDeCoeur && (
         <section className="container py-16 md:py-20">
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full gradient-warm px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-elegant">
+              <Sparkles className="h-3 w-3" /> {t("stats.dailyBadge")}
+            </div>
+            <h2 className="mt-3 font-serif text-3xl font-bold md:text-4xl">{t("stats.dailyTitle")}</h2>
+            <p className="mt-2 text-sm capitalize text-muted-foreground">{todayLabel}</p>
+          </div>
           <div className="overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-elegant">
             <div className="grid md:grid-cols-2">
-              <Link to={`/startup/${coupDeCoeur.slug}`} className="relative aspect-[4/3] overflow-hidden bg-muted md:aspect-auto">
+              <Link to={`/startup/${coupDeCoeur.slug}`} className="group relative aspect-[4/3] overflow-hidden bg-muted md:aspect-auto">
                 {coupDeCoeur.cover_url ? (
-                  <img src={coupDeCoeur.cover_url} alt={coupDeCoeur.name} className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+                  <img src={coupDeCoeur.cover_url} alt={coupDeCoeur.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center gradient-soft">
                     <Sparkles className="h-16 w-16 text-primary/40" />
                   </div>
                 )}
+                {coupDeCoeur.badge && (coupDeCoeur.badge === "verified" || coupDeCoeur.badge === "certified") && (
+                  <div className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-background/90 px-3 py-1 text-xs font-medium shadow-card backdrop-blur">
+                    <BadgeCheck className="h-3.5 w-3.5 text-primary" />
+                    {t(`badges.${coupDeCoeur.badge}`, coupDeCoeur.badge)}
+                  </div>
+                )}
               </Link>
               <div className="flex flex-col justify-center p-8 md:p-12">
-                <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Sparkles className="h-3 w-3" /> {t("stats.randomTitle")}
+                <div className="mb-4 flex items-center gap-3">
+                  {coupDeCoeur.logo_url ? (
+                    <img src={coupDeCoeur.logo_url} alt="" className="h-14 w-14 rounded-full border-2 border-primary/30 object-cover" />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full gradient-warm text-lg font-bold text-primary-foreground">
+                      {coupDeCoeur.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="truncate font-serif text-2xl font-bold md:text-3xl">{coupDeCoeur.name}</h3>
+                    {coupDeCoeur.city && (
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" /> {coupDeCoeur.city}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <h2 className="font-serif text-3xl font-bold md:text-4xl">{coupDeCoeur.name}</h2>
+
                 {coupDeCoeur.tagline && (
-                  <p className="mt-3 text-muted-foreground">{coupDeCoeur.tagline}</p>
+                  <p className="text-base text-foreground/80">{coupDeCoeur.tagline}</p>
                 )}
-                <p className="mt-4 text-sm text-muted-foreground">{t("stats.randomSubtitle")}</p>
+
+                {coupDeCoeur.creator_story && (
+                  <div className="mt-4 rounded-xl border-l-2 border-primary/40 bg-secondary/30 p-4">
+                    <Quote className="mb-1 h-4 w-4 text-primary/60" />
+                    <p className="line-clamp-4 text-sm italic text-muted-foreground">{coupDeCoeur.creator_story}</p>
+                  </div>
+                )}
+
+                <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5"><Heart className="h-4 w-4 text-primary" /> {coupDeCoeur.likes_count ?? 0}</span>
+                  <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4 text-primary" /> {coupDeCoeur.supporters_count ?? 0}</span>
+                  {coupDeCoeur.category && (
+                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{coupDeCoeur.category}</span>
+                  )}
+                </div>
+
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button onClick={() => navigate(`/startup/${coupDeCoeur.slug}`)} className="gradient-warm text-primary-foreground">
-                    {t("common.discover")} <ArrowRight className="ml-1 h-4 w-4" />
+                    {t("stats.dailyCta")} <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
-                  <Button variant="outline" onClick={() => setRandomSeed((s) => s + 1)}>
-                    <Shuffle className="mr-1 h-4 w-4" /> {t("stats.randomCta")}
+                  <Button variant="outline" onClick={() => navigate("/discover")}>
+                    <Sparkles className="mr-1 h-4 w-4" /> {t("home.heroCtaSecondary")}
                   </Button>
                 </div>
               </div>
