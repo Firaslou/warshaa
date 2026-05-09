@@ -35,7 +35,8 @@
     "profile": "Perfil",
     "admin": "Administración",
     "products": "Productos",
-    "myAccount": "Mi cuenta"
+    "myAccount": "Mi cuenta",
+    "map": "Mapa"
   },
   "language": {
     "choose": "Elige tu idioma",
@@ -491,5 +492,17 @@
     "title": "Página no encontrada",
     "subtitle": "Esta página no existe o ha sido movida.",
     "back": "Volver al inicio"
+  },
+  "map": {
+    "badge": "Mapa interactivo",
+    "title": "Explora creadores por región",
+    "subtitle": "{{count}} creadores en {{govs}} gobernaciones",
+    "creator": "creador",
+    "creators": "creadores",
+    "selectHint": "Haz clic en un punto del mapa para descubrir creadores de la región",
+    "topRegions": "Regiones más activas",
+    "region": "Región",
+    "empty": "Aún no hay creadores en esta región",
+    "viewList": "Ver lista"
   }
 }

@@ -35,7 +35,8 @@
     "profile": "Profile",
     "admin": "Admin",
     "products": "Products",
-    "myAccount": "My Account"
+    "myAccount": "My Account",
+    "map": "Map"
   },
   "language": {
     "choose": "Choose your language",
@@ -491,5 +492,17 @@
     "title": "Page not found",
     "subtitle": "This page does not exist or has been moved.",
     "back": "Back to home"
+  },
+  "map": {
+    "badge": "Interactive map",
+    "title": "Explore creators by region",
+    "subtitle": "{{count}} creators across {{govs}} governorates",
+    "creator": "creator",
+    "creators": "creators",
+    "selectHint": "Click a dot on the map to discover creators in that region",
+    "topRegions": "Most active regions",
+    "region": "Region",
+    "empty": "No creators in this region yet",
+    "viewList": "View list"
   }
 }
