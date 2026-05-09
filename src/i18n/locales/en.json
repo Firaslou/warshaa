@@ -78,7 +78,10 @@
     "randomTitle": "No idea?",
     "randomSubtitle": "Let chance decide. Discover a random creator — your next favorite awaits.",
     "randomCta": "Random Pick",
-    "supportLine": "Every purchase is an act of support for Tunisian entrepreneurship."
+    "supportLine": "Every purchase is an act of support for Tunisian entrepreneurship.",
+    "dailyBadge": "Today's favorite",
+    "dailyTitle": "The creator to discover today",
+    "dailyCta": "Visit their shop"
   },
   "products": {
     "title": "All products",

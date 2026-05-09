@@ -78,7 +78,10 @@
     "randomTitle": "没有主意？",
     "randomSubtitle": "让命运决定。随机发现一位创作者——您的下一个心动之选正在等待。",
     "randomCta": "心动",
-    "supportLine": "每一次购买都是对突尼斯创业精神的支持。"
+    "supportLine": "每一次购买都是对突尼斯创业精神的支持。",
+    "dailyBadge": "每日心动",
+    "dailyTitle": "今日值得发现的创作者",
+    "dailyCta": "访问店铺"
   },
   "products": {
     "title": "所有产品",

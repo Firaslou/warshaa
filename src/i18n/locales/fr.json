@@ -78,7 +78,10 @@
     "randomTitle": "Pas d'idée ?",
     "randomSubtitle": "Laissez le hasard décider. Découvrez un créateur au hasard — votre prochain coup de cœur vous attend.",
     "randomCta": "Coup de cœur",
-    "supportLine": "Chaque achat est un acte de soutien à l'entrepreneuriat tunisien."
+    "supportLine": "Chaque achat est un acte de soutien à l'entrepreneuriat tunisien.",
+    "dailyBadge": "Coup de cœur du jour",
+    "dailyTitle": "Le créateur à découvrir aujourd'hui",
+    "dailyCta": "Visiter sa boutique"
   },
   "products": {
     "title": "Tous les produits",
