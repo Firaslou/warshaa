@@ -510,5 +510,44 @@
     "subtitle": "Creadores que publicaron recientemente",
     "empty": "Sin publicaciones esta semana",
     "newBadge": "Nuevo"
+  },
+  "liveCalendar": {
+    "nav": "Lives",
+    "page": {
+      "title": "Calendario de lives",
+      "subtitle": "Descubre los próximos lives de tus creadores favoritos",
+      "upcoming": "Próximos",
+      "past": "Pasados",
+      "empty": "Ningún live programado todavía",
+      "reminded": "Te avisaremos",
+      "remindMe": "Recordarme",
+      "liveNow": "EN VIVO",
+      "watchLive": "Ver",
+      "minutes": "min",
+      "reminders": "recordatorios"
+    },
+    "creator": {
+      "tab": "Calendario",
+      "addLive": "Programar un live",
+      "editLive": "Editar live",
+      "title": "Título",
+      "description": "Descripción",
+      "date": "Fecha",
+      "time": "Hora",
+      "duration": "Duración (minutos)",
+      "platform": "Plataforma",
+      "streamUrl": "Enlace del live",
+      "cover": "Imagen de portada (URL)",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar este live programado?",
+      "noEvents": "Ningún live programado. ¡Añade el primero!",
+      "reminderCount": "{{count}} recordatorio(s) activo(s)",
+      "titleRequired": "El título es obligatorio",
+      "dateRequired": "La fecha debe ser futura",
+      "saved": "Live programado",
+      "deleted": "Live eliminado"
+    }
   }
 }

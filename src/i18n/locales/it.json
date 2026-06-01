@@ -510,5 +510,44 @@
     "subtitle": "Creatori che hanno pubblicato di recente",
     "empty": "Nessun post questa settimana",
     "newBadge": "Nuovo"
+  },
+  "liveCalendar": {
+    "nav": "Lives",
+    "page": {
+      "title": "Calendario live",
+      "subtitle": "Scopri i prossimi live dei tuoi creatori preferiti",
+      "upcoming": "Prossimi",
+      "past": "Passati",
+      "empty": "Nessun live programmato",
+      "reminded": "Ti avviseremo",
+      "remindMe": "Ricordamelo",
+      "liveNow": "IN DIRETTA",
+      "watchLive": "Guarda",
+      "minutes": "min",
+      "reminders": "promemoria"
+    },
+    "creator": {
+      "tab": "Calendario",
+      "addLive": "Programma un live",
+      "editLive": "Modifica live",
+      "title": "Titolo",
+      "description": "Descrizione",
+      "date": "Data",
+      "time": "Ora",
+      "duration": "Durata (minuti)",
+      "platform": "Piattaforma",
+      "streamUrl": "Link del live",
+      "cover": "Immagine di copertina (URL)",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "delete": "Elimina",
+      "deleteConfirm": "Eliminare questo live programmato?",
+      "noEvents": "Nessun live programmato. Aggiungi il primo!",
+      "reminderCount": "{{count}} promemoria attivi",
+      "titleRequired": "Il titolo è obbligatorio",
+      "dateRequired": "La data deve essere futura",
+      "saved": "Live programmato",
+      "deleted": "Live eliminato"
+    }
   }
 }

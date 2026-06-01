@@ -510,5 +510,44 @@
     "subtitle": "Kreative, die kürzlich gepostet haben",
     "empty": "Keine Beiträge diese Woche",
     "newBadge": "Neu"
+  },
+  "liveCalendar": {
+    "nav": "Lives",
+    "page": {
+      "title": "Live-Kalender",
+      "subtitle": "Entdecken Sie kommende Lives Ihrer Lieblings-Creator",
+      "upcoming": "Kommende",
+      "past": "Vergangene",
+      "empty": "Noch keine Lives geplant",
+      "reminded": "Sie werden erinnert",
+      "remindMe": "Erinnere mich",
+      "liveNow": "JETZT LIVE",
+      "watchLive": "Ansehen",
+      "minutes": "Min.",
+      "reminders": "Erinnerungen"
+    },
+    "creator": {
+      "tab": "Kalender",
+      "addLive": "Live planen",
+      "editLive": "Live bearbeiten",
+      "title": "Titel",
+      "description": "Beschreibung",
+      "date": "Datum",
+      "time": "Uhrzeit",
+      "duration": "Dauer (Minuten)",
+      "platform": "Plattform",
+      "streamUrl": "Stream-Link",
+      "cover": "Coverbild (URL)",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "delete": "Löschen",
+      "deleteConfirm": "Diesen geplanten Live löschen?",
+      "noEvents": "Kein Live geplant. Fügen Sie Ihren ersten hinzu!",
+      "reminderCount": "{{count}} aktive Erinnerung(en)",
+      "titleRequired": "Titel ist erforderlich",
+      "dateRequired": "Datum muss in der Zukunft liegen",
+      "saved": "Live geplant",
+      "deleted": "Live gelöscht"
+    }
   }
 }

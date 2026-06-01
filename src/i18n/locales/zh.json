@@ -510,5 +510,44 @@
     "subtitle": "最近发布的创作者",
     "empty": "本周暂无发布",
     "newBadge": "新"
+  },
+  "liveCalendar": {
+    "nav": "直播",
+    "page": {
+      "title": "直播日历",
+      "subtitle": "发现您喜爱创作者的即将直播",
+      "upcoming": "即将",
+      "past": "已结束",
+      "empty": "暂无安排直播",
+      "reminded": "将提醒您",
+      "remindMe": "提醒我",
+      "liveNow": "正在直播",
+      "watchLive": "观看",
+      "minutes": "分钟",
+      "reminders": "提醒"
+    },
+    "creator": {
+      "tab": "日历",
+      "addLive": "安排直播",
+      "editLive": "编辑直播",
+      "title": "标题",
+      "description": "描述",
+      "date": "日期",
+      "time": "时间",
+      "duration": "时长（分钟）",
+      "platform": "平台",
+      "streamUrl": "直播链接",
+      "cover": "封面图片（URL）",
+      "save": "保存",
+      "cancel": "取消",
+      "delete": "删除",
+      "deleteConfirm": "删除此安排的直播？",
+      "noEvents": "暂无安排直播。添加第一个吧！",
+      "reminderCount": "{{count}} 个活跃提醒",
+      "titleRequired": "标题必填",
+      "dateRequired": "日期必须是未来",
+      "saved": "直播已安排",
+      "deleted": "直播已删除"
+    }
   }
 }

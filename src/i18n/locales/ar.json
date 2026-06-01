@@ -510,5 +510,44 @@
     "subtitle": "المبدعون الذين نشروا مؤخرًا",
     "empty": "لا توجد منشورات هذا الأسبوع",
     "newBadge": "جديد"
+  },
+  "liveCalendar": {
+    "nav": "بث مباشر",
+    "page": {
+      "title": "تقويم البث المباشر",
+      "subtitle": "اكتشف البثوث القادمة لمبدعيك المفضلين",
+      "upcoming": "قادم",
+      "past": "سابق",
+      "empty": "لا يوجد بث مجدول",
+      "reminded": "سيتم تذكيرك",
+      "remindMe": "ذكّرني",
+      "liveNow": "مباشر الآن",
+      "watchLive": "شاهد",
+      "minutes": "دقيقة",
+      "reminders": "تذكيرات"
+    },
+    "creator": {
+      "tab": "التقويم",
+      "addLive": "جدولة بث",
+      "editLive": "تعديل البث",
+      "title": "العنوان",
+      "description": "الوصف",
+      "date": "التاريخ",
+      "time": "الوقت",
+      "duration": "المدة (دقائق)",
+      "platform": "المنصة",
+      "streamUrl": "رابط البث",
+      "cover": "صورة الغلاف (URL)",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "delete": "حذف",
+      "deleteConfirm": "حذف هذا البث المجدول؟",
+      "noEvents": "لا يوجد بث مجدول. أضف أول واحد!",
+      "reminderCount": "{{count}} تذكير نشط",
+      "titleRequired": "العنوان مطلوب",
+      "dateRequired": "التاريخ يجب أن يكون في المستقبل",
+      "saved": "تم جدولة البث",
+      "deleted": "تم حذف البث"
+    }
   }
 }

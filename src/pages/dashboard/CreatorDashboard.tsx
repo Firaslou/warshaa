@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
 import { toast } from "@/hooks/use-toast";
 import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
+import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from "recharts";
 
 export default function CreatorDashboard() {
@@ -213,6 +214,7 @@ export default function CreatorDashboard() {
             <TabsTrigger value="profile">{t("dashboard.creator.tabProfile")}</TabsTrigger>
             <TabsTrigger value="products">{t("dashboard.creator.tabProducts")} ({products.length})</TabsTrigger>
             <TabsTrigger value="live">{t("dashboard.creator.tabLive")}</TabsTrigger>
+            <TabsTrigger value="calendar">{t("liveCalendar.creator.tab")}</TabsTrigger>
           </TabsList>
 
           {/* STATS */}
@@ -412,6 +414,11 @@ export default function CreatorDashboard() {
                 <Button onClick={markNewPost} variant="outline">{t("dashboard.creator.signalNew")}</Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* CALENDAR */}
+          <TabsContent value="calendar">
+            <LiveScheduleManager startupId={startup.id} />
           </TabsContent>
         </Tabs>
       </div>
