@@ -148,6 +148,86 @@ export type Database = {
           },
         ]
       }
+      live_events: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          platform: string | null
+          reminder_dispatched: boolean
+          scheduled_at: string
+          startup_id: string
+          status: string
+          stream_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          platform?: string | null
+          reminder_dispatched?: boolean
+          scheduled_at: string
+          startup_id: string
+          status?: string
+          stream_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          platform?: string | null
+          reminder_dispatched?: boolean
+          scheduled_at?: string
+          startup_id?: string
+          status?: string
+          stream_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      live_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          live_event_id: string
+          notified: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          live_event_id: string
+          notified?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          live_event_id?: string
+          notified?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reminders_live_event_id_fkey"
+            columns: ["live_event_id"]
+            isOneToOne: false
+            referencedRelation: "live_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
