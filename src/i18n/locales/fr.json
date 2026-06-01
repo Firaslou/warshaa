@@ -504,5 +504,11 @@
     "region": "Région",
     "empty": "Aucun créateur dans cette région pour le moment",
     "viewList": "Voir la liste"
+  },
+  "newThisWeek": {
+    "title": "Nouveautés cette semaine",
+    "subtitle": "Les créateurs qui ont publié récemment",
+    "empty": "Aucune publication cette semaine",
+    "newBadge": "Nouveau"
   }
 }

@@ -6,6 +6,7 @@ import {
   Users, ShoppingBag, BadgeCheck, MapPin, Quote,
   Gem, Flame, Palette, Shirt, Briefcase, Coffee, Droplet, Cookie,
   Home as HomeIcon, Recycle, User, UserCheck, Baby, Gift, Star, MoreHorizontal,
+  ChevronLeft, ChevronRight, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -25,11 +26,18 @@ interface CoupDeCoeurData extends StartupCardData {
   creator_story?: string | null;
 }
 
+interface NewThisWeekData extends StartupCardData {
+  logo_url?: string | null;
+  last_post_at?: string | null;
+}
+
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
   const [pool, setPool] = useState<CoupDeCoeurData[]>([]);
+  const [newThisWeek, setNewThisWeek] = useState<NewThisWeekData[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
   const [stats, setStats] = useState({
     activeCreators: 12,
     monthSupporters: 842,
@@ -53,6 +61,17 @@ const Index = () => {
         .select("id, slug, name, tagline, city, category, cover_url, logo_url, creator_story, badge, likes_count, supporters_count")
         .eq("status", "approved");
       if (poolData && poolData.length > 0) setPool(poolData as CoupDeCoeurData[]);
+
+      // "New this week" — startups with last_post_at within last 7 days
+      const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+      const { data: weekData } = await supabase
+        .from("startups")
+        .select("id, slug, name, tagline, city, category, cover_url, logo_url, badge, likes_count, supporters_count, last_post_at")
+        .eq("status", "approved")
+        .gte("last_post_at", weekAgo)
+        .order("last_post_at", { ascending: false })
+        .limit(12);
+      if (weekData) setNewThisWeek(weekData as NewThisWeekData[]);
 
       const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
       const [{ count: creatorsCount }, { count: supportersCount }, { count: purchasesCount }, { data: allStartups }] = await Promise.all([
@@ -89,6 +108,22 @@ const Index = () => {
   );
 
   const featured = startups.slice(0, 10);
+
+  // Carousel pagination: 4 per slide on desktop
+  const PER_SLIDE = 4;
+  const slideCount = Math.max(1, Math.ceil(newThisWeek.length / PER_SLIDE));
+  const goPrev = () => setCarouselIdx((i) => (i - 1 + slideCount) % slideCount);
+  const goNext = () => setCarouselIdx((i) => (i + 1) % slideCount);
+  const fmtRelative = (iso?: string | null) => {
+    if (!iso) return "";
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days <= 0) {
+      const hours = Math.max(1, Math.floor(diff / 3600000));
+      return `${hours}h`;
+    }
+    return `${days}d`;
+  };
 
   const statCards = [
     { icon: Users, label: t("stats.activeCreators"), value: stats.activeCreators },
@@ -224,6 +259,97 @@ const Index = () => {
           </div>
         </section>
       )}
+
+      {/* NOUVEAUTÉS CETTE SEMAINE */}
+      <section className="container py-12 md:py-16">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Clock className="h-3 w-3" /> {t("newThisWeek.newBadge")}
+            </div>
+            <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("newThisWeek.title")}</h2>
+            <p className="mt-2 text-muted-foreground">{t("newThisWeek.subtitle")}</p>
+          </div>
+          {newThisWeek.length > PER_SLIDE && (
+            <div className="hidden gap-2 md:flex">
+              <Button size="icon" variant="outline" onClick={goPrev} aria-label="Previous">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" onClick={goNext} aria-label="Next">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {newThisWeek.length === 0 ? (
+          <p className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-sm text-muted-foreground">
+            {t("newThisWeek.empty")}
+          </p>
+        ) : (
+          <div className="overflow-hidden">
+            <div
+              className="flex transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
+            >
+              {Array.from({ length: slideCount }).map((_, slideI) => (
+                <div key={slideI} className="grid w-full shrink-0 grid-cols-2 gap-5 md:grid-cols-4">
+                  {newThisWeek.slice(slideI * PER_SLIDE, slideI * PER_SLIDE + PER_SLIDE).map((s) => (
+                    <Link
+                      key={s.id}
+                      to={`/startup/${s.slug}`}
+                      className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary hover:shadow-elegant"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                        {s.cover_url ? (
+                          <img src={s.cover_url} alt={s.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center gradient-soft">
+                            <Sparkles className="h-10 w-10 text-primary/40" />
+                          </div>
+                        )}
+                        <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-semibold shadow-card backdrop-blur">
+                          <Clock className="h-3 w-3 text-primary" /> {fmtRelative(s.last_post_at)}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center gap-2">
+                          {s.logo_url ? (
+                            <img src={s.logo_url} alt="" className="h-8 w-8 rounded-full border border-border object-cover" />
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-warm text-xs font-bold text-primary-foreground">
+                              {s.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <h3 className="truncate font-serif text-base font-semibold">{s.name}</h3>
+                        </div>
+                        {s.tagline && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{s.tagline}</p>}
+                        {s.city && (
+                          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <MapPin className="h-3 w-3" /> {s.city}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+            {slideCount > 1 && (
+              <div className="mt-5 flex items-center justify-center gap-1.5">
+                {Array.from({ length: slideCount }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCarouselIdx(i)}
+                    aria-label={`Slide ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all ${i === carouselIdx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* FEATURED CREATORS — 10 */}
       <section className="container py-12 md:py-16">
