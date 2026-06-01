@@ -504,5 +504,11 @@
     "region": "地区",
     "empty": "该地区暂无创作者",
     "viewList": "查看列表"
+  },
+  "newThisWeek": {
+    "title": "本周新品",
+    "subtitle": "最近发布的创作者",
+    "empty": "本周暂无发布",
+    "newBadge": "新"
   }
 }

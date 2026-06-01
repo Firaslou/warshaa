@@ -504,5 +504,11 @@
     "region": "Region",
     "empty": "Noch keine Kreativen in dieser Region",
     "viewList": "Liste ansehen"
+  },
+  "newThisWeek": {
+    "title": "Neu diese Woche",
+    "subtitle": "Kreative, die kürzlich gepostet haben",
+    "empty": "Keine Beiträge diese Woche",
+    "newBadge": "Neu"
   }
 }

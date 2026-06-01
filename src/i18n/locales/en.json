@@ -504,5 +504,11 @@
     "region": "Region",
     "empty": "No creators in this region yet",
     "viewList": "View list"
+  },
+  "newThisWeek": {
+    "title": "New this week",
+    "subtitle": "Creators who posted recently",
+    "empty": "No posts this week",
+    "newBadge": "New"
   }
 }
