@@ -260,6 +260,97 @@ const Index = () => {
         </section>
       )}
 
+      {/* NOUVEAUTÉS CETTE SEMAINE */}
+      <section className="container py-12 md:py-16">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Clock className="h-3 w-3" /> {t("newThisWeek.newBadge")}
+            </div>
+            <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("newThisWeek.title")}</h2>
+            <p className="mt-2 text-muted-foreground">{t("newThisWeek.subtitle")}</p>
+          </div>
+          {newThisWeek.length > PER_SLIDE && (
+            <div className="hidden gap-2 md:flex">
+              <Button size="icon" variant="outline" onClick={goPrev} aria-label="Previous">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" onClick={goNext} aria-label="Next">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {newThisWeek.length === 0 ? (
+          <p className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-sm text-muted-foreground">
+            {t("newThisWeek.empty")}
+          </p>
+        ) : (
+          <div className="overflow-hidden">
+            <div
+              className="flex transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
+            >
+              {Array.from({ length: slideCount }).map((_, slideI) => (
+                <div key={slideI} className="grid w-full shrink-0 grid-cols-2 gap-5 md:grid-cols-4">
+                  {newThisWeek.slice(slideI * PER_SLIDE, slideI * PER_SLIDE + PER_SLIDE).map((s) => (
+                    <Link
+                      key={s.id}
+                      to={`/startup/${s.slug}`}
+                      className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary hover:shadow-elegant"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                        {s.cover_url ? (
+                          <img src={s.cover_url} alt={s.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center gradient-soft">
+                            <Sparkles className="h-10 w-10 text-primary/40" />
+                          </div>
+                        )}
+                        <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-semibold shadow-card backdrop-blur">
+                          <Clock className="h-3 w-3 text-primary" /> {fmtRelative(s.last_post_at)}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center gap-2">
+                          {s.logo_url ? (
+                            <img src={s.logo_url} alt="" className="h-8 w-8 rounded-full border border-border object-cover" />
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-warm text-xs font-bold text-primary-foreground">
+                              {s.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <h3 className="truncate font-serif text-base font-semibold">{s.name}</h3>
+                        </div>
+                        {s.tagline && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{s.tagline}</p>}
+                        {s.city && (
+                          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <MapPin className="h-3 w-3" /> {s.city}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+            {slideCount > 1 && (
+              <div className="mt-5 flex items-center justify-center gap-1.5">
+                {Array.from({ length: slideCount }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCarouselIdx(i)}
+                    aria-label={`Slide ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all ${i === carouselIdx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
       {/* FEATURED CREATORS — 10 */}
       <section className="container py-12 md:py-16">
         <div className="mb-10 flex items-end justify-between gap-4">
