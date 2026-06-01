@@ -510,5 +510,44 @@
     "subtitle": "Creators who posted recently",
     "empty": "No posts this week",
     "newBadge": "New"
+  },
+  "liveCalendar": {
+    "nav": "Lives",
+    "page": {
+      "title": "Live calendar",
+      "subtitle": "Discover upcoming lives from your favorite creators",
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "empty": "No live scheduled yet",
+      "reminded": "You'll be reminded",
+      "remindMe": "Remind me",
+      "liveNow": "LIVE NOW",
+      "watchLive": "Watch",
+      "minutes": "min",
+      "reminders": "reminders"
+    },
+    "creator": {
+      "tab": "Calendar",
+      "addLive": "Schedule a live",
+      "editLive": "Edit live",
+      "title": "Title",
+      "description": "Description",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration (minutes)",
+      "platform": "Platform",
+      "streamUrl": "Stream link",
+      "cover": "Cover image (URL)",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this scheduled live?",
+      "noEvents": "No live scheduled. Add your first one!",
+      "reminderCount": "{{count}} active reminder(s)",
+      "titleRequired": "Title is required",
+      "dateRequired": "Date must be in the future",
+      "saved": "Live scheduled",
+      "deleted": "Live deleted"
+    }
   }
 }
