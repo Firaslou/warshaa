@@ -6,6 +6,7 @@ import {
   Users, ShoppingBag, BadgeCheck, MapPin, Quote,
   Gem, Flame, Palette, Shirt, Briefcase, Coffee, Droplet, Cookie,
   Home as HomeIcon, Recycle, User, UserCheck, Baby, Gift, Star, MoreHorizontal,
+  ChevronLeft, ChevronRight, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -25,11 +26,18 @@ interface CoupDeCoeurData extends StartupCardData {
   creator_story?: string | null;
 }
 
+interface NewThisWeekData extends StartupCardData {
+  logo_url?: string | null;
+  last_post_at?: string | null;
+}
+
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
   const [pool, setPool] = useState<CoupDeCoeurData[]>([]);
+  const [newThisWeek, setNewThisWeek] = useState<NewThisWeekData[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
   const [stats, setStats] = useState({
     activeCreators: 12,
     monthSupporters: 842,
@@ -53,6 +61,17 @@ const Index = () => {
         .select("id, slug, name, tagline, city, category, cover_url, logo_url, creator_story, badge, likes_count, supporters_count")
         .eq("status", "approved");
       if (poolData && poolData.length > 0) setPool(poolData as CoupDeCoeurData[]);
+
+      // "New this week" — startups with last_post_at within last 7 days
+      const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+      const { data: weekData } = await supabase
+        .from("startups")
+        .select("id, slug, name, tagline, city, category, cover_url, logo_url, badge, likes_count, supporters_count, last_post_at")
+        .eq("status", "approved")
+        .gte("last_post_at", weekAgo)
+        .order("last_post_at", { ascending: false })
+        .limit(12);
+      if (weekData) setNewThisWeek(weekData as NewThisWeekData[]);
 
       const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
       const [{ count: creatorsCount }, { count: supportersCount }, { count: purchasesCount }, { data: allStartups }] = await Promise.all([
@@ -89,6 +108,22 @@ const Index = () => {
   );
 
   const featured = startups.slice(0, 10);
+
+  // Carousel pagination: 4 per slide on desktop
+  const PER_SLIDE = 4;
+  const slideCount = Math.max(1, Math.ceil(newThisWeek.length / PER_SLIDE));
+  const goPrev = () => setCarouselIdx((i) => (i - 1 + slideCount) % slideCount);
+  const goNext = () => setCarouselIdx((i) => (i + 1) % slideCount);
+  const fmtRelative = (iso?: string | null) => {
+    if (!iso) return "";
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days <= 0) {
+      const hours = Math.max(1, Math.floor(diff / 3600000));
+      return `${hours}h`;
+    }
+    return `${days}d`;
+  };
 
   const statCards = [
     { icon: Users, label: t("stats.activeCreators"), value: stats.activeCreators },
