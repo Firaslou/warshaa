@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import Creators from "./pages/Creators.tsx";
 import Discover from "./pages/Discover.tsx";
 import MapView from "./pages/MapView.tsx";
+import LiveCalendar from "./pages/LiveCalendar.tsx";
 import StartupDetail from "./pages/StartupDetail.tsx";
 import ProductDetail from "./pages/ProductDetail.tsx";
 import Apply from "./pages/Apply.tsx";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/creators" element={<Creators />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/map" element={<MapView />} />
+            <Route path="/lives" element={<LiveCalendar />} />
             <Route path="/startup/:slug" element={<StartupDetail />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/apply" element={<Apply />} />
