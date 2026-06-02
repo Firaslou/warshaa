@@ -37,6 +37,7 @@ export function Header() {
       <NavLink to="/discover" className={navLinkClass}>{t("nav.discover")}</NavLink>
       <NavLink to="/map" className={navLinkClass}>{t("nav.map")}</NavLink>
       <NavLink to="/lives" className={navLinkClass}>{t("liveCalendar.nav")}</NavLink>
+      <NavLink to="/image-search" className={navLinkClass}>Recherche image</NavLink>
       <NavLink to="/apply" className={navLinkClass}>{t("nav.apply")}</NavLink>
     </>
   );
