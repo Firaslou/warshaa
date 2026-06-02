@@ -23,6 +23,7 @@ import ClientDashboard from "./pages/dashboard/ClientDashboard.tsx";
 import CreatorDashboard from "./pages/dashboard/CreatorDashboard.tsx";
 import AdminDashboard from "./pages/dashboard/AdminDashboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { AIAssistant } from "./components/AIAssistant.tsx";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <AIAssistant />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
