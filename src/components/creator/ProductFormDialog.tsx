@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, Video, X, Leaf, AlertTriangle, Loader2 } from "lucide-react";
+import { Camera, Video, X, Leaf, AlertTriangle, Loader2, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
   const [videos, setVideos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [keywords, setKeywords] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -53,12 +55,37 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setDeliveryAvailable(false); setDeliveryFee(""); setIsEco(false);
       setImages([]); setVideos([]);
     }
+    setKeywords("");
   }, [product, open]);
 
   const handlePriceChange = (v: string) => {
     // Only digits, dot, comma
     const cleaned = v.replace(/[^0-9.,]/g, "");
     setPriceStr(cleaned);
+  };
+
+  const generateDescription = async () => {
+    if (!keywords.trim()) {
+      toast({ title: "Ajoute quelques mots-clés", variant: "destructive" });
+      return;
+    }
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-description", {
+        body: { name, category, keywords },
+      });
+      if (error) throw error;
+      if (data?.description) {
+        setDescription(data.description);
+        toast({ title: "Description générée ✨" });
+      } else {
+        toast({ title: data?.error || "Réessaie", variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({ title: "Génération échouée", description: String(e?.message || e), variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const uploadImage = async (file: File) => {
@@ -177,6 +204,30 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
           <div>
             <Label>{t("productForm.shortDescription")} *</Label>
             <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
+            <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-primary">
+                <Sparkles className="h-3.5 w-3.5" /> Aide IA — décris en quelques mots
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="ex: bougie cire abeille senteur jasmin fait main"
+                  maxLength={300}
+                  className="h-9"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={generateDescription}
+                  disabled={generating || !keywords.trim()}
+                  className="shrink-0 gradient-warm text-primary-foreground"
+                >
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {generating ? "..." : "Générer"}
+                </Button>
+              </div>
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

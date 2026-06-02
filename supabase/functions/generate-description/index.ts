@@ -1,0 +1,68 @@
+// AI product description helper — turns keywords into a polished description
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  try {
+    const { name, category, keywords } = (await req.json()) as {
+      name?: string;
+      category?: string;
+      keywords?: string;
+    };
+    if (!keywords || keywords.trim().length < 2) {
+      return new Response(JSON.stringify({ error: "Mots-clés requis" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (keywords.length > 500) {
+      return new Response(JSON.stringify({ error: "Mots-clés trop longs" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+
+    const system = `Tu écris des descriptions produits pour Warsha, marketplace de créateurs tunisiens. Style: chaleureux, sincère, sensoriel, vendeur sans exagération. Français naturel. 2 à 4 phrases, max 400 caractères. Pas d'emoji, pas de hashtag, pas de prix. Mets en avant matière, fabrication artisanale, usage, et ce qui rend le produit spécial. Réponds UNIQUEMENT avec la description finale, rien d'autre.`;
+
+    const userPrompt = `Nom: ${name || "(non précisé)"}\nCatégorie: ${category || "(non précisée)"}\nMots-clés / notes du créateur: ${keywords}`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": LOVABLE_API_KEY,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      return new Response(JSON.stringify({ error: txt }), {
+        status: res.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const data = await res.json();
+    let description: string = (data.choices?.[0]?.message?.content ?? "").trim();
+    if (description.length > 500) description = description.slice(0, 500);
+    return new Response(JSON.stringify({ description }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
