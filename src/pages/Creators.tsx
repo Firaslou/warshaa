@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, MessageCircle, X, Sparkles } from "lucide-react";
+import { Search, MessageCircle, X, Sparkles, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -19,6 +20,8 @@ export default function Creators() {
   const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
   const [search, setSearch] = useState("");
+  const [aiFilters, setAiFilters] = useState<any | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [commentSearch, setCommentSearch] = useState("");
   const [matchedByComment, setMatchedByComment] = useState<Set<string> | null>(null);
   const [searchingComments, setSearchingComments] = useState(false);
@@ -83,9 +86,22 @@ export default function Creators() {
       if (search && !s.name.toLowerCase().includes(search.toLowerCase()) &&
           !s.tagline?.toLowerCase().includes(search.toLowerCase())) return false;
       if (matchedByComment && !matchedByComment.has(s.id)) return false;
+      if (aiFilters) {
+        const hay = `${s.name} ${s.tagline ?? ""} ${s.category ?? ""}`.toLowerCase();
+        const terms: string[] = [
+          ...(Array.isArray(aiFilters.keywords) ? aiFilters.keywords : []),
+          aiFilters.color,
+          aiFilters.category,
+        ].filter((x: any) => typeof x === "string" && x.trim().length > 1).map((x: string) => x.toLowerCase());
+        if (terms.length && !terms.some((t) => hay.includes(t))) return false;
+        if (aiFilters.city) {
+          const c = String(aiFilters.city).toLowerCase();
+          if (!`${s.city ?? ""} ${s.delegation ?? ""}`.toLowerCase().includes(c)) return false;
+        }
+      }
       return true;
     });
-  }, [startups, governorate, delegation, category, search, matchedByComment, t]);
+  }, [startups, governorate, delegation, category, search, matchedByComment, aiFilters, t]);
 
   const updateParam = (updates: Record<string, string>) => {
     const next = new URLSearchParams(params);
@@ -99,9 +115,19 @@ export default function Creators() {
     setParams(new URLSearchParams());
     setSearch("");
     setCommentSearch("");
+    setAiFilters(null);
   };
 
-  const hasActiveFilters = governorate !== "all" || delegation !== "all" || category !== "all" || search || commentSearch;
+  const hasActiveFilters = governorate !== "all" || delegation !== "all" || category !== "all" || search || commentSearch || aiFilters;
+
+  const runAiSearch = async () => {
+    if (!search.trim()) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("smart-search", { body: { query: search } });
+      if (!error) setAiFilters(data?.filters ?? null);
+    } finally { setAiLoading(false); }
+  };
 
   return (
     <PageLayout>
@@ -116,11 +142,21 @@ export default function Creators() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder={t("common.search")}
+              placeholder='Ex : "céramiste à Nabeul"'
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              onChange={(e) => { setSearch(e.target.value); if (aiFilters) setAiFilters(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runAiSearch(); } }}
+              className="pl-9 pr-10"
             />
+            <button
+              type="button"
+              onClick={runAiSearch}
+              disabled={aiLoading || !search.trim()}
+              title="Recherche intelligente (IA)"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-primary hover:bg-primary/10 disabled:opacity-40"
+            >
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            </button>
           </div>
 
           <Select value={governorate} onValueChange={(v) => updateParam({ gov: v, del: "all" })}>
@@ -165,6 +201,21 @@ export default function Creators() {
             />
           </div>
         </div>
+
+        {aiFilters && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+            <Sparkles className="h-3 w-3 text-primary" />
+            <span className="text-muted-foreground">Filtres IA :</span>
+            {Array.isArray(aiFilters.keywords) && aiFilters.keywords.map((k: string) => (
+              <Badge key={k} variant="secondary">{k}</Badge>
+            ))}
+            {aiFilters.color && <Badge variant="outline">{aiFilters.color}</Badge>}
+            {aiFilters.city && <Badge variant="outline">{aiFilters.city}</Badge>}
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setAiFilters(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
 
         {hasActiveFilters && (
           <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
