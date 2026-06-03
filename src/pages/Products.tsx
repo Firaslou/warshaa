@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, Eye, ShoppingBag, MessageCircle, Truck, ExternalLink, Search, X } from "lucide-react";
+import { Heart, Eye, ShoppingBag, MessageCircle, Truck, ExternalLink, Search, X, Sparkles, Loader2 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,8 @@ export default function Products() {
   const { user } = useAuth();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [search, setSearch] = useState("");
+  const [aiFilters, setAiFilters] = useState<any | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [governorate, setGovernorate] = useState("all");
   const [delegation, setDelegation] = useState("all");
   const [category, setCategory] = useState("all");
@@ -128,6 +130,23 @@ export default function Products() {
       const hay = `${p.name} ${p.description ?? ""} ${p.startups?.name ?? ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
+    if (aiFilters) {
+      const hay = `${p.name} ${p.description ?? ""} ${p.category ?? ""} ${p.startups?.name ?? ""}`.toLowerCase();
+      const terms: string[] = [
+        ...(Array.isArray(aiFilters.keywords) ? aiFilters.keywords : []),
+        aiFilters.color,
+        aiFilters.category,
+      ].filter((s: any) => typeof s === "string" && s.trim().length > 1).map((s: string) => s.toLowerCase());
+      if (terms.length && !terms.some((t) => hay.includes(t))) return false;
+      if (typeof aiFilters.max_price === "number" && (p.price ?? Infinity) > aiFilters.max_price) return false;
+      if (typeof aiFilters.min_price === "number" && (p.price ?? -Infinity) < aiFilters.min_price) return false;
+      if (aiFilters.delivery_required && !p.delivery_available) return false;
+      if (aiFilters.city) {
+        const c = String(aiFilters.city).toLowerCase();
+        const loc = `${p.startups?.city ?? ""} ${p.delegation ?? ""}`.toLowerCase();
+        if (!loc.includes(c)) return false;
+      }
+    }
     if (governorate !== "all" && p.startups?.city !== governorate) return false;
     if (delegation !== "all" && p.delegation !== delegation) return false;
     if (category !== "all") {
@@ -159,7 +178,16 @@ export default function Products() {
   });
 
   const hasFilters = search || governorate !== "all" || delegation !== "all" || category !== "all";
-  const resetFilters = () => { setSearch(""); setGovernorate("all"); setDelegation("all"); setCategory("all"); };
+  const resetFilters = () => { setSearch(""); setGovernorate("all"); setDelegation("all"); setCategory("all"); setAiFilters(null); };
+
+  const runAiSearch = async () => {
+    if (!search.trim()) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("smart-search", { body: { query: search } });
+      if (!error) setAiFilters(data?.filters ?? null);
+    } finally { setAiLoading(false); }
+  };
 
   return (
     <PageLayout>
@@ -170,7 +198,22 @@ export default function Products() {
         <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder={t("common.search")} value={search} onChange={(e)=>setSearch(e.target.value)} className="pl-9" />
+            <Input
+              placeholder='Ex : "robe traditionnelle bleue moins de 100dt"'
+              value={search}
+              onChange={(e)=>{ setSearch(e.target.value); if (aiFilters) setAiFilters(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runAiSearch(); } }}
+              className="pl-9 pr-10"
+            />
+            <button
+              type="button"
+              onClick={runAiSearch}
+              disabled={aiLoading || !search.trim()}
+              title="Recherche intelligente (IA)"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-primary hover:bg-primary/10 disabled:opacity-40"
+            >
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            </button>
           </div>
           <Select value={governorate} onValueChange={(v) => { setGovernorate(v); setDelegation("all"); }}>
             <SelectTrigger><SelectValue placeholder="Gouvernorat" /></SelectTrigger>
@@ -198,6 +241,24 @@ export default function Products() {
             </SelectContent>
           </Select>
         </div>
+
+        {aiFilters && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <Sparkles className="h-3 w-3 text-primary" />
+            <span className="text-muted-foreground">Filtres IA :</span>
+            {Array.isArray(aiFilters.keywords) && aiFilters.keywords.map((k: string) => (
+              <Badge key={k} variant="secondary">{k}</Badge>
+            ))}
+            {aiFilters.color && <Badge variant="outline">{aiFilters.color}</Badge>}
+            {aiFilters.max_price && <Badge variant="outline">≤ {aiFilters.max_price} TND</Badge>}
+            {aiFilters.min_price && <Badge variant="outline">≥ {aiFilters.min_price} TND</Badge>}
+            {aiFilters.city && <Badge variant="outline">{aiFilters.city}</Badge>}
+            {aiFilters.delivery_required && <Badge variant="outline">Livraison</Badge>}
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setAiFilters(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm text-muted-foreground">
