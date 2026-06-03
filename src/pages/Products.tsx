@@ -40,6 +40,7 @@ export default function Products() {
   const [governorate, setGovernorate] = useState("all");
   const [delegation, setDelegation] = useState("all");
   const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState("relevance");
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [views, setViews] = useState<Record<string, number>>({});
   const [purchases, setPurchases] = useState<Record<string, number>>({});
@@ -136,6 +137,27 @@ export default function Products() {
     return true;
   });
 
+  const availabilityRank: Record<string, number> = { in_stock: 0, arriving: 1, out_of_stock: 2 };
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sort) {
+      case "newest":
+        return (b.id > a.id ? 1 : -1); // real rows come first (already sorted by created_at desc); demos last
+      case "name_asc":
+        return a.name.localeCompare(b.name);
+      case "name_desc":
+        return b.name.localeCompare(a.name);
+      case "price_asc":
+        return (a.price ?? Infinity) - (b.price ?? Infinity);
+      case "price_desc":
+        return (b.price ?? -Infinity) - (a.price ?? -Infinity);
+      case "in_stock":
+        return (availabilityRank[a.availability] ?? 9) - (availabilityRank[b.availability] ?? 9);
+      default:
+        // relevance: most liked + viewed first
+        return ((likes[b.id] ?? 0) + (views[b.id] ?? 0)) - ((likes[a.id] ?? 0) + (views[a.id] ?? 0));
+    }
+  });
+
   const hasFilters = search || governorate !== "all" || delegation !== "all" || category !== "all";
   const resetFilters = () => { setSearch(""); setGovernorate("all"); setDelegation("all"); setCategory("all"); };
 
@@ -177,9 +199,30 @@ export default function Products() {
           </Select>
         </div>
 
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-sm text-muted-foreground">
+            {sorted.length} produit{sorted.length > 1 ? "s" : ""}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Trier par :</span>
+            <Select value={sort} onValueChange={setSort}>
+              <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="relevance">Pertinence</SelectItem>
+                <SelectItem value="newest">Nouveaux produits</SelectItem>
+                <SelectItem value="name_asc">Nom : A → Z</SelectItem>
+                <SelectItem value="name_desc">Nom : Z → A</SelectItem>
+                <SelectItem value="price_asc">Prix : croissant</SelectItem>
+                <SelectItem value="price_desc">Prix : décroissant</SelectItem>
+                <SelectItem value="in_stock">En stock d'abord</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {hasFilters && (
           <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>{filtered.length} résultat{filtered.length > 1 ? "s" : ""}</span>
+            <span>{sorted.length} résultat{sorted.length > 1 ? "s" : ""}</span>
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="mr-1 h-3 w-3" /> Réinitialiser
             </Button>
@@ -187,7 +230,7 @@ export default function Products() {
         )}
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
+          {sorted.map((p) => (
             <Card key={p.id} className="overflow-hidden">
               {p.images?.[0] && (
                 <Link to={`/product/${p.id}`} className="block aspect-square w-full overflow-hidden bg-muted">
@@ -254,7 +297,7 @@ export default function Products() {
               </CardContent>
             </Card>
           ))}
-          {filtered.length === 0 && (
+          {sorted.length === 0 && (
             <p className="col-span-full py-12 text-center text-muted-foreground">
               Aucun produit ne correspond à vos filtres.
             </p>
