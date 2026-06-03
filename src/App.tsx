@@ -10,7 +10,6 @@ import Discover from "./pages/Discover.tsx";
 import MapView from "./pages/MapView.tsx";
 import LiveCalendar from "./pages/LiveCalendar.tsx";
 import ImageSearch from "./pages/ImageSearch.tsx";
-import SmartSearch from "./pages/SmartSearch.tsx";
 import StartupDetail from "./pages/StartupDetail.tsx";
 import ProductDetail from "./pages/ProductDetail.tsx";
 import Apply from "./pages/Apply.tsx";
@@ -43,7 +42,6 @@ const App = () => (
             <Route path="/map" element={<MapView />} />
             <Route path="/lives" element={<LiveCalendar />} />
             <Route path="/image-search" element={<ImageSearch />} />
-            <Route path="/smart-search" element={<SmartSearch />} />
             <Route path="/startup/:slug" element={<StartupDetail />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/apply" element={<Apply />} />
