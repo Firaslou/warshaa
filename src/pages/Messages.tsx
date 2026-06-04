@@ -154,7 +154,7 @@ export default function Messages() {
               return (
                 <button
                   key={c.id}
-                  onClick={() => c.startup && setActive({ startupId: c.startup.id, name: c.startup.name })}
+                  onClick={() => c.startup && setActive({ conversationId: c.id, startupId: c.startup.id, name: c.startup.name })}
                   className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-muted/50"
                 >
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
@@ -190,6 +190,7 @@ export default function Messages() {
           onOpenChange={(v) => !v && setActive(null)}
           startupId={active.startupId}
           startupName={active.name}
+          initialConversationId={active.conversationId}
         />
       )}
     </PageLayout>
