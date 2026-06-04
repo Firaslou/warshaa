@@ -22,12 +22,13 @@ interface Message {
 }
 
 export function PrivateChatDialog({
-  open, onOpenChange, startupId, startupName,
+  open, onOpenChange, startupId, startupName, initialConversationId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   startupId: string;
   startupName: string;
+  initialConversationId?: string;
 }) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -44,14 +45,17 @@ export function PrivateChatDialog({
     if (!open || !user) return;
     (async () => {
       setLoading(true);
-      // Find or create conversation
-      const { data: existing } = await supabase
-        .from("chat_conversations")
-        .select("id")
-        .eq("buyer_id", user.id)
-        .eq("startup_id", startupId)
-        .maybeSingle();
-      let convId = existing?.id;
+      // Open an existing inbox conversation, or find/create one from a boutique page.
+      let convId = initialConversationId;
+      if (!convId) {
+        const { data: existing } = await supabase
+          .from("chat_conversations")
+          .select("id")
+          .eq("buyer_id", user.id)
+          .eq("startup_id", startupId)
+          .maybeSingle();
+        convId = existing?.id;
+      }
       if (!convId) {
         const { data: created, error } = await supabase
           .from("chat_conversations")
@@ -70,7 +74,7 @@ export function PrivateChatDialog({
       setMessages((msgs as Message[]) ?? []);
       setLoading(false);
     })();
-  }, [open, user, startupId]);
+  }, [open, user, startupId, initialConversationId]);
 
   // Realtime
   useEffect(() => {
