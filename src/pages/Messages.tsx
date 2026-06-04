@@ -21,20 +21,26 @@ interface ConvRow {
   unread?: boolean;
 }
 
+interface ActiveChat {
+  conversationId: string;
+  startupId: string;
+  name: string;
+}
+
 export default function Messages() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [tab, setTab] = useState<"buyer" | "seller">("buyer");
   const [convs, setConvs] = useState<ConvRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState<{ startupId: string; name: string } | null>(null);
+  const [active, setActive] = useState<ActiveChat | null>(null);
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
     let query = supabase
       .from("chat_conversations")
-      .select("id, buyer_id, startup_id, last_message_at, startup:startups(id,name,slug,logo_url)")
+      .select("id, buyer_id, startup_id, last_message_at")
       .order("last_message_at", { ascending: false });
 
     if (tab === "buyer") {
@@ -50,19 +56,31 @@ export default function Messages() {
     const { data } = await query;
     const rows = (data as any[]) ?? [];
 
-    // Fetch buyer profiles (for seller view) + last message for each
+    // Fetch linked boutique, buyer profile, and last message without relying on embedded joins.
     const buyerIds = Array.from(new Set(rows.map((r) => r.buyer_id)));
-    const { data: profs } = buyerIds.length
-      ? await supabase.from("profiles").select("id,full_name,avatar_url").in("id", buyerIds)
-      : { data: [] as any[] };
+    const startupIds = Array.from(new Set(rows.map((r) => r.startup_id)));
+    const [{ data: profs }, { data: startups }] = await Promise.all([
+      buyerIds.length
+        ? supabase.from("profiles").select("id,full_name,avatar_url").in("id", buyerIds)
+        : Promise.resolve({ data: [] as any[] }),
+      startupIds.length
+        ? supabase.from("startups").select("id,name,slug,logo_url").in("id", startupIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
     const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+    const startupMap = new Map((startups ?? []).map((s: any) => [s.id, s]));
 
     const enriched = await Promise.all(rows.map(async (c) => {
       const { data: msg } = await supabase
         .from("chat_messages").select("content,sender_id")
         .eq("conversation_id", c.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       const p = profMap.get(c.buyer_id);
-      return { ...c, buyer: p ? { full_name: p.full_name, avatar_url: p.avatar_url } : null, lastMessage: msg?.content ?? "" };
+      return {
+        ...c,
+        startup: startupMap.get(c.startup_id) ?? null,
+        buyer: p ? { full_name: p.full_name, avatar_url: p.avatar_url } : null,
+        lastMessage: msg?.content ?? "",
+      };
     }));
     setConvs(enriched);
     setLoading(false);
@@ -136,7 +154,7 @@ export default function Messages() {
               return (
                 <button
                   key={c.id}
-                  onClick={() => c.startup && setActive({ startupId: c.startup.id, name: c.startup.name })}
+                  onClick={() => c.startup && setActive({ conversationId: c.id, startupId: c.startup.id, name: c.startup.name })}
                   className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-muted/50"
                 >
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
@@ -172,6 +190,7 @@ export default function Messages() {
           onOpenChange={(v) => !v && setActive(null)}
           startupId={active.startupId}
           startupName={active.name}
+          initialConversationId={active.conversationId}
         />
       )}
     </PageLayout>
