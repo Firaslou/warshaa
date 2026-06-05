@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
   Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart, Flag,
+  Send, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { ComplaintDialog } from "@/components/ComplaintDialog";
@@ -77,6 +79,11 @@ export default function StartupDetail() {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
   const [isDemo, setIsDemo] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewPhoto, setReviewPhoto] = useState<File | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewAuthors, setReviewAuthors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!slug) return;
@@ -92,6 +99,14 @@ export default function StartupDetail() {
         ]);
         setProducts((prods as Product[]) ?? []);
         setReviews((revs as Review[]) ?? []);
+        const rIds = Array.from(new Set(((revs as Review[]) ?? []).map((r) => r.user_id)));
+        if (rIds.length) {
+          const { data: profs } = await supabase
+            .from("profiles").select("id, full_name").in("id", rIds);
+          const map: Record<string, string> = {};
+          (profs ?? []).forEach((p: any) => { map[p.id] = p.full_name; });
+          setReviewAuthors(map);
+        }
         // Stats détaillées
         const productIds = (prods ?? []).map((p: any) => p.id);
         const [viewsRes, purchasesRes, clicksRes] = await Promise.all([
@@ -205,6 +220,43 @@ export default function StartupDetail() {
     if (!user) { toast.info(t("apply.needAccount")); return; }
     setChatOpen(true);
   };
+
+  const submitReview = async () => {
+    if (!user || !startup) { toast.info("Connectez-vous pour laisser un avis."); return; }
+    if (isDemo) { toast.info("Aperçu de démonstration — l'avis ne sera pas enregistré."); return; }
+    if (reviewRating < 1) { toast.error("Choisissez une note."); return; }
+    setSubmittingReview(true);
+    try {
+      let photo_url: string | null = null;
+      if (reviewPhoto) {
+        const ext = reviewPhoto.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${startup.id}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("review-photos").upload(path, reviewPhoto, { upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("review-photos").getPublicUrl(path);
+        photo_url = pub.publicUrl;
+      }
+      const { data, error } = await supabase.from("reviews").insert({
+        user_id: user.id,
+        startup_id: startup.id,
+        rating: reviewRating,
+        comment: reviewText.trim() || null,
+        photo_url,
+      }).select("*").single();
+      if (error) throw error;
+      setReviews((rs) => [data as Review, ...rs]);
+      setReviewAuthors((m) => ({ ...m, [user.id]: "Vous" }));
+      setReviewRating(0); setReviewText(""); setReviewPhoto(null);
+      toast.success("Merci pour votre avis !");
+    } catch (e: any) {
+      toast.error(e.message ?? "Impossible de publier l'avis.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const myReview = reviews.find((r) => r.user_id === user?.id);
 
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
   if (!startup) return <PageLayout><div className="container py-20 text-center">{t("notFound.title")}</div></PageLayout>;
@@ -441,18 +493,55 @@ export default function StartupDetail() {
                 {t("startup.reviews")}
                 {reviews.length > 0 && <span className="ml-3 text-sm font-normal text-muted-foreground">★ {avgRating.toFixed(1)} ({reviews.length})</span>}
               </h2>
-              {user && <Link to={`/startup/${slug}/review`}><Button size="sm" variant="outline">{t("startup.writeReview")}</Button></Link>}
             </div>
+
+            {user && !myReview && !isDemo && (
+              <div className="mb-6 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <p className="text-sm font-medium">{t("startup.writeReview")}</p>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" onClick={() => setReviewRating(n)} aria-label={`${n} étoile${n > 1 ? "s" : ""}`}>
+                      <Star className={cn("h-7 w-7 transition", n <= reviewRating ? "fill-warning text-warning" : "text-muted-foreground/40 hover:text-warning")} />
+                    </button>
+                  ))}
+                </div>
+                <Textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="Partagez votre expérience avec ce créateur…"
+                  rows={3}
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-primary">
+                    <Camera className="h-4 w-4" />
+                    {reviewPhoto ? reviewPhoto.name : "Ajouter une photo (optionnel)"}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setReviewPhoto(e.target.files?.[0] ?? null)} />
+                  </label>
+                  <Button onClick={submitReview} disabled={submittingReview || reviewRating < 1} className="gradient-warm text-primary-foreground">
+                    <Send className="mr-2 h-4 w-4" /> Publier
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {reviews.length === 0 ? (
               <p className="text-muted-foreground">{t("startup.noReviews")}</p>
             ) : (
               <div className="space-y-4">
                 {reviews.map((r) => (
                   <div key={r.id} className="rounded-xl bg-card p-4 shadow-card">
-                    <div className="mb-2 flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={cn("h-4 w-4", i < r.rating ? "fill-warning text-warning" : "text-muted")} />
-                      ))}
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{reviewAuthors[r.user_id] ?? "Utilisateur"}</span>
+                        <span className="flex">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={cn("h-3.5 w-3.5", i < r.rating ? "fill-warning text-warning" : "text-muted")} />
+                          ))}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                      </span>
                     </div>
                     {r.comment && <p className="text-sm text-foreground/80">{r.comment}</p>}
                     {r.photo_url && <img src={r.photo_url} alt="review" className="mt-3 max-h-64 rounded-lg" />}
