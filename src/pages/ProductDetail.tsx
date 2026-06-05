@@ -599,21 +599,6 @@ export default function ProductDetail() {
           </div>
         </section>
 
-        <div className="hidden">
-          {/* keep block close */}
-          <div>
-            <div>
-              <div>
-                <div>
-                  <div>
-                    {/* spacer to preserve following structure */}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* COMMENTS */}
         <section className="mx-auto mt-12 max-w-3xl">
           <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold">
