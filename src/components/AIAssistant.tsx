@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Send, Sparkles, X } from "lucide-react";
+import { Bot, Send, Sparkles, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,13 +120,15 @@ export function AIAssistant() {
                 {m.recommendations && m.recommendations.length > 0 && (
                   <div className="flex w-full flex-col gap-2">
                     {m.recommendations.map((r) => (
-                      <Link
+                      <div
                         key={r.id}
-                        to={`/startup/${r.slug}`}
-                        onClick={() => setOpen(false)}
                         className="flex items-center gap-3 rounded-xl border bg-background p-2 transition hover:border-primary hover:shadow-sm"
                       >
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
+                        <Link
+                          to={`/startup/${r.slug}`}
+                          onClick={() => setOpen(false)}
+                          className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted"
+                        >
                           {r.logo_url ? (
                             <img src={r.logo_url} alt={r.name} className="h-full w-full object-cover" />
                           ) : (
@@ -134,14 +136,27 @@ export function AIAssistant() {
                               {r.name.charAt(0)}
                             </div>
                           )}
-                        </div>
-                        <div className="min-w-0 flex-1">
+                        </Link>
+                        <Link
+                          to={`/startup/${r.slug}`}
+                          onClick={() => setOpen(false)}
+                          className="min-w-0 flex-1"
+                        >
                           <p className="truncate text-sm font-semibold">{r.name}</p>
                           <p className="truncate text-xs text-muted-foreground">
                             {r.tagline || [r.category, r.city].filter(Boolean).join(" · ")}
                           </p>
-                        </div>
-                      </Link>
+                        </Link>
+                        <Button
+                          asChild
+                          size="sm"
+                          className="h-8 shrink-0 gradient-warm text-primary-foreground"
+                        >
+                          <Link to={`/startup/${r.slug}`} onClick={() => setOpen(false)}>
+                            Voir <ArrowRight className="ml-1 h-3 w-3" />
+                          </Link>
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}
