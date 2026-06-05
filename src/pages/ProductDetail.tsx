@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Heart, MessageCircle, Send, MapPin, Truck, ArrowLeft, Lock,
   ChevronLeft, ChevronRight, Play, ShoppingBag, LogIn, Image as ImageIcon, Tag,
+  Star, CheckCircle2, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,16 @@ interface Comment {
   author_name?: string;
 }
 
+interface Review {
+  id: string;
+  user_id: string;
+  rating: number;
+  comment?: string | null;
+  photo_url?: string | null;
+  created_at: string;
+  author_name?: string;
+}
+
 interface StartupLite {
   id: string;
   slug: string;
@@ -75,6 +86,16 @@ export default function ProductDetail() {
   const [posting, setPosting] = useState(false);
 
   const [chatOpen, setChatOpen] = useState(false);
+
+  const [purchased, setPurchased] = useState(false);
+  const [purchaseCount, setPurchaseCount] = useState(0);
+  const [confirming, setConfirming] = useState(false);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewPhoto, setReviewPhoto] = useState<File | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -181,6 +202,35 @@ export default function ProductDetail() {
           list.forEach((c) => { c.author_name = c.is_anonymous ? "Anonyme" : "Utilisateur"; });
         }
         setComments(list);
+
+        // Reviews
+        const { data: revs } = await supabase
+          .from("reviews")
+          .select("*")
+          .eq("product_id", id)
+          .order("created_at", { ascending: false });
+        const rList = (revs as Review[]) ?? [];
+        const rIds = Array.from(new Set(rList.map((r) => r.user_id)));
+        if (rIds.length) {
+          const { data: profs } = await supabase
+            .from("profiles").select("id, full_name").in("id", rIds);
+          const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+          rList.forEach((r) => { r.author_name = map.get(r.user_id) ?? "Utilisateur"; });
+        }
+        setReviews(rList);
+
+        // Purchase confirmations
+        const { count: pcCount } = await supabase
+          .from("purchase_confirmations")
+          .select("id", { count: "exact", head: true })
+          .eq("product_id", id);
+        setPurchaseCount(pcCount ?? 0);
+        if (user) {
+          const { data: mine } = await supabase
+            .from("purchase_confirmations").select("id")
+            .eq("product_id", id).eq("user_id", user.id).maybeSingle();
+          setPurchased(!!mine);
+        }
       }
       setLoading(false);
     })();
@@ -252,6 +302,56 @@ export default function ProductDetail() {
     if (!user) { toast.info("Connectez-vous pour discuter avec ce créateur."); return; }
     setChatOpen(true);
   };
+
+  const confirmPurchase = async () => {
+    if (!user) { toast.info("Connectez-vous pour confirmer votre achat."); return; }
+    if (!product || isDemo || purchased) return;
+    setConfirming(true);
+    const { error } = await supabase.from("purchase_confirmations")
+      .insert({ user_id: user.id, product_id: product.id, startup_id: product.startup_id });
+    setConfirming(false);
+    if (error) { toast.error(error.message); return; }
+    setPurchased(true);
+    setPurchaseCount((n) => n + 1);
+    toast.success("Merci ! Votre achat est confirmé. Vous pouvez maintenant laisser un avis.");
+  };
+
+  const submitReview = async () => {
+    if (!user || !product) return;
+    if (reviewRating < 1) { toast.error("Choisissez une note."); return; }
+    setSubmittingReview(true);
+    try {
+      let photo_url: string | null = null;
+      if (reviewPhoto) {
+        const ext = reviewPhoto.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${product.id}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("review-photos").upload(path, reviewPhoto, { upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("review-photos").getPublicUrl(path);
+        photo_url = pub.publicUrl;
+      }
+      const { data, error } = await supabase.from("reviews").insert({
+        user_id: user.id,
+        startup_id: product.startup_id,
+        product_id: product.id,
+        rating: reviewRating,
+        comment: reviewText.trim() || null,
+        photo_url,
+      }).select("*").single();
+      if (error) throw error;
+      setReviews((rs) => [{ ...(data as Review), author_name: "Vous" }, ...rs]);
+      setReviewRating(0); setReviewText(""); setReviewPhoto(null);
+      toast.success("Merci pour votre avis !");
+    } catch (e: any) {
+      toast.error(e.message ?? "Impossible de publier l'avis.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const myReview = reviews.find((r) => r.user_id === user?.id);
+  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
   if (!product) return <PageLayout><div className="container py-20 text-center">{t("notFound.title")}</div></PageLayout>;
@@ -394,9 +494,110 @@ export default function ProductDetail() {
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} />
                 {likes}
               </Button>
+              {!isDemo && (
+                <Button
+                  variant={purchased ? "secondary" : "outline"}
+                  onClick={confirmPurchase}
+                  disabled={purchased || confirming}
+                  className={purchased ? "text-success" : ""}
+                  title={purchased ? "Vous avez confirmé cet achat" : "Confirmer que vous avez acheté ce produit"}
+                >
+                  <CheckCircle2 className={cn("mr-2 h-4 w-4", purchased && "text-success")} />
+                  {purchased ? "Achat confirmé" : "Confirmer mon achat"}
+                </Button>
+              )}
             </div>
+            {!isDemo && purchaseCount > 0 && (
+              <p className="text-xs text-muted-foreground">
+                ✅ {purchaseCount} achat{purchaseCount > 1 ? "s" : ""} confirmé{purchaseCount > 1 ? "s" : ""} par la communauté
+              </p>
+            )}
           </div>
         </div>
+
+        {/* REVIEWS */}
+        <section className="mx-auto mt-12 max-w-3xl">
+          <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold">
+            <Star className="h-5 w-5" />
+            Avis ({reviews.length})
+            {reviews.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ★ {avgRating.toFixed(1)} / 5
+              </span>
+            )}
+          </h2>
+
+          {!isDemo && user && purchased && !myReview && (
+            <div className="mb-6 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <p className="text-sm font-medium">Partagez votre expérience</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setReviewRating(n)}
+                    aria-label={`${n} étoile${n > 1 ? "s" : ""}`}
+                  >
+                    <Star className={cn("h-7 w-7 transition", n <= reviewRating ? "fill-warning text-warning" : "text-muted-foreground/40 hover:text-warning")} />
+                  </button>
+                ))}
+              </div>
+              <Textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Qu'avez-vous pensé du produit ?"
+                rows={3}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-primary">
+                  <Camera className="h-4 w-4" />
+                  {reviewPhoto ? reviewPhoto.name : "Ajouter une photo (optionnel)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setReviewPhoto(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <Button onClick={submitReview} disabled={submittingReview || reviewRating < 1} className="gradient-warm text-primary-foreground">
+                  <Send className="mr-2 h-4 w-4" /> Publier l'avis
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!isDemo && user && !purchased && (
+            <div className="mb-6 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+              Confirmez d'abord votre achat ci-dessus pour pouvoir laisser un avis.
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {reviews.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucun avis pour le moment.</p>
+            ) : (
+              reviews.map((r) => (
+                <div key={r.id} className="rounded-xl border border-border bg-card p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{r.author_name ?? "Utilisateur"}</span>
+                      <span className="flex">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={cn("h-3.5 w-3.5", i < r.rating ? "fill-warning text-warning" : "text-muted-foreground/30")} />
+                        ))}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                  {r.comment && <p className="text-sm text-foreground/80">{r.comment}</p>}
+                  {r.photo_url && <img src={r.photo_url} alt="avis" className="mt-3 max-h-64 rounded-lg" />}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
 
         {/* COMMENTS */}
         <section className="mx-auto mt-12 max-w-3xl">
