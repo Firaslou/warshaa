@@ -182,6 +182,11 @@ const Index = () => {
         <p className="mt-4 text-center text-xs text-muted-foreground italic">{t("stats.supportLine")}</p>
       </section>
 
+      {/* STORIES (24h) */}
+      <section className="container mt-8">
+        <StoriesBar />
+      </section>
+
       {/* COUP DE CŒUR DU JOUR */}
       {coupDeCoeur && (
         <section className="container py-16 md:py-20">
