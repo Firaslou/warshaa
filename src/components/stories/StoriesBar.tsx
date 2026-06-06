@@ -33,12 +33,31 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
 
   const load = useCallback(async () => {
+    if (!user) { setGroups([]); return; }
+    // Only show stories from creators the user supports (always include own startup)
+    const { data: supports } = await supabase
+      .from("startup_supporters")
+      .select("startup_id")
+      .eq("user_id", user.id);
+    const allowed = new Set((supports ?? []).map((s: any) => s.startup_id));
+    // Include the user's own startup so they always see their own stories
+    const { data: own } = await supabase
+      .from("startups")
+      .select("id")
+      .eq("owner_id", user.id);
+    (own ?? []).forEach((s: any) => allowed.add(s.id));
+    if (startupId) {
+      if (!allowed.has(startupId)) { setGroups([]); return; }
+    } else if (allowed.size === 0) {
+      setGroups([]); return;
+    }
     let q = supabase
       .from("stories")
       .select("id, startup_id, user_id, media_url, media_type, caption, created_at")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: true });
     if (startupId) q = q.eq("startup_id", startupId);
+    else q = q.in("startup_id", Array.from(allowed));
     const { data: stories } = await q;
     if (!stories || stories.length === 0) { setGroups([]); return; }
     const ids = Array.from(new Set(stories.map((s) => s.startup_id)));
@@ -66,7 +85,7 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
       });
     });
     setGroups(Array.from(groupMap.values()));
-  }, [startupId]);
+  }, [startupId, user]);
 
   useEffect(() => { load(); }, [load]);
 
