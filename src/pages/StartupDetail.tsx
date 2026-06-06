@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { ComplaintDialog } from "@/components/ComplaintDialog";
+import { StoriesBar } from "@/components/stories/StoriesBar";
 import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
