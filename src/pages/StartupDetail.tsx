@@ -350,6 +350,11 @@ export default function StartupDetail() {
               </div>
             </div>
 
+            {/* STORIES (24h) */}
+            <div className="mt-6 border-t pt-3">
+              <StoriesBar startupId={startup.id} startupSlug={startup.slug} />
+            </div>
+
             {/* STATS DÉTAILLÉES */}
             <div className="mt-6 grid grid-cols-2 gap-3 border-t pt-5 sm:grid-cols-4">
               {[
