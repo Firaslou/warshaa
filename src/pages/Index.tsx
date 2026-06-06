@@ -14,6 +14,7 @@ import { StartupCard, StartupCardData } from "@/components/StartupCard";
 import { DEMO_STARTUPS } from "@/lib/demo";
 import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
+import { StoriesBar } from "@/components/stories/StoriesBar";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   jewelry: Gem, candles: Flame, art: Palette, fashion: Shirt, leather: Briefcase,
@@ -179,6 +180,11 @@ const Index = () => {
           ))}
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground italic">{t("stats.supportLine")}</p>
+      </section>
+
+      {/* STORIES (24h) */}
+      <section className="container mt-8">
+        <StoriesBar />
       </section>
 
       {/* COUP DE CŒUR DU JOUR */}

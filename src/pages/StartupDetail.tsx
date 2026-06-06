@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { ComplaintDialog } from "@/components/ComplaintDialog";
+import { StoriesBar } from "@/components/stories/StoriesBar";
 import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -347,6 +348,11 @@ export default function StartupDetail() {
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* STORIES (24h) */}
+            <div className="mt-6 border-t pt-3">
+              <StoriesBar startupId={startup.id} startupSlug={startup.slug} />
             </div>
 
             {/* STATS DÉTAILLÉES */}
