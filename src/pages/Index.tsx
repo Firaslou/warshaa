@@ -14,6 +14,7 @@ import { StartupCard, StartupCardData } from "@/components/StartupCard";
 import { DEMO_STARTUPS } from "@/lib/demo";
 import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
+import { StoriesBar } from "@/components/stories/StoriesBar";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   jewelry: Gem, candles: Flame, art: Palette, fashion: Shirt, leather: Briefcase,
