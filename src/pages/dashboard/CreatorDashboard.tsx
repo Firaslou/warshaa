@@ -36,6 +36,7 @@ export default function CreatorDashboard() {
   const [application, setApplication] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [clicks, setClicks] = useState(0);
+  const [selectedInsight, setSelectedInsight] = useState<any>(null);
   const [views30d, setViews30d] = useState<{ date: string; count: number }[]>([]);
   const [topProducts, setTopProducts] = useState<{ name: string; views: number }[]>([]);
   const [productEdit, setProductEdit] = useState<any | null>(null);
@@ -646,7 +647,77 @@ export default function CreatorDashboard() {
             <LiveScheduleManager startupId={startup.id} />
           </TabsContent>
         </Tabs>
+        {/* 💡 NOTIFICATIONS / INSIGHTS INTELLIGENTS */}
+      {productInsights.length > 0 && (
+        <div className="mb-6 flex flex-col gap-3">
+          {productInsights.map((insight, index) => (
+            <div 
+              key={index} 
+              onClick={() => setSelectedInsight(insight)}
+              className="p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-md flex items-start gap-3 bg-orange-50 border-orange-200 text-orange-900 shadow-sm"
+            >
+              <span className="text-2xl mt-1">🔔</span>
+              <div>
+                <h3 className="font-bold text-sm uppercase tracking-wider mb-1">Alerte Produit</h3>
+                <p className="text-sm">{insight.message}</p>
+                <span className="text-xs font-bold underline mt-2 block text-orange-700">
+                  Clique pour voir l'analyse détaillée ➔
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       </div>
+      {/* 🛑 FENÊTRE POP-UP DES STATISTIQUES (S'ouvre au clic sur la notif) */}
+      {selectedInsight && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full relative">
+            
+            {/* Bouton pour fermer la fenêtre */}
+            <button 
+              onClick={() => setSelectedInsight(null)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-bold mb-2">Analyse du produit</h2>
+            <p className="text-gray-600 mb-6">{selectedInsight.message}</p>
+
+            {/* Affichage des statistiques */}
+            <div className="bg-gray-50 p-4 rounded-md mb-6 flex justify-around text-center">
+              <div>
+                <p className="text-sm text-gray-500 uppercase">Vues totales</p>
+                <p className="text-2xl font-bold text-blue-600">{selectedInsight.views}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 uppercase">Ventes</p>
+                <p className="text-2xl font-bold text-green-600">{selectedInsight.sales}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 uppercase">Conversion</p>
+                <p className="text-2xl font-bold text-orange-500">
+                  {((selectedInsight.sales / selectedInsight.views) * 100).toFixed(1)}%
+                </p>
+              </div>
+            </div>
+
+            {/* Bouton d'action */}
+            <button 
+              onClick={() => {
+                alert("Redirection vers la page de modification du produit...");
+                // Ici on mettra le lien vers la page de modification
+                setSelectedInsight(null);
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+            >
+              ✏️ Modifier le produit (Baisser le prix)
+            </button>
+
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
