@@ -460,7 +460,7 @@ export default function CreatorDashboard() {
                       autoPlay 
                       muted
                       playsInline
-                      className="h-full w-full object-cover transform scale-x-[-1]" 
+                      className={`h-full w-full object-cover ${facingMode === "user" ? "transform scale-x-[-1]" : ""}`} 
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center text-muted-foreground/40">
@@ -476,9 +476,24 @@ export default function CreatorDashboard() {
                       ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
                       : t("dashboard.creator.liveInvite")}
                   </p>
-                  <Button onClick={toggleLive} variant={startup?.is_live ? "destructive" : "default"} className={startup?.is_live ? "" : "gradient-warm text-primary-foreground"}>
-                    {startup?.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
-                  </Button>
+                  
+                  <div className="flex gap-2">
+                    {/* Bouton pour tourner la caméra (visible uniquement en live) */}
+                    {startup?.is_live && (
+                      <Button onClick={switchCamera} variant="outline">
+                        🔄 Tourner la caméra
+                      </Button>
+                    )}
+
+                    {/* Bouton pour Allumer / Éteindre le live */}
+                    <Button 
+                      onClick={toggleLive} 
+                      variant={startup?.is_live ? "destructive" : "default"} 
+                      className={startup?.is_live ? "" : "gradient-warm text-primary-foreground"}
+                    >
+                      {startup?.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
+                    </Button>
+                  </div>
                 </div>
 
               </CardContent>
