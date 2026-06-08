@@ -568,6 +568,60 @@ export default function CreatorDashboard() {
                   </div>
                   </div>
                 </div>
+                {/* 🚀 L'INTERFACE PLEIN ÉCRAN FAÇON FACEBOOK LIVE QUE TU VIENS DE COLLER */}
+                {startup?.is_live && (
+                  <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between overflow-hidden">
+          
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+
+                    <div className="relative z-10 flex justify-between items-start p-4 bg-gradient-to-b from-black/70 to-transparent h-32">
+                      <div className="flex gap-2 items-center">
+                      <span className="bg-red-600 animate-pulse text-white px-3 py-1 rounded-sm text-xs font-bold uppercase tracking-wider">
+                        En direct
+                      </span>
+                      <span className="bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-sm text-xs flex items-center gap-1 font-medium">
+                        👁️ {viewerCount}
+                      </span>
+                    </div>
+            
+                    <div className="flex gap-3">
+                      <button onClick={switchCamera} className="bg-black/40 backdrop-blur-sm p-3 rounded-full text-white text-lg">
+                        🔄
+                      </button>
+                      <button onClick={toggleLive} className="bg-black/40 backdrop-blur-sm p-3 rounded-full text-white text-lg">
+                        ✖️
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent min-h-[30vh] flex flex-col justify-end">
+                    <div className="flex flex-col gap-3 mb-4 max-w-[85%]">
+                      {comments.map(c => (
+                        <div key={c.id} className="animate-in fade-in slide-in-from-bottom-2 flex flex-col drop-shadow-md">
+                          <span className="text-white/70 text-xs font-semibold">{c.user}</span>
+                          <span className="text-white text-sm font-medium">{c.msg}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="w-full flex items-center gap-2">
+                      <div className="flex-1 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-white/50 text-sm">
+                        Ajouter un commentaire...
+                      </div>
+                      <div className="bg-primary p-2 rounded-full text-white/90">
+                        ❤️
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
 
               </CardContent>
             </Card>
