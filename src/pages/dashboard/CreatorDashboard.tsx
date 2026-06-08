@@ -425,22 +425,45 @@ export default function CreatorDashboard() {
           <TabsContent value="live">
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Radio className="h-5 w-5 text-primary" /> {t("dashboard.creator.liveTitle")}</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {startup.is_live
-                    ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
-                    : t("dashboard.creator.liveInvite")}
-                </p>
-                <Button onClick={toggleLive} variant={startup.is_live ? "destructive" : "default"} className={startup.is_live ? "" : "gradient-warm text-primary-foreground"}>
-                  {startup.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
-                </Button>
+              <CardContent className="space-y-4">
+                
+                {/* L'ÉCRAN VIDÉO DU CRÉATEUR */}
+                <div className="relative aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-black flex items-center justify-center">
+                  {startup?.is_live ? (
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover transform scale-x-[-1]" 
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground/40">
+                      <Radio className="h-12 w-12 mb-2" />
+                      <p>La caméra est éteinte</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                  <p className="text-sm text-muted-foreground">
+                    {startup?.is_live
+                      ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
+                      : t("dashboard.creator.liveInvite")}
+                  </p>
+                  <Button onClick={toggleLive} variant={startup?.is_live ? "destructive" : "default"} className={startup?.is_live ? "" : "gradient-warm text-primary-foreground"}>
+                    {startup?.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
+                  </Button>
+                </div>
+
               </CardContent>
             </Card>
+            
             <Card className="mt-6">
               <CardHeader><CardTitle>{t("dashboard.creator.newPostTitle")}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  {t("dashboard.creator.newPostDesc", { time: startup.last_post_at ? new Date(startup.last_post_at).toLocaleString() : t("dashboard.creator.never") })}
+                  {t("dashboard.creator.newPostDesc", { time: startup?.last_post_at ? new Date(startup.last_post_at).toLocaleString() : t("dashboard.creator.never") })}
                 </p>
                 <Button onClick={markNewPost} variant="outline">{t("dashboard.creator.signalNew")}</Button>
               </CardContent>
