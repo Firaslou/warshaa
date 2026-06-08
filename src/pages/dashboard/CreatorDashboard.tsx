@@ -39,6 +39,7 @@ export default function CreatorDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [comments, setComments] = useState([]);
   const [viewerCount, setViewerCount] = useState(0);
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -170,7 +171,7 @@ export default function CreatorDashboard() {
     refreshAll(user!.id);
   };
 
-  const toggleLive = async () => {
+ const toggleLive = async () => {
     if (!startup) return;
     const newLive = !startup.is_live;
 
@@ -201,10 +202,6 @@ export default function CreatorDashboard() {
     toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
     refreshAll(user!.id);
   };
-  if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
-    refreshAll(user!.id);
-  };
 
   const switchCamera = async () => {
     if (!stream) return;
@@ -223,17 +220,56 @@ export default function CreatorDashboard() {
     }
   };
 
+  // Attache la vidéo
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream, startup?.is_live]);
 
+  // Nettoyage de la caméra
   useEffect(() => {
     return () => {
       if (stream) stream.getTracks().forEach(track => track.stop());
     };
   }, [stream]);
+
+  // 🚀 MOTEUR DE SIMULATION : Vues et Commentaires
+  useEffect(() => {
+    let viewsInterval;
+    let commentsInterval;
+
+    if (startup?.is_live) {
+      // 1. Simulation des vues (ça monte et ça descend)
+      setViewerCount(Math.floor(Math.random() * 20) + 15); // Démarre entre 15 et 35
+      viewsInterval = setInterval(() => {
+        setViewerCount(prev => Math.max(5, prev + (Math.floor(Math.random() * 11) - 5))); // +/- 5 vues
+      }, 3000);
+
+      // 2. Simulation des commentaires
+      const fakeUsers = ["Sarah", "Ahmed", "Julien_99", "Marie.C", "Karim"];
+      const fakeMsgs = ["Trop bien le concept !", "Salut !! 👋", "On vous regarde depuis Paris", "C'est dispo quand ?", "J'adore 😍", "Continuez comme ça !"];
+      
+      commentsInterval = setInterval(() => {
+        const user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
+        const msg = fakeMsgs[Math.floor(Math.random() * fakeMsgs.length)];
+        
+        setComments(prev => {
+          const newComments = [...prev, { id: Date.now(), user, msg }];
+          return newComments.slice(-6); // On garde seulement les 6 derniers messages pour ne pas remplir l'écran
+        });
+      }, 4500); // Un commentaire toutes les 4,5 secondes
+
+    } else {
+      setViewerCount(0);
+      setComments([]); // Vide les commentaires si le live s'arrête
+    }
+
+    return () => {
+      clearInterval(viewsInterval);
+      clearInterval(commentsInterval);
+    };
+  }, [startup?.is_live]);
 
   const markNewPost = async () => {
     if (!startup) return;
