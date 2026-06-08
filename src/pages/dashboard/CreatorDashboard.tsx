@@ -36,8 +36,10 @@ export default function CreatorDashboard() {
   const [application, setApplication] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [clicks, setClicks] = useState(0);
+  const [selectedInsight, setSelectedInsight] = useState<any>(null);
+
+  // 2. Le cerveau (avec notre faux produit de test)
   const productInsights = useMemo(() => {
-    // 🛑 CODE DE TEST : On force une fausse alerte pour voir le design
     return [{
       id: "produit-test",
       type: "warning",
@@ -46,7 +48,9 @@ export default function CreatorDashboard() {
       sales: 1,
       message: `Ton produit "Casquette VIP" est très consulté (245 vues) mais peu acheté (1 vente). Astuce : Baisse un peu le prix !`
     }];
-  }, [products]);
+  }, []); 
+  // N'oublie pas d'importer useMemo tout en haut du fichier si ce n'est pas fait : 
+  // import { useState, useMemo } from 'react';
   const [views30d, setViews30d] = useState<{ date: string; count: number }[]>([]);
   const [topProducts, setTopProducts] = useState<{ name: string; views: number }[]>([]);
   const [productEdit, setProductEdit] = useState<any | null>(null);
