@@ -153,7 +153,10 @@ export default function CreatorDashboard() {
 
     if (newLive) {
       try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: facingMode }, 
+          audio: true 
+        });
         setStream(mediaStream);
       } catch (err) {
         console.error("Accès caméra refusé:", err);
