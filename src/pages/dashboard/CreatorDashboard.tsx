@@ -511,7 +511,6 @@ export default function CreatorDashboard() {
                         : t("dashboard.creator.liveInvite")}
                     </p>
 
-                    {/* 👇 LE COMPTEUR S'AFFICHE ICI À CÔTÉ DU TEMPS */}
                     <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-4 border-border">
                       👁️ <span className="font-medium text-foreground">{viewerCount || 0} vues</span>
                     </div>
@@ -531,6 +530,7 @@ export default function CreatorDashboard() {
                     >
                       {startup?.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
                     </Button>
+                  </div>
                   </div>
                 </div>
 
