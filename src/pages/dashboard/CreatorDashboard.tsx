@@ -149,14 +149,43 @@ export default function CreatorDashboard() {
   const toggleLive = async () => {
     if (!startup) return;
     const newLive = !startup.is_live;
+
+    if (newLive) {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setStream(mediaStream);
+      } catch (err) {
+        console.error("Accès caméra refusé:", err);
+        return toast({ title: "Erreur", description: "Veuillez autoriser l'accès à la caméra et au micro.", variant: "destructive" });
+      }
+    } else {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
+    }
+
     const { error } = await supabase.from("startups").update({
       is_live: newLive,
       live_started_at: newLive ? new Date().toISOString() : null,
     }).eq("id", startup.id);
+    
     if (error) return toast({ title: error.message, variant: "destructive" });
     toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
     refreshAll(user!.id);
   };
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, startup?.is_live]);
+
+  useEffect(() => {
+    return () => {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+    };
+  }, [stream]);
 
   const markNewPost = async () => {
     if (!startup) return;
