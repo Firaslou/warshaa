@@ -51,7 +51,7 @@ export default function CreatorDashboard() {
       const lesVentes = product.sales || 0; 
 
       // Si le produit est vu plus de 50 fois mais moins de 2% d'achats
-      if (lesVues > 50 && (lesVentes === 0 || (lesVentes / lesVues) < 0.02)) {
+      if (lesVues >= 0 && (lesVentes === 0 || (lesVentes / lesVues) < 0.02)) {
         tips.push({
           id: product.id,
           type: "warning",
