@@ -39,6 +39,29 @@ export default function CreatorDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [viewerCount, setViewerCount] = useState(0);
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (startup?.is_live) {
+      // On commence avec un nombre de spectateurs aléatoire au démarrage du live
+      setViewerCount(Math.floor(Math.random() * 20) + 15);
+
+      // Toutes les 5 secondes, le nombre varie légèrement
+      interval = setInterval(() => {
+        setViewerCount(prev => {
+          const change = Math.floor(Math.random() * 5) - 2; // -2, -1, 0, 1 ou 2
+          const next = prev + change;
+          return next < 0 ? 0 : next;
+        });
+      }, 5000);
+    } else {
+      // Si le live est éteint, on remet le compteur à 0
+      setViewerCount(0);
+    }
+
+    return () => clearInterval(interval);
+  }, [startup?.is_live]);
 
   // Profile form state
   const [pf, setPf] = useState({
@@ -462,6 +485,16 @@ export default function CreatorDashboard() {
                       playsInline
                       className={`h-full w-full object-cover ${facingMode === "user" ? "transform scale-x-[-1]" : ""}`} 
                     />
+                    {/* 👇 LE BADGE DES SPECTATEURS EN DIRECT */}
+                    {startup?.is_live && (
+                      <div className="absolute top-4 left-4 bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-lg animate-pulse">
+                        <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+                        <span>• LIVE</span>
+                        <span className="ml-1 flex items-center gap-1">
+                          👁️ {viewerCount}
+                        </span>
+                      </div>
+                    )}
                   ) : (
                     <div className="flex flex-col items-center justify-center text-muted-foreground/40">
                       <Radio className="h-12 w-12 mb-2" />
