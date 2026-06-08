@@ -512,11 +512,9 @@ export default function CreatorDashboard() {
                     </p>
 
                     {/* 👇 LE COMPTEUR S'AFFICHE ICI À CÔTÉ DU TEMPS */}
-                    {startup?.is_live && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-4 border-border">
-                        👁️ <span className="font-medium text-foreground">{viewerCount} vues</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-4 border-border">
+                      👁️ <span className="font-medium text-foreground">{viewerCount || 0} vues</span>
+                    </div>
                   </div>
                   
                   <div className="flex gap-2">
