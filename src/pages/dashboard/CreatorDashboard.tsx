@@ -40,19 +40,31 @@ export default function CreatorDashboard() {
   const [clicks, setClicks] = useState(0);
   const [selectedInsight, setSelectedInsight] = useState<any>(null);
 
-  // 2. Le cerveau (avec notre faux produit de test)
   const productInsights = useMemo(() => {
-    return [{
-      id: "produit-test",
-      type: "warning",
-      name: "Casquette VIP",
-      views: 245,
-      sales: 1,
-      message: `Ton produit "Casquette VIP" est très consulté (245 vues) mais peu acheté (1 vente). Astuce : Baisse un peu le prix !`
-    }];
-  }, []); 
-  // N'oublie pas d'importer useMemo tout en haut du fichier si ce n'est pas fait : 
-  // import { useState, useMemo } from 'react';
+    // Si on n'a pas de produits, on arrête
+    if (!products || products.length === 0) return [];
+
+    const tips = [];
+
+    products.forEach(product => {
+      const viewsCount = views[product.id] || 0; // Utilise ton compteur de vues
+      const salesCount = purchases[product.id] || 0; // Utilise ton compteur d'achats
+
+      // Si le produit est vu plus de 50 fois mais très peu acheté (moins de 2%)
+      if (viewsCount > 50 && (salesCount === 0 || (salesCount / viewsCount) < 0.02)) {
+        tips.push({
+          id: product.id,
+          type: "warning",
+          name: product.name,
+          views: viewsCount,
+          sales: salesCount,
+          message: `Ton produit "${product.name}" est très consulté (${viewsCount} vues) mais peu acheté (${salesCount} ventes). Astuce : Baisse un peu le prix ou ajoute une promotion !`
+        });
+      }
+    });
+
+    return tips;
+  }, [products, views, purchases]); // On surveille les produits, les vues et les achats
   const [views30d, setViews30d] = useState<{ date: string; count: number }[]>([]);
   const [topProducts, setTopProducts] = useState<{ name: string; views: number }[]>([]);
   const [productEdit, setProductEdit] = useState<any | null>(null);
@@ -720,15 +732,22 @@ export default function CreatorDashboard() {
             </div>
 
             {/* Bouton d'action */}
-            {/* Bouton d'action mis à jour */}
+            {/* Bouton d'action mis à jour avec le système de Dialog */}
             <button 
               onClick={() => {
-                // Ferme le pop-up
+                // 1. On ferme notre petite fenêtre d'alerte orange
                 setSelectedInsight(null);
                 
-                // Redirige vers la page d'édition du produit
-                // ⚠️ Remplace "/edit-product/" par la vraie URL de ta page de modification
-                navigate(`/edit-product/${selectedInsight.id}`); 
+                // 2. On cherche le vrai produit dans ta liste grâce à son ID
+                const productToEdit = products.find(p => p.id === selectedInsight.id);
+                
+                // 3. Si on trouve le produit, on déclenche l'ouverture de ton formulaire
+                if (productToEdit) {
+                  setProductEdit(productToEdit); // On donne le produit au formulaire
+                  setProductOpen(true);          // On affiche le formulaire à l'écran
+                } else {
+                  console.log("Produit introuvable !");
+                }
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
             >
