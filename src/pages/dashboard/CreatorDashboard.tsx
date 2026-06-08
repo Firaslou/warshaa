@@ -735,29 +735,33 @@ export default function CreatorDashboard() {
             {/* Bouton d'action mis à jour avec le système de Dialog */}
             <button 
               onClick={() => {
-                // TEST 1 : Le clic fonctionne-t-il ?
-                alert("🟢 TEST 1 : Le clic sur le bouton fonctionne !");
+                // 1. On récupère le bon produit
+                const vraiProduit = products.find(p => p.id === selectedInsight.id) || products[0];
                 
-                if (!products || products.length === 0) {
-                  alert("🔴 ÉCHEC : Ton tableau de produits est vide dans le code.");
-                  return;
-                }
+                if (vraiProduit) {
+                  // 2. ACTION MAGIQUE : On force l'interface à basculer sur l'onglet "Produits"
+                  // pour rendre le formulaire visible à l'écran
+                  const ongletProduits = document.querySelector('[data-value="products"]') || 
+                                         document.querySelector('button[value="products"]') ||
+                                         Array.from(document.querySelectorAll('button')).find(el => el.textContent?.toLowerCase().includes('produit'));
+                  
+                  if (ongletProduits) {
+                    (ongletProduits as HTMLElement).click();
+                  }
 
-                // TEST 2 : On récupère de force le premier produit
-                const monProduit = products[0];
-                alert("🟡 TEST 2 : Produit trouvé -> " + monProduit.name + ". Tentative d'ouverture...");
+                  // 3. On injecte le produit et on ouvre le formulaire
+                  setProductEdit(vraiProduit);
+                  setProductOpen(true);
+                }
                 
-                // On applique les fonctions de Lovable
-                setProductEdit(monProduit);
-                setProductOpen(true);
-                
-                // On ferme la popup d'alerte
-                setSelectedInsight(null);
+                // 4. On ferme la popup d'analyse après un court instant
+                setTimeout(() => {
+                  setSelectedInsight(null);
+                }, 150);
               }}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md"
-              style={{ pointerEvents: 'auto', cursor: 'pointer', position: 'relative', zIndex: 99999 }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md transition-colors shadow-md"
             >
-              🚨 CLIQUE ICI POUR TESTER
+              ✏️ Modifier le produit (Baisser le prix)
             </button>
           </div>
         </div>
