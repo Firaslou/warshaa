@@ -22,7 +22,12 @@ import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/li
 import { toast } from "@/hooks/use-toast";
 import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
 import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from "recharts";
+import { LineChart, Line as RechartsLine, XAxis as RechartsXAxis, YAxis as RechartsYAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar as RechartsBar, CartesianGrid } from "recharts";
+const XAxis = RechartsXAxis as any;
+const YAxis = RechartsYAxis as any;
+const Tooltip = RechartsTooltip as any;
+const Line = RechartsLine as any;
+const Bar = RechartsBar as any;
 
 export default function CreatorDashboard() {
   const { t } = useTranslation();
@@ -42,7 +47,7 @@ export default function CreatorDashboard() {
   const [comments, setComments] = useState([]);
   const [viewerCount, setViewerCount] = useState(0);
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval;
     
     if (startup?.is_live) {
       // On commence avec un nombre de spectateurs aléatoire au démarrage du live
@@ -513,30 +518,29 @@ export default function CreatorDashboard() {
                 {/* L'ÉCRAN VIDÉO DU CRÉATEUR */}
                 <div className="relative aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-black flex items-center justify-center">
                   {startup?.is_live ? (
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      muted
-                      playsInline
-                      className={`h-full w-full object-cover ${facingMode === "user" ? "transform scale-x-[-1]" : ""}`} 
-                    />
-                    {/* 👇 LE BADGE DES SPECTATEURS EN DIRECT */}
-                    {startup?.is_live && (
-                      <div className="absolute top-4 left-4 bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-lg animate-pulse">
-                        <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-                        <span>• LIVE</span>
-                        <span className="ml-1 flex items-center gap-1">
-                          👁️ {viewerCount}
-                        </span>
-                      </div>
-                    )}
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-muted-foreground/40">
-                      <Radio className="h-12 w-12 mb-2" />
-                      <p>La caméra est éteinte</p>
-                    </div>
-                  )}
-                </div>
+          <div className="relative w-full h-full min-h-[300px]">
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className={`h-full w-full object-cover ${facingMode === "user" ? "transform scale-x-[-1]" : ""}`}
+            />
+            {/* 👁️ LE BADGE DES SPECTATEURS INTÉGRÉ PROPREMENT */}
+            <div className="absolute top-4 left-4 bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-lg animate-pulse">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+              <span>• LIVE</span>
+              <span className="ml-1 flex items-center gap-1">
+                👁️ {viewerCount || 0}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-muted-foreground/40 min-h-[300px]">
+            <Radio className="h-12 w-12 mb-2" />
+            <p>La caméra est éteinte</p>
+          </div>
+        )}
 
                 <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
                   <div className="flex items-center gap-4">
