@@ -38,6 +38,7 @@ export default function CreatorDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
   // Profile form state
   const [pf, setPf] = useState({
