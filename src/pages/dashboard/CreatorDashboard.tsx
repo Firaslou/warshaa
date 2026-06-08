@@ -504,21 +504,28 @@ export default function CreatorDashboard() {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    {startup?.is_live
-                      ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
-                      : t("dashboard.creator.liveInvite")}
-                  </p>
+                  <div className="flex items-center gap-4">
+                    <p className="text-sm text-muted-foreground">
+                      {startup?.is_live
+                        ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
+                        : t("dashboard.creator.liveInvite")}
+                    </p>
+
+                    {/* 👇 LE COMPTEUR S'AFFICHE ICI À CÔTÉ DU TEMPS */}
+                    {startup?.is_live && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-4 border-border">
+                        👁️ <span className="font-medium text-foreground">{viewerCount} vues</span>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex gap-2">
-                    {/* Bouton pour tourner la caméra (visible uniquement en live) */}
                     {startup?.is_live && (
                       <Button onClick={switchCamera} variant="outline">
                         🔄 Tourner la caméra
                       </Button>
                     )}
 
-                    {/* Bouton pour Allumer / Éteindre le live */}
                     <Button 
                       onClick={toggleLive} 
                       variant={startup?.is_live ? "destructive" : "default"} 
