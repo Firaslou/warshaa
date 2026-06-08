@@ -171,7 +171,7 @@ export default function CreatorDashboard() {
     refreshAll(user!.id);
   };
 
- const toggleLive = async () => {
+  const toggleLive = async () => {
     if (!startup) return;
     const newLive = !startup.is_live;
 
@@ -270,7 +270,6 @@ export default function CreatorDashboard() {
       clearInterval(commentsInterval);
     };
   }, [startup?.is_live]);
-
   const markNewPost = async () => {
     if (!startup) return;
     await supabase.from("startups").update({ last_post_at: new Date().toISOString() }).eq("id", startup.id);
