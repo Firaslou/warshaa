@@ -47,8 +47,9 @@ export default function CreatorDashboard() {
     const tips = [];
 
     products.forEach(product => {
-      const viewsCount = views[product.id] || 0; // Utilise ton compteur de vues
-      const salesCount = purchases[product.id] || 0; // Utilise ton compteur d'achats
+      // CORRECTION : On lit les compteurs directement sur le produit
+      const viewsCount = product.views || 0; 
+      const salesCount = product.sales || 0; 
 
       // Si le produit est vu plus de 50 fois mais très peu acheté (moins de 2%)
       if (viewsCount > 50 && (salesCount === 0 || (salesCount / viewsCount) < 0.02)) {
@@ -64,7 +65,7 @@ export default function CreatorDashboard() {
     });
 
     return tips;
-  }, [products, views, purchases]); // On surveille les produits, les vues et les achats
+  }, [products]);
   const [views30d, setViews30d] = useState<{ date: string; count: number }[]>([]);
   const [topProducts, setTopProducts] = useState<{ name: string; views: number }[]>([]);
   const [productEdit, setProductEdit] = useState<any | null>(null);
