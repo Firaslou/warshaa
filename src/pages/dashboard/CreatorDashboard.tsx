@@ -36,6 +36,8 @@ export default function CreatorDashboard() {
   const [productEdit, setProductEdit] = useState<any | null>(null);
   const [productOpen, setProductOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   // Profile form state
   const [pf, setPf] = useState({
