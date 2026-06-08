@@ -735,22 +735,29 @@ export default function CreatorDashboard() {
             {/* Bouton d'action mis à jour avec le système de Dialog */}
             <button 
               onClick={() => {
-                // 1. On ferme la popup orange
+                // TEST 1 : Le clic fonctionne-t-il ?
+                alert("🟢 TEST 1 : Le clic sur le bouton fonctionne !");
+                
+                if (!products || products.length === 0) {
+                  alert("🔴 ÉCHEC : Ton tableau de produits est vide dans le code.");
+                  return;
+                }
+
+                // TEST 2 : On récupère de force le premier produit
+                const monProduit = products[0];
+                alert("🟡 TEST 2 : Produit trouvé -> " + monProduit.name + ". Tentative d'ouverture...");
+                
+                // On applique les fonctions de Lovable
+                setProductEdit(monProduit);
+                setProductOpen(true);
+                
+                // On ferme la popup d'alerte
                 setSelectedInsight(null);
-                
-                // 2. On prend le premier produit disponible sous la main
-                const targetProduct = (products && products.length > 0) ? products[0] : null;
-                
-                // 3. FORCE L'OUVERTURE : On applique les fonctions d'ouverture de Lovable
-                if (typeof setProductEdit === 'function') setProductEdit(targetProduct);
-                if (typeof setProductOpen === 'function') setProductOpen(true);
-                
-                // 4. Alerte de secours pour comprendre si le clic fonctionne
-                console.log("Clic détecté ! Produit envoyé au formulaire :", targetProduct);
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md"
+              style={{ pointerEvents: 'auto', cursor: 'pointer', position: 'relative', zIndex: 99999 }}
             >
-              ✏️ Modifier le produit (Baisser le prix)
+              🚨 CLIQUE ICI POUR TESTER
             </button>
           </div>
         </div>
