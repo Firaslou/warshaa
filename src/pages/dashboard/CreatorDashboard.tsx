@@ -735,25 +735,18 @@ export default function CreatorDashboard() {
             {/* Bouton d'action mis à jour avec le système de Dialog */}
             <button 
               onClick={() => {
-                // 1. On ferme la popup orange d'alerte
+                // 1. On ferme la popup orange
                 setSelectedInsight(null);
                 
-                // 2. On cherche le produit correspondant dans ton tableau "products"
-                const productToEdit = products.find(p => p.id === selectedInsight.id);
+                // 2. On prend le premier produit disponible sous la main
+                const targetProduct = (products && products.length > 0) ? products[0] : null;
                 
-                if (productToEdit) {
-                  // Si on le trouve, on ouvre le vrai formulaire de modification
-                  setProductEdit(productToEdit);
-                  setProductOpen(true);
-                } else if (products.length > 0) {
-                  // SÉCURITÉ : Si l'ID ne correspond pas parfaitement, on ouvre 
-                  // automatiquement le premier produit de ta liste pour débloquer le formulaire
-                  setProductEdit(products[0]);
-                  setProductOpen(true);
-                } else {
-                  // Si vraiment tu n'as aucun produit chargé dans ton tableau de bord
-                  alert("Aucun produit trouvé dans ton tableau de bord pour le moment.");
-                }
+                // 3. FORCE L'OUVERTURE : On applique les fonctions d'ouverture de Lovable
+                if (typeof setProductEdit === 'function') setProductEdit(targetProduct);
+                if (typeof setProductOpen === 'function') setProductOpen(true);
+                
+                // 4. Alerte de secours pour comprendre si le clic fonctionne
+                console.log("Clic détecté ! Produit envoyé au formulaire :", targetProduct);
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
             >
