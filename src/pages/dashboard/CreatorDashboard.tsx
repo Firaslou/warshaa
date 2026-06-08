@@ -41,25 +41,24 @@ export default function CreatorDashboard() {
   const [selectedInsight, setSelectedInsight] = useState<any>(null);
 
   const productInsights = useMemo(() => {
-    // Si on n'a pas de produits, on arrête
     if (!products || products.length === 0) return [];
 
     const tips = [];
 
     products.forEach(product => {
-      // CORRECTION : On lit les compteurs directement sur le produit
-      const viewsCount = product.views || 0; 
-      const salesCount = product.sales || 0; 
+      // On utilise des noms simples et uniques pour éviter l'erreur
+      const lesVues = product.views || 0; 
+      const lesVentes = product.sales || 0; 
 
-      // Si le produit est vu plus de 50 fois mais très peu acheté (moins de 2%)
-      if (viewsCount > 50 && (salesCount === 0 || (salesCount / viewsCount) < 0.02)) {
+      // Si le produit est vu plus de 50 fois mais moins de 2% d'achats
+      if (lesVues > 50 && (lesVentes === 0 || (lesVentes / lesVues) < 0.02)) {
         tips.push({
           id: product.id,
           type: "warning",
           name: product.name,
-          views: viewsCount,
-          sales: salesCount,
-          message: `Ton produit "${product.name}" est très consulté (${viewsCount} vues) mais peu acheté (${salesCount} ventes). Astuce : Baisse un peu le prix ou ajoute une promotion !`
+          views: lesVues,
+          sales: lesVentes,
+          message: `Ton produit "${product.name}" est très consulté (${lesVues} vues) mais peu acheté (${lesVentes} ventes). Astuce : Baisse un peu le prix ou ajoute une promotion !`
         });
       }
     });
