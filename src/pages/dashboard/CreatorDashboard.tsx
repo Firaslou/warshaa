@@ -178,6 +178,27 @@ export default function CreatorDashboard() {
     toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
     refreshAll(user!.id);
   };
+  if (error) return toast({ title: error.message, variant: "destructive" });
+    toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
+    refreshAll(user!.id);
+  };
+
+  const switchCamera = async () => {
+    if (!stream) return;
+    const newMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newMode);
+    stream.getVideoTracks().forEach(track => track.stop());
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newMode },
+        audio: true
+      });
+      setStream(newStream);
+    } catch (err) {
+      console.error("Erreur switch caméra:", err);
+      toast({ title: "Erreur", description: "Impossible d'accéder à l'autre caméra.", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     if (videoRef.current && stream) {
