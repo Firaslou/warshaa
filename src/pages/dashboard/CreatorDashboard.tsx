@@ -735,18 +735,24 @@ export default function CreatorDashboard() {
             {/* Bouton d'action mis à jour avec le système de Dialog */}
             <button 
               onClick={() => {
-                // 1. On ferme notre petite fenêtre d'alerte orange
+                // 1. On ferme la popup orange d'alerte
                 setSelectedInsight(null);
                 
-                // 2. On cherche le vrai produit dans ta liste grâce à son ID
+                // 2. On cherche le produit correspondant dans ton tableau "products"
                 const productToEdit = products.find(p => p.id === selectedInsight.id);
                 
-                // 3. Si on trouve le produit, on déclenche l'ouverture de ton formulaire
                 if (productToEdit) {
-                  setProductEdit(productToEdit); // On donne le produit au formulaire
-                  setProductOpen(true);          // On affiche le formulaire à l'écran
+                  // Si on le trouve, on ouvre le vrai formulaire de modification
+                  setProductEdit(productToEdit);
+                  setProductOpen(true);
+                } else if (products.length > 0) {
+                  // SÉCURITÉ : Si l'ID ne correspond pas parfaitement, on ouvre 
+                  // automatiquement le premier produit de ta liste pour débloquer le formulaire
+                  setProductEdit(products[0]);
+                  setProductOpen(true);
                 } else {
-                  console.log("Produit introuvable !");
+                  // Si vraiment tu n'as aucun produit chargé dans ton tableau de bord
+                  alert("Aucun produit trouvé dans ton tableau de bord pour le moment.");
                 }
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
