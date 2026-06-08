@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
 import {
   Heart, Users, MessageCircle, Eye, Plus, Pencil, Trash2, Radio,
@@ -32,6 +33,7 @@ const Bar = RechartsBar as any;
 export default function CreatorDashboard() {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [startup, setStartup] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -718,17 +720,20 @@ export default function CreatorDashboard() {
             </div>
 
             {/* Bouton d'action */}
+            {/* Bouton d'action mis à jour */}
             <button 
               onClick={() => {
-                alert("Redirection vers la page de modification du produit...");
-                // Ici on mettra le lien vers la page de modification
+                // Ferme le pop-up
                 setSelectedInsight(null);
+                
+                // Redirige vers la page d'édition du produit
+                // ⚠️ Remplace "/edit-product/" par la vraie URL de ta page de modification
+                navigate(`/edit-product/${selectedInsight.id}`); 
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
             >
               ✏️ Modifier le produit (Baisser le prix)
             </button>
-
           </div>
         </div>
       )}
