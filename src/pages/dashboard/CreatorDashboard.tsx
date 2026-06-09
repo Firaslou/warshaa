@@ -76,6 +76,48 @@ export default function CreatorDashboard() {
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [comments, setComments] = useState([]);
   const [viewerCount, setViewerCount] = useState(0);
+  // États pour stocker les vraies heures calculées
+  const [bestTimeRange, setBestTimeRange] = useState("18h00 - 21h00");
+  const [peakPercentage, setPeakPercentage] = useState(45);
+
+  // Analyse de l'activité en temps réel
+  useEffect(() => {
+    const fetchRealAnalytics = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('analytics_events')
+          .select('created_at');
+
+        if (error || !data || data.length === 0) return;
+
+        const hoursCount = new Array(24).fill(0);
+        data.forEach(event => {
+          const hour = new Date(event.created_at).getHours();
+          hoursCount[hour]++;
+        });
+
+        let maxViews = 0;
+        let bestHour = 18;
+
+        hoursCount.forEach((count, hour) => {
+          if (count > maxViews) {
+            maxViews = count;
+            bestHour = hour;
+          }
+        });
+
+        const endHour = (bestHour + 3) % 24;
+        setBestTimeRange(`${bestHour}h00 - ${endHour}h00`);
+        
+        const percentage = Math.round((maxViews / data.length) * 100);
+        setPeakPercentage(percentage > 0 ? percentage : 45);
+      } catch (err) {
+        console.error("Erreur audience:", err);
+      }
+    };
+
+    fetchRealAnalytics();
+  }, []);
   useEffect(() => {
     let interval;
     
