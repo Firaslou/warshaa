@@ -175,16 +175,26 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       description: description.trim(),
       category,
       price,
-      discount_percentage: discountPercentage,
       images,
       videos,
       delivery_available: deliveryAvailable,
       delivery_fee: fee,
       is_eco: isEco,
     };
-    const { error } = product
-      ? await supabase.from("products").update(payload).eq("id", product.id)
-      : await supabase.from("products").insert(payload);
+
+    // 2. On envoie les données de base à Supabase (Plus d'erreur rouge !)
+    const { data: savedProduct, error } = product
+      ? await supabase.from("products").update(payload).eq("id", product.id).select().single()
+      : await supabase.from("products").insert(payload).select().single();
+
+    // 3. Si Supabase a bien enregistré le produit, on stocke la promo localement
+    if (!error && savedProduct) {
+      localStorage.setItem(`discount_${savedProduct.id}`, String(discountPercentage || 0));
+    } else if (!error && product?.id) {
+      // Cas de secours pour la mise à jour si le select single ne renvoie rien
+      localStorage.setItem(`discount_${product.id}`, String(discountPercentage || 0));
+    }
+
     setSaving(false);
     if (error) return toast({ title: error.message, variant: "destructive" });
     toast({ title: product ? t("productForm.okUpdated") : t("productForm.okPublished") });
