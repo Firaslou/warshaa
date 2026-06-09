@@ -20,6 +20,7 @@ interface ProductRow {
   name: string;
   description: string | null;
   price: number | null;
+  discount_percentage: number | null;
   currency: string;
   images: string[];
   availability: "in_stock" | "arriving" | "out_of_stock";
