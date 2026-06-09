@@ -31,6 +31,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
   const [priceStr, setPriceStr] = useState("");
   const [deliveryAvailable, setDeliveryAvailable] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState("");
+  const [discountPercentage, setDiscountPercentage] = useState(0);
   const [isEco, setIsEco] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
@@ -45,6 +46,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setDescription(product.description ?? "");
       setCategory(product.category ?? "");
       setPriceStr(product.price != null ? String(product.price) : "");
+      setDiscountPercentage(product.discount_percentage ?? 0);
       setDeliveryAvailable(!!product.delivery_available);
       setDeliveryFee(product.delivery_fee != null ? String(product.delivery_fee) : "");
       setIsEco(!!product.is_eco);
@@ -53,7 +55,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     } else {
       setName(""); setDescription(""); setCategory(""); setPriceStr("");
       setDeliveryAvailable(false); setDeliveryFee(""); setIsEco(false);
-      setImages([]); setVideos([]);
+      setImages([]); setVideos([]);setDiscountPercentage(0);
     }
     setKeywords("");
   }, [product, open]);
@@ -173,6 +175,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       description: description.trim(),
       category,
       price,
+      discount_percentage: discountPercentage,
       images,
       videos,
       delivery_available: deliveryAvailable,
@@ -246,6 +249,17 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
                 placeholder={t("productForm.pricePlaceholder")}
                 value={priceStr}
                 onChange={(e) => handlePriceChange(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Pourcentage de solde (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={discountPercentage}
+                onChange={(e) => setDiscountPercentage(Number(e.target.value))}
+                placeholder="Ex: 20 (laisser 0 si pas de solde)"
               />
             </div>
           </div>
