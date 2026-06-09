@@ -735,29 +735,28 @@ export default function CreatorDashboard() {
             {/* Bouton d'action mis à jour avec le système de Dialog */}
             <button 
               onClick={() => {
-                // 1. On récupère le bon produit
+                // 1. On récupère le bon produit à modifier
                 const vraiProduit = products.find(p => p.id === selectedInsight.id) || products[0];
                 
                 if (vraiProduit) {
-                  // 2. ACTION MAGIQUE : On force l'interface à basculer sur l'onglet "Produits"
-                  // pour rendre le formulaire visible à l'écran
-                  const ongletProduits = document.querySelector('[data-value="products"]') || 
-                                         document.querySelector('button[value="products"]') ||
-                                         Array.from(document.querySelectorAll('button')).find(el => el.textContent?.toLowerCase().includes('produit'));
+                  // 2. ACTION AUTOMATIQUE : On cherche l'onglet "Produits" et on clique dessus
+                  const ongletProduits = Array.from(document.querySelectorAll('button')).find(btn => 
+                    btn.textContent?.toLowerCase().includes('produit') || 
+                    btn.getAttribute('value') === 'products' || 
+                    btn.getAttribute('data-value') === 'products'
+                  );
                   
                   if (ongletProduits) {
                     (ongletProduits as HTMLElement).click();
                   }
 
-                  // 3. On injecte le produit et on ouvre le formulaire
+                  // 3. On configure les données et on ouvre le formulaire
                   setProductEdit(vraiProduit);
                   setProductOpen(true);
                 }
-                
-                // 4. On ferme la popup d'analyse après un court instant
-                setTimeout(() => {
-                  setSelectedInsight(null);
-                }, 150);
+
+                // 4. On fait disparaître proprement la petite pop-up d'analyse orange
+                setSelectedInsight(null);
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md transition-colors shadow-md"
             >
