@@ -80,7 +80,20 @@ export default function Products() {
         };
       });
 
-      setProducts([...real, ...demos]);
+      const allProducts = [...real, ...demos];
+
+      // On injecte les pourcentages de solde stockés dans le navigateur
+      const productsWithLocalDiscounts = allProducts.map((product: any) => {
+        const localDiscount = localStorage.getItem(`discount_${product.id}`);
+        return {
+          ...product,
+          // Si on trouve un solde dans le localStorage, on le prend, sinon on garde la valeur d'origine
+          discount_percentage: localDiscount ? Number(localDiscount) : (product.discount_percentage ?? 0)
+        };
+      });
+
+      // On envoie la liste finale enrichie à l'affichage
+      setProducts(productsWithLocalDiscounts);
 
       // Counts
       const ids = real.map((p) => p.id);
