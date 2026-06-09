@@ -334,7 +334,7 @@ export default function Products() {
                         </span>
                         {/* Ancien prix barré */}
                         <span className="text-xs text-muted-foreground line-through">
-                          {Number(p.price).toFixed(3)} TND
+                        {Number(p.price).toFixed(3)} TND
                         </span>
                         {/* Petit badge de réduction */}
                         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600 mt-0.5">
@@ -343,7 +343,7 @@ export default function Products() {
                       </div>
                     ) : (
                       /* Prix normal s'il n'y a pas de solde */
-                      <span className="whitespace-nowrap font-bold text-primary">{p.price} {p.currency}</span>
+                      <span className="whitespace-nowrap font-bold text-primary">{Number(p.price).toFixed(3)} TND</span>
                     )
                   )}
                 </div>
