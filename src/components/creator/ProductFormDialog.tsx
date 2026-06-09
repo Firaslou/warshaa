@@ -46,7 +46,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setDescription(product.description ?? "");
       setCategory(product.category ?? "");
       setPriceStr(product.price != null ? String(product.price) : "");
-      setDiscountPercentage(product.discount_percentage ?? 0);
+      const savedDiscount = localStorage.getItem(`discount_${product.id}`);
+      setDiscountPercentage(savedDiscount ? Number(savedDiscount) : (product.discount_percentage ?? 0));
       setDeliveryAvailable(!!product.delivery_available);
       setDeliveryFee(product.delivery_fee != null ? String(product.delivery_fee) : "");
       setIsEco(!!product.is_eco);
