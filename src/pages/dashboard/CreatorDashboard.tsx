@@ -79,6 +79,7 @@ export default function CreatorDashboard() {
   // États pour stocker les vraies heures calculées
   const [bestTimeRange, setBestTimeRange] = useState("18h00 - 21h00");
   const [peakPercentage, setPeakPercentage] = useState(45);
+  const [bestDay, setBestDay] = useState("Mer. & Dim.");
 
   // Analyse de l'activité en temps réel
   useEffect(() => {
@@ -90,15 +91,20 @@ export default function CreatorDashboard() {
 
         if (error || !data || data.length === 0) return;
 
+        // --- CALCUL DES HEURES ---
         const hoursCount = new Array(24).fill(0);
+        // --- CALCUL DES JOURS ---
+        const daysCount = new Array(7).fill(0); // 0 = Dimanche, 1 = Lundi, etc.
+
         data.forEach(event => {
-          const hour = new Date(event.created_at).getHours();
-          hoursCount[hour]++;
+          const date = new Date(event.created_at);
+          hoursCount[date.getHours()]++;
+          daysCount[date.getDay()]++;
         });
 
+        // Trouver la meilleure heure
         let maxViews = 0;
         let bestHour = 18;
-
         hoursCount.forEach((count, hour) => {
           if (count > maxViews) {
             maxViews = count;
@@ -106,6 +112,21 @@ export default function CreatorDashboard() {
           }
         });
 
+        // Trouver le meilleur jour
+        let maxDayViews = 0;
+        let bestDayIndex = 3; // Mercredi par défaut
+        daysCount.forEach((count, dayIndex) => {
+          if (count > maxDayViews) {
+            maxDayViews = count;
+            bestDayIndex = dayIndex;
+          }
+        });
+
+        // Traduction du jour en français
+        const lesJours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+        setBestDay(lesJours[bestDayIndex]);
+
+        // Mise à jour de l'heure et du pourcentage
         const endHour = (bestHour + 3) % 24;
         setBestTimeRange(`${bestHour}h00 - ${endHour}h00`);
         
@@ -462,10 +483,10 @@ export default function CreatorDashboard() {
                 <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Pic d'audience principal</p>
-                    <p className="text-3xl font-black text-blue-900 mt-1">18h00 - 21h00</p>
+                    <p className="text-3xl font-black text-blue-900 mt-1">{bestTimeRange}</p>
                   </div>
                   <p className="text-xs text-blue-700 mt-3 flex items-center gap-1 bg-blue-100/60 p-1.5 rounded">
-                    <TrendingUp className="h-3.5 w-3.5" /> +45% d'activité globale
+                    <TrendingUp className="h-3.5 w-3.5" /> +{peakPercentage}% d'activité globale
                   </p>
                 </div>
 
@@ -484,7 +505,7 @@ export default function CreatorDashboard() {
                 <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 flex flex-col justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase text-purple-600 tracking-wider">Jours optimaux</p>
-                    <p className="text-2xl font-extrabold text-purple-900 mt-1">Mer. & Dim.</p>
+                    <p className="text-2xl font-extrabold text-purple-900 mt-1">{bestDay}</p>
                   </div>
                   <p className="text-xs text-purple-700 mt-3 bg-purple-100/60 p-1.5 rounded">
                     Forte interaction communautaire
