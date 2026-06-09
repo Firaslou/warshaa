@@ -200,6 +200,9 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     toast({ title: product ? t("productForm.okUpdated") : t("productForm.okPublished") });
     onSaved();
     onOpenChange(false);
+    
+    // 🔄 Ajoute cette ligne ici pour forcer l'affichage à se rafraîchir
+    window.location.reload();
   };
 
   return (
