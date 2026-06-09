@@ -52,7 +52,7 @@ export default function Products() {
     (async () => {
       const { data } = await supabase
         .from("products")
-        .select("id,name,description,price,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)")
+        .select("id,name,description,price,discount_percentage,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)")
         .order("created_at", { ascending: false })
         .limit(120);
 
@@ -66,6 +66,7 @@ export default function Products() {
           name: p.name,
           description: p.description,
           price: p.price,
+          discount_percentage: null,
           currency: p.currency,
           images: p.images,
           availability: "in_stock",
@@ -295,8 +296,15 @@ export default function Products() {
           {sorted.map((p) => (
             <Card key={p.id} className="overflow-hidden">
               {p.images?.[0] && (
-                <Link to={`/product/${p.id}`} className="block aspect-square w-full overflow-hidden bg-muted">
+                <Link to={`/product/${p.id}`} className="relative block aspect-square w-full overflow-hidden bg-muted">
                   <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform hover:scale-105" loading="lazy" />
+    
+                  {/* Badge rouge de réduction */}
+                  {p.discount_percentage && p.discount_percentage > 0 && (
+                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md shadow-md z-10 animate-pulse">
+                      -{p.discount_percentage}%
+                    </div>
+                  )}
                 </Link>
               )}
               <CardContent className="space-y-3 p-4">
@@ -305,7 +313,21 @@ export default function Products() {
                     {p.name}
                   </Link>
                   {p.price != null && (
-                    <span className="whitespace-nowrap font-bold text-primary">{p.price} {p.currency}</span>
+                    p.discount_percentage && p.discount_percentage > 0 ? (
+                      <div className="flex flex-col items-end">
+                        {/* Nouveau prix calculé affiché en rouge */}
+                        <span className="whitespace-nowrap font-bold text-red-600">
+                          {(p.price * (1 - p.discount_percentage / 100)).toFixed(2)} {p.currency}
+                        </span>
+                        {/* Ancien prix barré en petit au-dessus ou à côté */}
+                        <span className="text-xs text-muted-foreground line-through">
+                          {p.price} {p.currency}
+                        </span>
+                      </div>
+                    ) : (
+                      /* Prix normal s'il n'y a pas de solde */
+                      <span className="whitespace-nowrap font-bold text-primary">{p.price} {p.currency}</span>
+                    )
                   )}
                 </div>
                 {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
