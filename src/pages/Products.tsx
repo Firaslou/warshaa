@@ -326,19 +326,19 @@ export default function Products() {
                     {p.name}
                   </Link>
                   {p.price != null && (
-                    product.discount_percentage && product.discount_percentage > 0 ? (
+                    p.discount_percentage && p.discount_percentage > 0 ? (
                       <div className="flex flex-col items-end">
                         {/* Nouveau prix calculé affiché en rouge */}
                         <span className="whitespace-nowrap font-bold text-red-600">
-                          {(product.price * (1 - product.discount_percentage / 100)).toFixed(3)} TND
+                          {(p.price * (1 - p.discount_percentage / 100)).toFixed(3)} TND
                         </span>
                         {/* Ancien prix barré */}
                         <span className="text-xs text-muted-foreground line-through">
-                          {Number(product.price).toFixed(3)} TND
+                          {Number(p.price).toFixed(3)} TND
                         </span>
                         {/* Petit badge de réduction */}
                         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600 mt-0.5">
-                          -{product.discount_percentage}%
+                          -{p.discount_percentage}%
                         </span>
                       </div>
                     ) : (
