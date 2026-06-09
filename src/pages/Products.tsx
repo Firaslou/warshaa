@@ -388,6 +388,25 @@ export default function Products() {
           )}
         </div>
       </section>
+      <button 
+        onClick={async () => {
+          try {
+            const { error } = await supabase.rpc('reload_schema_cache');
+              if (error) {
+                // Si la fonction RPC n'existe pas, on tente une requête SQL directe
+                await supabase.from('products').select('id').limit(1);
+                alert("Requête de test envoyée. Si l'erreur persiste, rafraîchis la page complète (F5).");
+              } else {
+                alert("Le cache de la base de données a été rechargé avec succès !");
+              }
+          } catch (e) {
+            alert("Erreur lors de la tentative de reconnexion. Rafraîchis simplement la page (F5).");
+          }
+        }}
+        className="fixed bottom-4 right-4 bg-black text-white text-xs px-3 py-2 rounded shadow z-50"
+      >
+        🔄 Forcer recharge Cache Supabase
+      </button>
     </PageLayout>
   );
 }
