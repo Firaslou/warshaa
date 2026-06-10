@@ -655,7 +655,25 @@ export default function CreatorDashboard() {
                         <h3 className="font-semibold leading-tight">{p.name}</h3>
                         {p.is_eco && <Leaf className="h-4 w-4 shrink-0 text-green-600" />}
                       </div>
-                      <p className="text-sm text-primary">{p.price} {p.currency}</p>
+                      {p.discount_percentage && p.discount_percentage > 0 ? (
+                        <div className="flex items-center gap-2">
+                          {/* 1. Le nouveau prix calculé et soldé */}
+                          <span className="text-sm font-bold text-red-600">
+                            {(p.price * (1 - p.discount_percentage / 100)).toFixed(3)} TND
+                          </span>
+                          {/* 2. L'ancien prix barré */}
+                          <span className="text-xs text-muted-foreground line-through">
+                            {Number(p.price).toFixed(3)} TND
+                          </span>
+                          {/* 3. Le petit badge rouge */}
+                          <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+                            -{p.discount_percentage}%
+                          </span>
+                        </div>
+                      ) : (
+                        /* Si pas de solde, on affiche le prix normal */
+                        <p className="text-sm text-primary">{Number(p.price).toFixed(3)} TND</p>
+                      )}
                       <p className="line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
                       <div className="flex gap-2 pt-2">
                         <Button size="sm" variant="outline" className="flex-1" onClick={() => { setProductEdit(p); setProductOpen(true); }}>
