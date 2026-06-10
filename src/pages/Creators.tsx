@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/select";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { StartupCard, StartupCardData } from "@/components/StartupCard";
-import { DEMO_STARTUPS } from "@/lib/demo";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS, type Governorate } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,7 +17,7 @@ export default function Creators() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
+  const [startups, setStartups] = useState<StartupCardData[]>([]);
   const [search, setSearch] = useState("");
   const [aiFilters, setAiFilters] = useState<any | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
