@@ -405,20 +405,6 @@ export default function Products() {
           )}
         </div>
       </section>
-      <button 
-        onClick={async () => {
-          try {
-            // Une simple requête de sélection suffit souvent à réveiller le cache du client
-            await supabase.from('products').select('id').limit(1);
-            alert("Requête de test envoyée ! Si la colonne rouge apparaît toujours lors de l'ajout, fais un rafraîchissement complet (F5).");
-          } catch (e) {
-            alert("Erreur lors de la tentative. Rafraîchis simplement la page (F5).");
-          }
-        }}
-        className="fixed bottom-4 right-4 bg-black text-white text-xs px-3 py-2 rounded shadow z-50"
-      >
-        🔄 Forcer recharge Cache Supabase
-      </button>
     </PageLayout>
   );
 }
