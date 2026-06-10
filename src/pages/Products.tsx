@@ -80,7 +80,7 @@ export default function Products() {
         };
       });
 
-      const allProducts = [...real, ...demos];
+      const allProducts = [...real];
 
       // On injecte les pourcentages de solde stockés dans le navigateur
       const productsWithLocalDiscounts = allProducts.map((product: any) => {
