@@ -33,6 +33,7 @@ interface Product {
   delegation?: string | null;
   delivery_available?: boolean;
   delivery_fee?: number | null;
+  discount_percentage?: number | null;
 }
 
 interface Comment {
@@ -119,6 +120,7 @@ export default function ProductDetail() {
           delegation: demo.delegation,
           delivery_available: demo.delivery_available,
           delivery_fee: demo.delivery_fee,
+          discount_percentage: (demo as any).discount_percentage ?? null,
         });
         if (demoStartup) {
           setStartup({
@@ -474,8 +476,26 @@ export default function ProductDetail() {
             </div>
 
             {product.price != null && (
-              <div className="font-serif text-3xl font-bold text-primary">
-                {product.price} {product.currency}
+              <div className="my-4">
+                {product.discount_percentage && product.discount_percentage > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <span className="font-serif text-3xl font-bold text-primary">
+                        {(product.price * (1 - product.discount_percentage / 100)).toFixed(3)} {product.currency}
+                      </span>
+                      <Badge className="bg-red-500 hover:bg-red-600 text-white font-bold border-none px-2 py-1">
+                        -{product.discount_percentage}%
+                      </Badge>
+                    </div>
+                    <span className="text-base text-muted-foreground line-through">
+                      {Number(product.price).toFixed(3)} {product.currency}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="font-serif text-3xl font-bold text-primary">
+                    {Number(product.price).toFixed(3)} {product.currency}
+                  </div>
+                )}
               </div>
             )}
 
