@@ -56,6 +56,7 @@ interface Product {
   category?: string | null;
   delegation?: string | null;
   discount_percentage?: number | null;
+  startup_slug?: string | null;
 }
 
 interface Review {
@@ -90,26 +91,32 @@ export default function StartupDetail() {
   useEffect(() => {
     if (!slug) return;
     (async () => {
+      // 1. On cherche la boutique dans la vraie base de données
       const { data: s } = await supabase.from("startups").select("*").eq("slug", slug).maybeSingle();
-      // Si un startup réel existe ET que ce n'est pas un slug de démo, afficher le réel.
       const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
+      
+      // Si la boutique existe dans la vraie base de données
       if (s) {
         setStartup(s as Startup);
+        setIsDemo(false);
+
+        // 2. On récupère les VRAIS produits de la DB en utilisant startup_id OU startup_slug !
         const [{ data: prods }, { data: revs }] = await Promise.all([
-          supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
+          supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).order("created_at", { ascending: false }),
           supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
         ]);
+        
         setProducts((prods as Product[]) ?? []);
         setReviews((revs as Review[]) ?? []);
+        
         const rIds = Array.from(new Set(((revs as Review[]) ?? []).map((r) => r.user_id)));
         if (rIds.length) {
-          const { data: profs } = await supabase
-            .from("profiles").select("id, full_name").in("id", rIds);
+          const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", rIds);
           const map: Record<string, string> = {};
           (profs ?? []).forEach((p: any) => { map[p.id] = p.full_name; });
           setReviewAuthors(map);
         }
-        // Stats détaillées
+        
         const productIds = (prods ?? []).map((p: any) => p.id);
         const [viewsRes, purchasesRes, clicksRes] = await Promise.all([
           productIds.length > 0
@@ -118,51 +125,49 @@ export default function StartupDetail() {
           supabase.from("purchase_confirmations").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
           supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
         ]);
+        
         setStats({
           views: viewsRes.count ?? 0,
           purchases: purchasesRes.count ?? 0,
           clicks: clicksRes.count ?? 0,
         });
+        
         if (user) {
-          const { data: fav } = await supabase
-            .from("favorites").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
+          const { data: fav } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
           setIsFavorite(!!fav);
-          const { data: sup } = await supabase
-            .from("startup_supporters").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
+          const { data: sup } = await supabase.from("startup_supporters").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
           setIsSupporter(!!sup);
         }
-      } else {
-        // Fallback to demo (ou slug de démo prioritaire)
-        if (demo) {
-          setIsDemo(true);
-          setStartup({
-            ...demo,
-            description: "Une marque pleine de passion et d'authenticité.",
-            creator_story: "Cette marque est née d'une envie de partager un savoir-faire transmis de génération en génération. Chaque pièce raconte une histoire.",
-            whatsapp_number: "+21620000000",
-            logo_url: null,
-            instagram_url: null,
-            facebook_url: null,
-          } as Startup);
-          // Produits de démo enrichis (multi-photos, catégorie, délégation, livraison)
-          const demoProds = getDemoProductsForStartup(demo.slug);
-          setProducts(
-            demoProds.length > 0
-              ? demoProds.map((p) => ({
-                  id: p.id,
-                  name: p.name,
-                  description: p.description,
-                  price: p.price,
-                  currency: p.currency,
-                  images: p.images,
-                  delivery_available: p.delivery_available,
-                  delivery_fee: p.delivery_fee,
-                  category: p.category,
-                  delegation: p.delegation,
-                }))
-              : [],
-          );
-        }
+      } else if (demo) {
+        // Mode démonstration au cas où
+        setIsDemo(true);
+        setStartup({
+          ...demo,
+          description: "Une marque pleine de passion et d'authenticité.",
+          creator_story: "Cette marque est née d'une envie de partager un savoir-faire transmis de génération en génération. Chaque pièce raconte une histoire.",
+          whatsapp_number: "+21620000000",
+          logo_url: null,
+          instagram_url: null,
+          facebook_url: null,
+        } as Startup);
+        
+        const demoProds = getDemoProductsForStartup(demo.slug);
+        setProducts(
+          demoProds.length > 0
+            ? demoProds.map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                price: p.price,
+                currency: p.currency,
+                images: p.images,
+                delivery_available: p.delivery_available,
+                delivery_fee: p.delivery_fee,
+                category: p.category,
+                delegation: p.delegation,
+              }))
+            : [],
+        );
       }
       setLoading(false);
     })();
@@ -276,7 +281,6 @@ export default function StartupDetail() {
 
   return (
     <PageLayout>
-      {/* HERO */}
       <section className="relative">
         <div className="aspect-[21/9] w-full overflow-hidden bg-muted md:aspect-[3/1]">
           {startup.cover_url && (
@@ -351,12 +355,10 @@ export default function StartupDetail() {
               </div>
             </div>
 
-            {/* STORIES (24h) */}
             <div className="mt-6 border-t pt-3">
               <StoriesBar startupId={startup.id} startupSlug={startup.slug} />
             </div>
 
-            {/* STATS DÉTAILLÉES */}
             <div className="mt-6 grid grid-cols-2 gap-3 border-t pt-5 sm:grid-cols-4">
               {[
                 { icon: Eye, label: "Vues produits", value: stats.views },
@@ -377,9 +379,7 @@ export default function StartupDetail() {
       </section>
 
       <div className="container grid gap-12 pb-16 md:grid-cols-3">
-        {/* MAIN */}
         <div className="space-y-12 md:col-span-2">
-          {/* LIVE PLACEHOLDER */}
           <section className="overflow-hidden rounded-2xl border border-border bg-card">
             <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-muted via-secondary/30 to-muted">
               {startup.is_live ? (
@@ -402,7 +402,6 @@ export default function StartupDetail() {
             </div>
           </section>
 
-          {/* STORY */}
           {startup.creator_story && (
             <section>
               <h2 className="mb-4 font-serif text-2xl font-bold">{t("startup.story")}</h2>
@@ -410,7 +409,6 @@ export default function StartupDetail() {
             </section>
           )}
 
-          {/* POSTS RÉCENTS */}
           {recentPosts.length > 0 && (
             <section>
               <div className="mb-4 flex items-center justify-between">
@@ -426,7 +424,6 @@ export default function StartupDetail() {
 
                   return (
                     <div key={p.id} className="relative w-40 shrink-0 overflow-hidden rounded-xl bg-card shadow-card">
-                      {/* LE BADGE ROUGE */}
                       {hasDiscount && (
                         <div className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white">
                           -{p.discount_percentage}%
@@ -462,7 +459,6 @@ export default function StartupDetail() {
             </section>
           )}
 
-          {/* PRODUCTS */}
           <section>
             <h2 className="mb-6 font-serif text-2xl font-bold">{t("startup.products")}</h2>
             {products.length === 0 ? (
@@ -477,7 +473,6 @@ export default function StartupDetail() {
 
                   return (
                     <div key={p.id} className="relative overflow-hidden rounded-xl bg-card shadow-card hover-lift">
-                      {/* LE BADGE ROUGE */}
                       {hasDiscount && (
                         <div className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
                           -{p.discount_percentage}%
@@ -546,7 +541,6 @@ export default function StartupDetail() {
             )}
           </section>
 
-          {/* REVIEWS */}
           <section>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="font-serif text-2xl font-bold">
@@ -612,7 +606,6 @@ export default function StartupDetail() {
           </section>
         </div>
 
-        {/* SIDEBAR */}
         <aside className="space-y-4">
           {!user && (
             <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 p-5">
@@ -659,7 +652,6 @@ export default function StartupDetail() {
         </aside>
       </div>
 
-      {/* CHAT DIALOG */}
       <PrivateChatDialog
         open={chatOpen}
         onOpenChange={setChatOpen}
@@ -667,7 +659,6 @@ export default function StartupDetail() {
         startupName={startup.name}
       />
 
-      {/* COMPLAINT DIALOG */}
       <ComplaintDialog
         open={complaintOpen}
         onOpenChange={setComplaintOpen}
