@@ -46,8 +46,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setDescription(product.description ?? "");
       setCategory(product.category ?? "");
       setPriceStr(product.price != null ? String(product.price) : "");
-      const savedDiscount = localStorage.getItem(`discount_${product.id}`);
-      setDiscountPercentage(savedDiscount ? Number(savedDiscount) : (product.discount_percentage ?? 0));
+      // Modification ici : On lit directement la vraie valeur depuis Supabase
+      setDiscountPercentage(product.discount_percentage ?? 0);
       setDeliveryAvailable(!!product.delivery_available);
       setDeliveryFee(product.delivery_fee != null ? String(product.delivery_fee) : "");
       setIsEco(!!product.is_eco);
@@ -56,13 +56,12 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     } else {
       setName(""); setDescription(""); setCategory(""); setPriceStr("");
       setDeliveryAvailable(false); setDeliveryFee(""); setIsEco(false);
-      setImages([]); setVideos([]);setDiscountPercentage(0);
+      setImages([]); setVideos([]); setDiscountPercentage(0);
     }
     setKeywords("");
   }, [product, open]);
 
   const handlePriceChange = (v: string) => {
-    // Only digits, dot, comma
     const cleaned = v.replace(/[^0-9.,]/g, "");
     setPriceStr(cleaned);
   };
@@ -170,6 +169,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     }
 
     setSaving(true);
+    
+    // Modification ici : On ajoute directement discount_percentage au payload envoyé à Supabase
     const payload = {
       startup_id: startupId,
       name: name.trim(),
@@ -181,20 +182,12 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       delivery_available: deliveryAvailable,
       delivery_fee: fee,
       is_eco: isEco,
+      discount_percentage: discountPercentage || 0, // <-- LE TUYAU EST BRANCHÉ ICI !
     };
 
-    // 2. On envoie les données de base à Supabase (Plus d'erreur rouge !)
-    const { data: savedProduct, error } = product
-      ? await supabase.from("products").update(payload).eq("id", product.id).select().single()
-      : await supabase.from("products").insert(payload).select().single();
-
-    // 3. Si Supabase a bien enregistré le produit, on stocke la promo localement
-    if (!error && savedProduct) {
-      localStorage.setItem(`discount_${savedProduct.id}`, String(discountPercentage || 0));
-    } else if (!error && product?.id) {
-      // Cas de secours pour la mise à jour si le select single ne renvoie rien
-      localStorage.setItem(`discount_${product.id}`, String(discountPercentage || 0));
-    }
+    const { error } = product
+      ? await supabase.from("products").update(payload).eq("id", product.id)
+      : await supabase.from("products").insert(payload);
 
     setSaving(false);
     if (error) return toast({ title: error.message, variant: "destructive" });
@@ -202,7 +195,6 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     onSaved();
     onOpenChange(false);
     
-    // 🔄 Ajoute cette ligne ici pour forcer l'affichage à se rafraîchir
     window.location.reload();
   };
 
