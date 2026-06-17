@@ -93,7 +93,7 @@ export default function StartupDetail() {
       const { data: s } = await supabase.from("startups").select("*").eq("slug", slug).maybeSingle();
       // Si un startup réel existe ET que ce n'est pas un slug de démo, afficher le réel.
       const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
-      if (s && !demo) {
+      if (s) {
         setStartup(s as Startup);
         const [{ data: prods }, { data: revs }] = await Promise.all([
           supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
