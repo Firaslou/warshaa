@@ -80,20 +80,14 @@ export default function Products() {
         };
       });
 
-      const allProducts = [...real];
+      // Correction ici : Plus de localStorage ! On mappe directement la valeur reçue de Supabase
+      const productsWithOfficialDiscounts = real.map((product: any) => ({
+        ...product,
+        discount_percentage: product.discount_percentage ?? 0
+      }));
 
-      // On injecte les pourcentages de solde stockés dans le navigateur
-      const productsWithLocalDiscounts = allProducts.map((product: any) => {
-        const localDiscount = localStorage.getItem(`discount_${product.id}`);
-        return {
-          ...product,
-          // Si on trouve un solde dans le localStorage, on le prend, sinon on garde la valeur d'origine
-          discount_percentage: localDiscount ? Number(localDiscount) : (product.discount_percentage ?? 0)
-        };
-      });
-
-      // On envoie la liste finale enrichie à l'affichage
-      setProducts(productsWithLocalDiscounts);
+      // On envoie la liste nettoyée et synchronisée avec la BDD à l'affichage
+      setProducts(productsWithOfficialDiscounts);
 
       // Counts
       const ids = real.map((p) => p.id);
@@ -175,11 +169,11 @@ export default function Products() {
   const sorted = [...filtered].sort((a, b) => {
     switch (sort) {
       case "newest":
-        return (b.id > a.id ? 1 : -1); // real rows come first (already sorted by created_at desc); demos last
+        return (b.id > a.id ? 1 : -1); 
       case "name_asc":
         return a.name.localeCompare(b.name);
       case "name_desc":
-        return b.name.localeCompare(a.name);
+        return b.name.localeCompare(b.name);
       case "price_asc":
         return (a.price ?? Infinity) - (b.price ?? Infinity);
       case "price_desc":
@@ -187,7 +181,6 @@ export default function Products() {
       case "in_stock":
         return (availabilityRank[a.availability] ?? 9) - (availabilityRank[b.availability] ?? 9);
       default:
-        // relevance: most liked + viewed first
         return ((likes[b.id] ?? 0) + (views[b.id] ?? 0)) - ((likes[a.id] ?? 0) + (views[a.id] ?? 0));
     }
   });
@@ -234,7 +227,7 @@ export default function Products() {
             <SelectTrigger><SelectValue placeholder="Gouvernorat" /></SelectTrigger>
             <SelectContent className="bg-popover max-h-72">
               <SelectItem value="all">{t("common.all")} — Gouvernorat</SelectItem>
-              {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g">{g}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={delegation} onValueChange={setDelegation} disabled={governorate === "all"}>
@@ -311,8 +304,7 @@ export default function Products() {
               {p.images?.[0] && (
                 <Link to={`/product/${p.id}`} className="relative block aspect-square w-full overflow-hidden bg-muted">
                   <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform hover:scale-105" loading="lazy" />
-    
-                  {/* Badge rouge de réduction */}
+                  
                   {p.discount_percentage && p.discount_percentage > 0 && (
                     <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md shadow-md z-10 animate-pulse">
                       -{p.discount_percentage}%
@@ -328,21 +320,17 @@ export default function Products() {
                   {p.price != null && (
                     p.discount_percentage && p.discount_percentage > 0 ? (
                       <div className="flex flex-col items-end">
-                        {/* Nouveau prix calculé affiché en rouge */}
                         <span className="whitespace-nowrap font-bold text-red-600">
                           {(p.price * (1 - p.discount_percentage / 100)).toFixed(3)} TND
                         </span>
-                        {/* Ancien prix barré */}
                         <span className="text-xs text-muted-foreground line-through">
-                        {Number(p.price).toFixed(3)} TND
+                          {Number(p.price).toFixed(3)} TND
                         </span>
-                        {/* Petit badge de réduction */}
                         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600 mt-0.5">
                           -{p.discount_percentage}%
                         </span>
                       </div>
                     ) : (
-                      /* Prix normal s'il n'y a pas de solde */
                       <span className="whitespace-nowrap font-bold text-primary">{Number(p.price).toFixed(3)} TND</span>
                     )
                   )}
