@@ -55,6 +55,7 @@ interface Product {
   delivery_fee?: number | null;
   category?: string | null;
   delegation?: string | null;
+  discount_percentage?: number | null;
 }
 
 interface Review {
@@ -417,21 +418,46 @@ export default function StartupDetail() {
                 <span className="text-xs text-muted-foreground">{recentPosts.length} publication{recentPosts.length > 1 ? "s" : ""}</span>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {recentPosts.map((p) => (
-                  <div key={p.id} className="w-40 shrink-0 overflow-hidden rounded-xl bg-card shadow-card">
-                    {p.images?.[0] ? (
-                      <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />
-                    ) : (
-                      <div className="flex aspect-square items-center justify-center gradient-soft">
-                        <Sparkles className="h-6 w-6 text-primary/40" />
+                {recentPosts.map((p) => {
+                  const hasDiscount = p.discount_percentage && p.discount_percentage > 0;
+                  const finalPrice = hasDiscount && p.price 
+                    ? p.price - (p.price * (p.discount_percentage / 100)) 
+                    : p.price;
+
+                  return (
+                    <div key={p.id} className="relative w-40 shrink-0 overflow-hidden rounded-xl bg-card shadow-card">
+                      {/* LE BADGE ROUGE */}
+                      {hasDiscount && (
+                        <div className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white">
+                          -{p.discount_percentage}%
+                        </div>
+                      )}
+                      
+                      {p.images?.[0] ? (
+                        <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />
+                      ) : (
+                        <div className="flex aspect-square items-center justify-center gradient-soft">
+                          <Sparkles className="h-6 w-6 text-primary/40" />
+                        </div>
+                      )}
+                      <div className="p-2">
+                        <p className="truncate text-xs font-medium">{p.name}</p>
+                        {p.price && (
+                          <div className="flex items-baseline gap-1">
+                            <p className="text-xs font-bold text-primary">
+                              {finalPrice?.toFixed(3)} {p.currency}
+                            </p>
+                            {hasDiscount && (
+                              <p className="text-[10px] text-muted-foreground line-through">
+                                {p.price.toFixed(3)}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="p-2">
-                      <p className="truncate text-xs font-medium">{p.name}</p>
-                      {p.price && <p className="text-xs text-primary">{p.price} {p.currency}</p>}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
@@ -443,51 +469,79 @@ export default function StartupDetail() {
               <p className="text-muted-foreground">{t("startup.noProducts")}</p>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2">
-                {products.map((p) => (
-                  <div key={p.id} className="overflow-hidden rounded-xl bg-card shadow-card hover-lift">
-                    <Link to={`/product/${p.id}`} className="block">
-                      {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
-                    </Link>
-                    <div className="space-y-2 p-4">
-                      <Link to={`/product/${p.id}`}>
-                        <h3 className="font-semibold hover:text-primary">{p.name}</h3>
-                      </Link>
-                      {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
-                      <div className="flex flex-wrap gap-1.5">
-                        {p.category && (
-                          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs">
-                            {p.category}
-                          </Badge>
-                        )}
-                        {p.delegation && (
-                          <Badge variant="outline" className="text-xs">
-                            <MapPin className="mr-1 h-3 w-3" /> {p.delegation}
-                          </Badge>
-                        )}
-                      </div>
-                      {p.delivery_available ? (
-                        <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
-                          <Truck className="mr-1 h-3 w-3" />
-                          {p.delivery_fee && p.delivery_fee > 0
-                            ? `Livraison ${p.delivery_fee} ${p.currency}`
-                            : "Livraison gratuite"}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          Retrait uniquement
-                        </Badge>
+                {products.map((p) => {
+                  const hasDiscount = p.discount_percentage && p.discount_percentage > 0;
+                  const finalPrice = hasDiscount && p.price 
+                    ? p.price - (p.price * (p.discount_percentage / 100)) 
+                    : p.price;
+
+                  return (
+                    <div key={p.id} className="relative overflow-hidden rounded-xl bg-card shadow-card hover-lift">
+                      {/* LE BADGE ROUGE */}
+                      {hasDiscount && (
+                        <div className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
+                          -{p.discount_percentage}%
+                        </div>
                       )}
-                      <div className="flex items-center justify-between pt-2">
-                        {p.price && <span className="font-semibold text-primary">{p.price} {p.currency}</span>}
+
+                      <Link to={`/product/${p.id}`} className="block">
+                        {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
+                      </Link>
+                      <div className="space-y-2 p-4">
                         <Link to={`/product/${p.id}`}>
-                          <Button size="sm" className="gradient-warm text-primary-foreground">
-                            Voir le produit
-                          </Button>
+                          <h3 className="font-semibold hover:text-primary">{p.name}</h3>
                         </Link>
+                        {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.category && (
+                            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs">
+                              {p.category}
+                            </Badge>
+                          )}
+                          {p.delegation && (
+                            <Badge variant="outline" className="text-xs">
+                              <MapPin className="mr-1 h-3 w-3" /> {p.delegation}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {p.delivery_available ? (
+                          <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
+                            <Truck className="mr-1 h-3 w-3" />
+                            {p.delivery_fee && p.delivery_fee > 0
+                              ? `Livraison ${p.delivery_fee} ${p.currency}`
+                              : "Livraison gratuite"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            Retrait uniquement
+                          </Badge>
+                        )}
+                        
+                        <div className="flex items-center justify-between pt-2">
+                          {p.price && (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-primary">
+                                {finalPrice?.toFixed(3)} {p.currency}
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-xs text-muted-foreground line-through">
+                                  {p.price.toFixed(3)} {p.currency}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <Link to={`/product/${p.id}`}>
+                            <Button size="sm" className="gradient-warm text-primary-foreground">
+                              Voir le produit
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
