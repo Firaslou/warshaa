@@ -107,6 +107,7 @@ export default function StartupDetail() {
         ]);
         
         setProducts((prods as Product[]) ?? []);
+        console.log("🔍 Produits chargés:", prods?.map(p => ({ name: p.name, price: p.price, discount: p.discount_percentage })));
         setReviews((revs as Review[]) ?? []);
         
         const rIds = Array.from(new Set(((revs as Review[]) ?? []).map((r) => r.user_id)));
