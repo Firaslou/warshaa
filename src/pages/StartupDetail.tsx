@@ -106,7 +106,8 @@ export default function StartupDetail() {
           supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
         ]);
         
-        setProducts((prods as Product[]) ?? []); console.log("🔍 Produits chargés:", prods?.map(p => ({ name: p.name, price: p.price, discount: p.discount_percentage })));
+        setProducts((prods as Product[]) ?? []); 
+          console.log("🔍 Produits chargés:", prods?.map(p => ({ name: p.name, price: p.price, discount: p.discount_percentage })));
         setReviews((revs as Review[]) ?? []);
         
         const rIds = Array.from(new Set(((revs as Review[]) ?? []).map((r) => r.user_id)));
