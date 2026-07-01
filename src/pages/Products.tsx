@@ -166,6 +166,11 @@ export default function Products() {
   });
 
   const availabilityRank: Record<string, number> = { in_stock: 0, arriving: 1, out_of_stock: 2 };
+  const effectivePrice = (p: ProductRow) => {
+    if (p.price == null) return null;
+    const d = p.discount_percentage ?? 0;
+    return d > 0 ? p.price * (1 - d / 100) : p.price;
+  };
   const sorted = [...filtered].sort((a, b) => {
     switch (sort) {
       case "newest":
@@ -175,9 +180,9 @@ export default function Products() {
       case "name_desc":
         return b.name.localeCompare(b.name);
       case "price_asc":
-        return (a.price ?? Infinity) - (b.price ?? Infinity);
+        return (effectivePrice(a) ?? Infinity) - (effectivePrice(b) ?? Infinity);
       case "price_desc":
-        return (b.price ?? -Infinity) - (a.price ?? -Infinity);
+        return (effectivePrice(b) ?? -Infinity) - (effectivePrice(a) ?? -Infinity);
       case "in_stock":
         return (availabilityRank[a.availability] ?? 9) - (availabilityRank[b.availability] ?? 9);
       default:
