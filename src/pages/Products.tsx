@@ -232,7 +232,7 @@ export default function Products() {
             <SelectTrigger><SelectValue placeholder="Gouvernorat" /></SelectTrigger>
             <SelectContent className="bg-popover max-h-72">
               <SelectItem value="all">{t("common.all")} — Gouvernorat</SelectItem>
-              {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g">{g}</SelectItem>)}
+              {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={delegation} onValueChange={setDelegation} disabled={governorate === "all"}>
