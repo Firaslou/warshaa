@@ -367,6 +367,7 @@ export type Database = {
           delivery_available: boolean
           delivery_fee: number | null
           description: string | null
+          discount_percentage: number | null
           id: string
           images: string[]
           in_stock: boolean
@@ -375,6 +376,7 @@ export type Database = {
           name: string
           price: number | null
           startup_id: string
+          startup_slug: string | null
           updated_at: string
           video_url: string | null
           videos: string[]
@@ -388,6 +390,7 @@ export type Database = {
           delivery_available?: boolean
           delivery_fee?: number | null
           description?: string | null
+          discount_percentage?: number | null
           id?: string
           images?: string[]
           in_stock?: boolean
@@ -396,6 +399,7 @@ export type Database = {
           name: string
           price?: number | null
           startup_id: string
+          startup_slug?: string | null
           updated_at?: string
           video_url?: string | null
           videos?: string[]
@@ -409,6 +413,7 @@ export type Database = {
           delivery_available?: boolean
           delivery_fee?: number | null
           description?: string | null
+          discount_percentage?: number | null
           id?: string
           images?: string[]
           in_stock?: boolean
@@ -417,6 +422,7 @@ export type Database = {
           name?: string
           price?: number | null
           startup_id?: string
+          startup_slug?: string | null
           updated_at?: string
           video_url?: string | null
           videos?: string[]
