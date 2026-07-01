@@ -84,7 +84,7 @@ export default function CreatorDashboard() {
   useEffect(() => {
     const fetchRealAnalytics = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('analytics_events')
           .select('created_at');
 
