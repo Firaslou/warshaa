@@ -4,12 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
 import {
   Heart, Users, MessageCircle, Eye, Plus, Pencil, Trash2, Radio,
-  Image as ImageIcon, Save, Leaf, Loader2,
+  Image as ImageIcon, Save, Leaf, Loader2, Clock, TrendingUp,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, TrendingUp, Eye, Heart, Users, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +84,7 @@ export default function CreatorDashboard() {
   useEffect(() => {
     const fetchRealAnalytics = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('analytics_events')
           .select('created_at');
 
