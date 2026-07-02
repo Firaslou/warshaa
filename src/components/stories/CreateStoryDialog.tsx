@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, ImagePlus, X, Send } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -67,42 +66,71 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-serif">Nouvelle story</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <label className="flex aspect-[9/16] max-h-[50vh] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-secondary/40 transition hover:border-primary">
+      <DialogContent className="max-w-none w-screen h-[100dvh] gap-0 rounded-none border-0 bg-black p-0 sm:rounded-none [&>button]:hidden">
+        <div className="relative flex h-full w-full flex-col">
+          {/* Top bar */}
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-3">
+            <button onClick={() => onOpenChange(false)} className="rounded-full bg-black/40 p-2 text-white backdrop-blur hover:bg-black/60">
+              <X className="h-5 w-5" />
+            </button>
+            <span className="text-sm font-semibold text-white/90">Ta story</span>
+            <div className="w-9" />
+          </div>
+
+          {/* Media area */}
+          <div className="relative flex-1 overflow-hidden">
             {file ? (
-              file.type.startsWith("video/") ? (
-                <video src={URL.createObjectURL(file)} className="h-full w-full rounded-xl object-cover" controls />
-              ) : (
-                <img src={URL.createObjectURL(file)} alt="" className="h-full w-full rounded-xl object-cover" />
-              )
+              <div className="absolute inset-0 flex items-center justify-center">
+                {file.type.startsWith("video/") ? (
+                  <video src={URL.createObjectURL(file)} className="h-full w-full object-contain" autoPlay muted loop playsInline />
+                ) : (
+                  <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-contain" />
+                )}
+                {/* Reset */}
+                <button
+                  onClick={() => setFile(null)}
+                  className="absolute right-4 top-16 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur hover:bg-black/70"
+                >
+                  Changer
+                </button>
+              </div>
             ) : (
-              <>
-                <Upload className="h-8 w-8 text-primary" />
-                <p className="text-sm text-muted-foreground">Photo ou vidéo (≤30s)</p>
-              </>
+              <label className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-4">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 shadow-2xl">
+                  <ImagePlus className="h-10 w-10 text-white" />
+                </div>
+                <p className="text-lg font-semibold text-white">Ajoute une photo ou vidéo</p>
+                <p className="text-sm text-white/60">Vidéo ≤ 30 s • max 30 Mo</p>
+                <Input
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
             )}
-            <Input
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
-          <Textarea
-            placeholder="Légende (optionnelle)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            maxLength={200}
-            rows={2}
-          />
-          <Button onClick={publish} disabled={uploading || !file} className="w-full gradient-warm text-primary-foreground">
-            {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publication…</> : "Publier la story"}
-          </Button>
-          <p className="text-center text-xs text-muted-foreground">Visible pendant 24 h puis supprimée automatiquement.</p>
+          </div>
+
+          {/* Bottom composer */}
+          {file && (
+            <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 bg-gradient-to-t from-black/90 to-transparent p-4 pb-6">
+              <input
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                maxLength={200}
+                placeholder="Écris une légende…"
+                className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/50 backdrop-blur focus:border-white/40 focus:outline-none"
+              />
+              <Button
+                onClick={publish}
+                disabled={uploading}
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 text-white shadow-xl hover:opacity-90"
+              >
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
