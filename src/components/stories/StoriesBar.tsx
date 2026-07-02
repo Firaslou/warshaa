@@ -171,12 +171,12 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
           onDeleted={handleDeleted}
         />
       )}
-      {ownStartup && (
+      {ownStartup && user && (
         <CreateStoryDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
           startupId={ownStartup.id}
-          userId={user!.id}
+          userId={user.id}
           onPublished={load}
         />
       )}
