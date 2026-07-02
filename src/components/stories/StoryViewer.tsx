@@ -39,6 +39,7 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
   const [gIdx, setGIdx] = useState(startGroupIdx);
   const [sIdx, setSIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => { if (open) { setGIdx(startGroupIdx); setSIdx(0); setProgress(0); } }, [open, startGroupIdx]);
 
@@ -59,15 +60,19 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
   useEffect(() => {
     if (!open || !story || story.media_type !== "image") return;
     setProgress(0);
-    const start = Date.now();
+    let elapsed = 0;
+    let last = Date.now();
     const id = setInterval(() => {
-      const p = Math.min(100, ((Date.now() - start) / DURATION_IMG) * 100);
+      const now = Date.now();
+      if (!paused) elapsed += now - last;
+      last = now;
+      const p = Math.min(100, (elapsed / DURATION_IMG) * 100);
       setProgress(p);
       if (p >= 100) { clearInterval(id); next(); }
     }, 50);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, gIdx, sIdx, story?.id]);
+  }, [open, gIdx, sIdx, story?.id, paused]);
 
   if (!group || !story) return null;
 
@@ -120,7 +125,12 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
         </div>
 
         {/* Media */}
-        <div className="relative aspect-[9/16] w-full max-h-[85vh] bg-black">
+        <div
+          className="relative aspect-[9/16] w-full max-h-[85vh] bg-black select-none"
+          onPointerDown={() => setPaused(true)}
+          onPointerUp={() => setPaused(false)}
+          onPointerLeave={() => setPaused(false)}
+        >
           {story.media_type === "image" ? (
             <img src={story.media_url} alt="" className="h-full w-full object-contain" />
           ) : (
