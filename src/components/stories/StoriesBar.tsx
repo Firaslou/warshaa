@@ -146,7 +146,7 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
             onClick={() => { setStartIdx(i); setViewerOpen(true); }}
             className="group flex w-16 shrink-0 flex-col items-center gap-1.5"
           >
-            <div className="rounded-full bg-gradient-to-tr from-primary via-accent to-primary p-[2px] transition group-hover:scale-105">
+            <div className="rounded-full bg-[conic-gradient(from_180deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75)] p-[2.5px] transition group-hover:scale-105">
               <div className="rounded-full bg-background p-0.5">
                 {g.logo_url ? (
                   <img src={g.logo_url} alt={g.startup_name} className="h-14 w-14 rounded-full object-cover" />
@@ -171,12 +171,12 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
           onDeleted={handleDeleted}
         />
       )}
-      {ownStartup && (
+      {ownStartup && user && (
         <CreateStoryDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
           startupId={ownStartup.id}
-          userId={user!.id}
+          userId={user.id}
           onPublished={load}
         />
       )}
