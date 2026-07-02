@@ -401,7 +401,13 @@ export default function AdminDashboard() {
                         <span className="truncate">{c.profiles?.full_name ?? t("dashboard.admin.user")}</span>
                       </div>
                       <div className="mt-1 truncate text-xs text-muted-foreground">↔ {c.startups?.name ?? "—"}</div>
-                      <div className="mt-1 text-[10px] text-muted-foreground">{new Date(c.last_message_at).toLocaleString()}</div>
+                      {convPreviews[c.id]?.content && (
+                        <div className="mt-1 truncate text-xs italic text-foreground/70">"{convPreviews[c.id].content}"</div>
+                      )}
+                      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{new Date(c.last_message_at).toLocaleString()}</span>
+                        {convPreviews[c.id]?.count ? <span>{convPreviews[c.id].count} msg</span> : null}
+                      </div>
                     </button>
                   ))}
                 </CardContent>
