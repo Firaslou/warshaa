@@ -59,7 +59,7 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
   };
 
   useEffect(() => {
-    if (!open || !story || story.media_type !== "image") return;
+    if (!open || !story || story.media_type === "video") return;
     setProgress(0);
     let elapsed = 0;
     let last = Date.now();
