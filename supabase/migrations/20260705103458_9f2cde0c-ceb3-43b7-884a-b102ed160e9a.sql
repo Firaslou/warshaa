@@ -1,0 +1,1 @@
+ALTER TABLE public.stories ALTER COLUMN media_url DROP NOT NULL; ALTER TABLE public.stories ADD COLUMN IF NOT EXISTS background text; ALTER TABLE public.stories DROP CONSTRAINT IF EXISTS stories_content_check; ALTER TABLE public.stories ADD CONSTRAINT stories_content_check CHECK (media_url IS NOT NULL OR caption IS NOT NULL);
