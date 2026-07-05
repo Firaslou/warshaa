@@ -18,10 +18,11 @@ interface RawStory {
   id: string;
   startup_id: string;
   user_id: string;
-  media_url: string;
-  media_type: "image" | "video";
+  media_url: string | null;
+  media_type: "image" | "video" | "text";
   caption: string | null;
   created_at: string;
+  background?: string | null;
 }
 
 export function StoriesBar({ startupId, startupSlug, className }: Props) {
@@ -53,7 +54,7 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
     }
     let q = supabase
       .from("stories")
-      .select("id, startup_id, user_id, media_url, media_type, caption, created_at")
+      .select("id, startup_id, user_id, media_url, media_type, caption, created_at, background")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: true });
     if (startupId) q = q.eq("startup_id", startupId);
@@ -82,6 +83,7 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
       groupMap.get(s.startup_id)!.stories.push({
         id: s.id, media_url: s.media_url, media_type: s.media_type,
         caption: s.caption, created_at: s.created_at, user_id: s.user_id,
+        background: (s as any).background ?? null,
       });
     });
     setGroups(Array.from(groupMap.values()));

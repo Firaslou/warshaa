@@ -763,32 +763,35 @@ export type Database = {
       }
       stories: {
         Row: {
+          background: string | null
           caption: string | null
           created_at: string
           expires_at: string
           id: string
           media_type: string
-          media_url: string
+          media_url: string | null
           startup_id: string
           user_id: string
         }
         Insert: {
+          background?: string | null
           caption?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type: string
-          media_url: string
+          media_url?: string | null
           startup_id: string
           user_id: string
         }
         Update: {
+          background?: string | null
           caption?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
-          media_url?: string
+          media_url?: string | null
           startup_id?: string
           user_id?: string
         }
