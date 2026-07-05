@@ -41,7 +41,7 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
     setUploading(true);
     try {
       const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
-      const path = `stories/${startupId}/${Date.now()}.${ext}`;
+      const path = `${userId}/stories/${startupId}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("startup-assets").upload(path, file, {
         cacheControl: "3600", upsert: false, contentType: file.type,
       });
