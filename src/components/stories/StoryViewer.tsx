@@ -9,11 +9,12 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export interface StoryItem {
   id: string;
-  media_url: string;
-  media_type: "image" | "video";
+  media_url: string | null;
+  media_type: "image" | "video" | "text";
   caption: string | null;
   created_at: string;
   user_id: string;
+  background?: string | null;
 }
 
 export interface StoryGroup {
@@ -131,12 +132,21 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
           onPointerUp={() => setPaused(false)}
           onPointerLeave={() => setPaused(false)}
         >
-          {story.media_type === "image" ? (
-            <img src={story.media_url} alt="" className="h-full w-full object-contain" />
+          {story.media_type === "text" ? (
+            <div
+              className="flex h-full w-full items-center justify-center p-8"
+              style={{ backgroundImage: story.background || "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" }}
+            >
+              <p className="text-center text-2xl font-bold leading-tight text-white drop-shadow">
+                {story.caption}
+              </p>
+            </div>
+          ) : story.media_type === "image" ? (
+            <img src={story.media_url!} alt="" className="h-full w-full object-contain" />
           ) : (
             <video
               key={story.id}
-              src={story.media_url}
+              src={story.media_url!}
               className="h-full w-full object-contain"
               autoPlay
               playsInline
@@ -159,7 +169,7 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
             <ChevronRight className="h-5 w-5" />
           </button>
 
-          {story.caption && (
+          {story.caption && story.media_type !== "text" && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pb-6">
               <p className="text-center text-sm text-white">{story.caption}</p>
             </div>
