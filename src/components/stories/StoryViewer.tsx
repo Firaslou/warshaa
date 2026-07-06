@@ -152,21 +152,17 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
 
   const openPanel = async (kind: "views" | "comments") => {
     setShowPanel(kind);
-    if (kind === "views") {
-      const { data } = await supabase
-        .from("story_views")
-        .select("user_id, created_at, profiles:profiles(full_name, avatar_url)" as any)
-        .eq("story_id", story.id)
-        .order("created_at", { ascending: false });
-      setPanelData((data as any) ?? []);
-    } else {
-      const { data } = await supabase
-        .from("story_comments")
-        .select("id, user_id, content, created_at, profiles:profiles(full_name, avatar_url)" as any)
-        .eq("story_id", story.id)
-        .order("created_at", { ascending: false });
-      setPanelData((data as any) ?? []);
+    const { data } = kind === "views"
+      ? await supabase.from("story_views").select("user_id, created_at").eq("story_id", story.id).order("created_at", { ascending: false })
+      : await supabase.from("story_comments").select("id, user_id, content, created_at").eq("story_id", story.id).order("created_at", { ascending: false });
+    const rows = (data as any[]) ?? [];
+    const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+    let profiles: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+    if (ids.length) {
+      const { data: ps } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids);
+      profiles = Object.fromEntries((ps ?? []).map((p: any) => [p.id, p]));
     }
+    setPanelData(rows.map((r) => ({ ...r, profiles: profiles[r.user_id] })));
   };
 
   return (
