@@ -1,0 +1,16 @@
+{
+  "name": "Warsha — Galerie des créateurs tunisiens",
+  "short_name": "Warsha",
+  "description": "Découvrez et soutenez les jeunes créateurs et startups tunisiens.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#c8532c",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
