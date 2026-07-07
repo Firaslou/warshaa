@@ -15,6 +15,7 @@ import { DEMO_STARTUPS } from "@/lib/demo";
 import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
 import { StoriesBar } from "@/components/stories/StoriesBar";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   jewelry: Gem, candles: Flame, art: Palette, fashion: Shirt, leather: Briefcase,
@@ -398,6 +399,9 @@ const Index = () => {
           })}
         </div>
       </section>
+
+      {/* INSTALL APP */}
+      <InstallAppButton />
 
       {/* HOW IT WORKS */}
       <section className="bg-secondary/40 py-20">
