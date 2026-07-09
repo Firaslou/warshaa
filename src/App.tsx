@@ -24,6 +24,7 @@ import ClientDashboard from "./pages/dashboard/ClientDashboard.tsx";
 import CreatorDashboard from "./pages/dashboard/CreatorDashboard.tsx";
 import AdminDashboard from "./pages/dashboard/AdminDashboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import AppPreview from "./pages/AppPreview.tsx";
 import { AIAssistant } from "./components/AIAssistant.tsx";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/dashboard/favorites" element={<ClientDashboard />} />
             <Route path="/creator" element={<CreatorDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/app-preview" element={<AppPreview />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIAssistant />
