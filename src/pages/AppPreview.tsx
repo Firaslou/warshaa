@@ -14,6 +14,11 @@ export default function AppPreview() {
         <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Retour au site
         </Button>
+        <div className="mb-4 flex justify-center">
+          <Button variant="outline" onClick={() => navigate("/notifications")}>
+            <Bell className="mr-2 h-4 w-4" /> Gérer les notifications
+          </Button>
+        </div>
 
         <div className="mx-auto max-w-md">
           <div className="mb-6 text-center">
