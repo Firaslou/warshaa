@@ -84,6 +84,13 @@ export function InstallAppButton() {
               <Download className="mr-2 h-5 w-5" />
               Télécharger l'application
             </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => (window.location.href = "/app-preview")}
+            >
+              Voir un aperçu
+            </Button>
           </div>
         </div>
       </section>
