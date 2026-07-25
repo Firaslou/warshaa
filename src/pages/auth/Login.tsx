@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { toast } from "sonner";
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const rawNext = params.get("next");
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaValid, setCaptchaValid] = useState(false);
@@ -21,7 +24,7 @@ export default function Login() {
 
   const signInWithGoogle = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: next ? window.location.origin + next : window.location.origin,
     });
     if (result.error) {
       toast.error(result.error.message ?? "Erreur Google");
@@ -39,7 +42,7 @@ export default function Login() {
       return;
     }
     toast.success(t("auth.loginSuccess"));
-    navigate("/");
+    navigate(next ?? "/");
   };
 
   return (

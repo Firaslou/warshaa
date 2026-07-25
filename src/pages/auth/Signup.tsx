@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
 import { z } from "zod";
@@ -30,6 +30,9 @@ const signupSchema = z.object({
 export default function Signup() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const rawNext = params.get("next");
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +46,7 @@ export default function Signup() {
 
   const signInWithGoogle = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: next ? window.location.origin + next : window.location.origin,
     });
     if (result.error) {
       toast.error(result.error.message ?? "Erreur Google");
@@ -76,7 +79,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: next ? window.location.origin + next : window.location.origin,
         data: { full_name: fullName, preferred_language: i18n.language },
       },
     });
@@ -102,7 +105,7 @@ export default function Signup() {
 
     setLoading(false);
     toast.success(t("auth.signupSuccess"));
-    navigate(accountType === "startup" ? "/apply" : "/");
+    navigate(next ?? (accountType === "startup" ? "/apply" : "/"));
   };
 
   return (
