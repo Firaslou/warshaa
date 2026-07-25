@@ -3,7 +3,7 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
 // src/lib/mcp/tools/list-creators.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.104.1";
@@ -99,11 +99,16 @@ var search_products_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
+var projectRef = "pbvmowpynpvikhofforo";
 var mcp_default = defineMcp({
   name: "warsha-mcp",
   title: "Warsha MCP",
   version: "0.1.0",
   instructions: "Tools for Warsha, a marketplace of Tunisian creators. Use list_creators to browse approved creators, get_creator for full details of one creator and their products, and search_products for keyword search across products.",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
   tools: [list_creators_default, get_creator_default, search_products_default]
 });
 
