@@ -80,7 +80,7 @@ export default function StartupDetail() {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [complaintOpen, setComplaintOpen] = useState(false);
-  const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
+  const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0, likes: 0, supporters: 0 });
   const [isDemo, setIsDemo] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
