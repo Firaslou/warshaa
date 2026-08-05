@@ -80,6 +80,7 @@ export default function ProductDetail() {
   const [showVideo, setShowVideo] = useState(false);
 
   const [likes, setLikes] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [liked, setLiked] = useState(false);
 
   const [comments, setComments] = useState<Comment[]>([]);
