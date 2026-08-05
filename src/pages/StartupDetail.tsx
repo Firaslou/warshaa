@@ -80,7 +80,7 @@ export default function StartupDetail() {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [complaintOpen, setComplaintOpen] = useState(false);
-  const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0 });
+  const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0, likes: 0, supporters: 0 });
   const [isDemo, setIsDemo] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
@@ -117,19 +117,15 @@ export default function StartupDetail() {
           setReviewAuthors(map);
         }
         
-        const productIds = (prods ?? []).map((p: any) => p.id);
-        const [viewsRes, purchasesRes, clicksRes] = await Promise.all([
-          productIds.length > 0
-            ? supabase.from("product_views").select("id", { count: "exact", head: true }).in("product_id", productIds)
-            : Promise.resolve({ count: 0 } as any),
-          supabase.from("purchase_confirmations").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
-          supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
-        ]);
-        
+        // Vrais chiffres agrégés via fonction serveur (lisible par tous les visiteurs)
+        const { data: agg } = await supabase.rpc("get_startup_stats", { _startup_id: s.id });
+        const a = (agg ?? {}) as Record<string, number>;
         setStats({
-          views: viewsRes.count ?? 0,
-          purchases: purchasesRes.count ?? 0,
-          clicks: clicksRes.count ?? 0,
+          views: Number(a.views ?? 0),
+          purchases: Number(a.purchases ?? 0),
+          clicks: Number(a.clicks ?? 0),
+          likes: Number(a.likes ?? 0),
+          supporters: Number(a.supporters ?? 0),
         });
         
         if (user) {
@@ -311,7 +307,7 @@ export default function StartupDetail() {
                     </span>
                   )}
                   {startup.category && <span>· {startup.category}</span>}
-                  <span className="flex items-center gap-1"><Heart className="h-4 w-4 text-primary" /> {t("startup.likes", { count: startup.likes_count })}</span>
+                  <span className="flex items-center gap-1"><Heart className="h-4 w-4 text-primary" /> {t("startup.likes", { count: stats.likes })}</span>
                   <span>· {t("startup.supporters", { count: startup.supporters_count })}</span>
                 </div>
               </div>

@@ -80,6 +80,7 @@ export default function ProductDetail() {
   const [showVideo, setShowVideo] = useState(false);
 
   const [likes, setLikes] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [liked, setLiked] = useState(false);
 
   const [comments, setComments] = useState<Comment[]>([]);
@@ -221,12 +222,12 @@ export default function ProductDetail() {
         }
         setReviews(rList);
 
-        // Purchase confirmations
-        const { count: pcCount } = await supabase
-          .from("purchase_confirmations")
-          .select("id", { count: "exact", head: true })
-          .eq("product_id", id);
-        setPurchaseCount(pcCount ?? 0);
+        // Achats confirmés + vues : chiffres agrégés via fonction serveur
+        const { data: pstats } = await supabase.rpc("get_product_stats", { _product_id: id });
+        const ps = (pstats ?? {}) as Record<string, number>;
+        setPurchaseCount(Number(ps.purchases ?? 0));
+        setViewCount(Number(ps.views ?? 0));
+        if (Number(ps.likes ?? 0) > 0) setLikes(Number(ps.likes));
         if (user) {
           const { data: mine } = await supabase
             .from("purchase_confirmations").select("id")
@@ -527,9 +528,13 @@ export default function ProductDetail() {
                 </Button>
               )}
             </div>
-            {!isDemo && purchaseCount > 0 && (
-              <p className="text-xs text-muted-foreground">
-                ✅ {purchaseCount} achat{purchaseCount > 1 ? "s" : ""} confirmé{purchaseCount > 1 ? "s" : ""} par la communauté
+            {!isDemo && (
+              <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+                <span>✅ {purchaseCount} achat{purchaseCount > 1 ? "s" : ""} confirmé{purchaseCount > 1 ? "s" : ""}</span>
+                <span>👁 {viewCount} vue{viewCount > 1 ? "s" : ""}</span>
+                <span>❤️ {likes} j'aime</span>
+                <span>💬 {comments.length} commentaire{comments.length > 1 ? "s" : ""}</span>
+                <span>⭐ {reviews.length} avis</span>
               </p>
             )}
           </div>
