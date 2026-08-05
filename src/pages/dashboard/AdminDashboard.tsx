@@ -233,6 +233,8 @@ export default function AdminDashboard() {
             <StatCard icon={<MessageSquare className="h-5 w-5" />} label={t("dashboard.admin.comments")} value={stats.comments} />
             <StatCard icon={<FileText className="h-5 w-5" />} label={t("dashboard.admin.pendingApplications")} value={stats.pendingApps} highlight={stats.pendingApps > 0} />
             <StatCard icon={<Flag className="h-5 w-5" />} label={t("dashboard.admin.pendingComplaints")} value={stats.pendingComplaints} highlight={stats.pendingComplaints > 0} />
+            <StatCard icon={<ShoppingBag className="h-5 w-5" />} label="Achats confirmés" value={stats.confirmedPurchases} />
+            <StatCard icon={<Users className="h-5 w-5" />} label="Soutiens" value={stats.supporters} />
           </div>
         )}
 
