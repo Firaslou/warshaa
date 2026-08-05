@@ -29,6 +29,8 @@ type Stats = {
   likes: number;
   purchases: number;
   signups7d: number;
+  confirmedPurchases: number;
+  supporters: number;
 };
 
 export default function AdminDashboard() {
@@ -48,6 +50,7 @@ export default function AdminDashboard() {
   const [convPreviews, setConvPreviews] = useState<Record<string, { content: string; count: number }>>({});
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
+  const [creatorLikes, setCreatorLikes] = useState<Record<string, number>>({});
 
   const fetchAll = async () => {
     const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -55,6 +58,7 @@ export default function AdminDashboard() {
       profilesC, rolesC, startupsC, productsC, reviewsC, commentsC, complaintsC,
       pendingAppsC, pendingComplaintsC, viewsC, likesC, purchasesC, signups7C,
       appsR, complaintsR, creatorsR, usersR, commentsR, reviewsR,
+      confirmedC, supportersC, likesRows,
     ] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "startup"),
@@ -71,10 +75,13 @@ export default function AdminDashboard() {
       supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", sevenAgo),
       supabase.from("startup_applications").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("complaints").select("*, startups:startup_id(name, slug), profiles:reporter_id(full_name)").order("created_at", { ascending: false }),
-      supabase.from("startups").select("id, name, slug, city, status, supporters_count, likes_count, created_at").order("created_at", { ascending: false }).limit(100),
+      supabase.from("startups").select("id, name, slug, city, status, badge, is_live, supporters_count, likes_count, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("profiles").select("id, full_name, city, preferred_language, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("product_comments").select("id, content, created_at, is_anonymous, user_id, product_id, profiles:user_id(full_name), products:product_id(name)").order("created_at", { ascending: false }).limit(50),
       supabase.from("reviews").select("id, rating, comment, photo_url, created_at, user_id, profiles:user_id(full_name), startups:startup_id(name, slug)").order("created_at", { ascending: false }).limit(50),
+      supabase.from("purchase_confirmations").select("*", { count: "exact", head: true }),
+      supabase.from("startup_supporters").select("*", { count: "exact", head: true }),
+      supabase.from("product_likes").select("product_id, products!inner(startup_id)"),
     ]);
 
     setStats({
@@ -91,7 +98,15 @@ export default function AdminDashboard() {
       likes: likesC.count ?? 0,
       purchases: purchasesC.count ?? 0,
       signups7d: signups7C.count ?? 0,
+      confirmedPurchases: confirmedC.count ?? 0,
+      supporters: supportersC.count ?? 0,
     });
+    const likeMap: Record<string, number> = {};
+    ((likesRows as any).data ?? []).forEach((l: any) => {
+      const sid = l.products?.startup_id;
+      if (sid) likeMap[sid] = (likeMap[sid] ?? 0) + 1;
+    });
+    setCreatorLikes(likeMap);
     setApps(appsR.data ?? []);
     setComplaints(complaintsR.data ?? []);
     setCreators(creatorsR.data ?? []);
@@ -329,8 +344,8 @@ export default function AdminDashboard() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-right">{c.likes_count}</TableCell>
-                      <TableCell className="text-right">{c.supporters_count}</TableCell>
+                      <TableCell className="text-right">{creatorLikes[c.id] ?? 0}</TableCell>
+                      <TableCell className="text-right">{c.supporters_count ?? 0}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
