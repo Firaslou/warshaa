@@ -77,7 +77,8 @@ export default function CreatorDashboard() {
   const [viewerCount, setViewerCount] = useState(0);
   // États pour stocker les vraies heures calculées
   const [bestTimeRange, setBestTimeRange] = useState("18h00 - 21h00");
-  const [peakPercentage, setPeakPercentage] = useState(45);
+  const [peakPercentage, setPeakPercentage] = useState(0);
+  const [agg, setAgg] = useState({ likes: 0, supporters: 0, purchases: 0, comments: 0, reviews: 0, views: 0 });
   const [bestDay, setBestDay] = useState("Mer. & Dim.");
 
   // Analyse de l'activité en temps réel
@@ -130,7 +131,7 @@ export default function CreatorDashboard() {
         setBestTimeRange(`${bestHour}h00 - ${endHour}h00`);
         
         const percentage = Math.round((maxViews / data.length) * 100);
-        setPeakPercentage(percentage > 0 ? percentage : 45);
+        setPeakPercentage(percentage);
       } catch (err) {
         console.error("Erreur audience:", err);
       }
@@ -202,6 +203,16 @@ export default function CreatorDashboard() {
     ]);
     setClicks(clicksCount ?? 0);
     setProducts(prods ?? []);
+    const { data: aggData } = await supabase.rpc("get_startup_stats", { _startup_id: s.id });
+    const a = (aggData ?? {}) as Record<string, number>;
+    setAgg({
+      likes: Number(a.likes ?? 0),
+      supporters: Number(a.supporters ?? 0),
+      purchases: Number(a.purchases ?? 0),
+      comments: Number(a.comments ?? 0),
+      reviews: Number(a.reviews ?? 0),
+      views: Number(a.views ?? 0),
+    });
     // 30-day views series
     const buckets: Record<string, number> = {};
     for (let i = 29; i >= 0; i--) {
@@ -412,11 +423,13 @@ export default function CreatorDashboard() {
           </Badge>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={Heart} label={t("dashboard.creator.totalLikes")} value={startup.likes_count} />
-          <StatCard icon={Users} label={t("dashboard.creator.totalSupporters")} value={startup.supporters_count} />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <StatCard icon={Heart} label={t("dashboard.creator.totalLikes")} value={agg.likes} />
+          <StatCard icon={Users} label={t("dashboard.creator.totalSupporters")} value={agg.supporters} />
           <StatCard icon={MessageCircle} label={t("dashboard.creator.purchaseClicks")} value={clicks} />
           <StatCard icon={Eye} label={t("dashboard.creator.views30d")} value={totalViews} />
+          <StatCard icon={ShoppingBag} label="Achats confirmés" value={agg.purchases} />
+          <StatCard icon={Star} label="Avis" value={agg.reviews} />
         </div>
 
         <Tabs defaultValue="stats" className="mt-8">
