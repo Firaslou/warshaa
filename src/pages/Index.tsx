@@ -41,10 +41,10 @@ const Index = () => {
   const [newThisWeek, setNewThisWeek] = useState<NewThisWeekData[]>([]);
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [stats, setStats] = useState({
-    activeCreators: 12,
-    monthSupporters: 842,
-    confirmedPurchases: 318,
-    verifiedPercent: 78,
+    activeCreators: 0,
+    monthSupporters: 0,
+    confirmedPurchases: 0,
+    verifiedPercent: 0,
   });
 
   useEffect(() => {
@@ -75,20 +75,14 @@ const Index = () => {
         .limit(12);
       if (weekData) setNewThisWeek(weekData as NewThisWeekData[]);
 
-      const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
-      const [{ count: creatorsCount }, { count: supportersCount }, { count: purchasesCount }, { data: allStartups }] = await Promise.all([
-        supabase.from("startups").select("id", { count: "exact", head: true }).eq("status", "approved"),
-        supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).gte("created_at", since),
-        supabase.from("purchase_confirmations").select("id", { count: "exact", head: true }),
-        supabase.from("startups").select("badge").eq("status", "approved"),
-      ]);
-      const total = allStartups?.length ?? 0;
-      const verified = allStartups?.filter((s: any) => s.badge === "verified" || s.badge === "certified").length ?? 0;
+      // Vrais chiffres agrégés (fonction serveur, accessible à tous les visiteurs)
+      const { data: platform } = await supabase.rpc("get_platform_stats");
+      const p = (platform ?? {}) as Record<string, number>;
       setStats({
-        activeCreators: creatorsCount ?? 12,
-        monthSupporters: 842 + (supportersCount ?? 0),
-        confirmedPurchases: 318 + (purchasesCount ?? 0),
-        verifiedPercent: total > 0 ? Math.round((verified / total) * 100) : 78,
+        activeCreators: Number(p.active_creators ?? 0),
+        monthSupporters: Number(p.month_supporters ?? 0),
+        confirmedPurchases: Number(p.confirmed_purchases ?? 0),
+        verifiedPercent: Number(p.verified_percent ?? 0),
       });
     })();
   }, []);
