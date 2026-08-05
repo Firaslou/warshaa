@@ -528,9 +528,13 @@ export default function ProductDetail() {
                 </Button>
               )}
             </div>
-            {!isDemo && purchaseCount > 0 && (
-              <p className="text-xs text-muted-foreground">
-                ✅ {purchaseCount} achat{purchaseCount > 1 ? "s" : ""} confirmé{purchaseCount > 1 ? "s" : ""} par la communauté
+            {!isDemo && (
+              <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+                <span>✅ {purchaseCount} achat{purchaseCount > 1 ? "s" : ""} confirmé{purchaseCount > 1 ? "s" : ""}</span>
+                <span>👁 {viewCount} vue{viewCount > 1 ? "s" : ""}</span>
+                <span>❤️ {likes} j'aime</span>
+                <span>💬 {comments.length} commentaire{comments.length > 1 ? "s" : ""}</span>
+                <span>⭐ {reviews.length} avis</span>
               </p>
             )}
           </div>
