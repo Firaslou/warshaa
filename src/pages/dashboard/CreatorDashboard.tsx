@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
 import {
   Heart, Users, MessageCircle, Eye, Plus, Pencil, Trash2, Radio,
-  Image as ImageIcon, Save, Leaf, Loader2, Clock, TrendingUp,
+  Image as ImageIcon, Save, Leaf, Loader2, Clock, TrendingUp, ShoppingBag, Star,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
