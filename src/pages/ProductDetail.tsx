@@ -221,12 +221,12 @@ export default function ProductDetail() {
         }
         setReviews(rList);
 
-        // Purchase confirmations
-        const { count: pcCount } = await supabase
-          .from("purchase_confirmations")
-          .select("id", { count: "exact", head: true })
-          .eq("product_id", id);
-        setPurchaseCount(pcCount ?? 0);
+        // Achats confirmés + vues : chiffres agrégés via fonction serveur
+        const { data: pstats } = await supabase.rpc("get_product_stats", { _product_id: id });
+        const ps = (pstats ?? {}) as Record<string, number>;
+        setPurchaseCount(Number(ps.purchases ?? 0));
+        setViewCount(Number(ps.views ?? 0));
+        if (Number(ps.likes ?? 0) > 0) setLikes(Number(ps.likes));
         if (user) {
           const { data: mine } = await supabase
             .from("purchase_confirmations").select("id")
