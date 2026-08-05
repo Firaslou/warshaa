@@ -307,7 +307,7 @@ export default function StartupDetail() {
                     </span>
                   )}
                   {startup.category && <span>· {startup.category}</span>}
-                  <span className="flex items-center gap-1"><Heart className="h-4 w-4 text-primary" /> {t("startup.likes", { count: startup.likes_count })}</span>
+                  <span className="flex items-center gap-1"><Heart className="h-4 w-4 text-primary" /> {t("startup.likes", { count: stats.likes })}</span>
                   <span>· {t("startup.supporters", { count: startup.supporters_count })}</span>
                 </div>
               </div>
