@@ -56,6 +56,14 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        clay: {
+          shell: "hsl(var(--clay-shell))",
+          mist: "hsl(var(--clay-mist))",
+          tan: "hsl(var(--clay-tan))",
+          sand: "hsl(var(--clay-sand))",
+          rose: "hsl(var(--clay-rose))",
+          deep: "hsl(var(--clay-deep))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
