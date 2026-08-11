@@ -29,97 +29,164 @@ export default function AppPreview() {
             </p>
           </div>
 
-          {/* Phone frame */}
-          <div className="relative mx-auto w-[340px] rounded-[3rem] border-[10px] border-foreground bg-foreground p-2 shadow-2xl">
-            <div className="absolute left-1/2 top-2 z-20 h-6 w-32 -translate-x-1/2 rounded-b-2xl bg-foreground" />
-            <div className="relative overflow-hidden rounded-[2.3rem] bg-background">
-              {/* Status bar */}
-              <div className="flex items-center justify-between px-6 pt-3 pb-1 text-[10px] font-semibold">
-                <span>9:41</span>
-                <span>●●● 5G 100%</span>
+          {/* Phone frame — direction "Argile éditoriale" */}
+          <div className="relative mx-auto flex h-[760px] w-[352px] flex-col overflow-hidden rounded-[48px] border-[12px] border-[hsl(26_25%_14%)] bg-clay-shell shadow-[0_32px_64px_-16px_hsl(var(--clay-deep)/0.35)]">
+            {/* Status bar */}
+            <div className="flex h-11 shrink-0 items-center justify-between px-7">
+              <span className="font-body text-xs font-bold text-clay-deep">9:41</span>
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-4 rounded-full bg-clay-deep/20" />
+                <div className="h-2 w-2 rounded-full bg-clay-deep/20" />
               </div>
+            </div>
 
-              {/* App header */}
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  <span className="font-serif text-xl font-bold">Warsha</span>
+            {/* Header */}
+            <header className="flex items-center justify-between px-6 py-2">
+              <h2 className="font-display text-2xl font-bold tracking-tight text-clay-deep">Warsha</h2>
+              <div className="flex gap-3">
+                <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-clay-mist text-clay-deep">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-clay-rose font-body text-[9px] font-bold text-white">3</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">3</span>
-                  </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-clay-mist text-clay-deep">
                   <MessageCircle className="h-5 w-5" />
                 </div>
               </div>
+            </header>
 
-              {/* Stories row */}
-              <div className="flex gap-3 overflow-hidden px-4 pb-3">
-                {["M", "A", "S", "L"].map((l, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <div className="rounded-full bg-gradient-to-tr from-primary via-warning to-destructive p-[2px]">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-background text-lg font-bold">{l}</div>
+            <main className="flex-1 overflow-y-auto pb-28">
+              {/* Stories */}
+              <div className="mt-6 flex gap-4 overflow-x-auto px-6">
+                {[
+                  { label: "En live", active: true, letter: "M" },
+                  { label: "Textile", active: false, letter: "A" },
+                  { label: "Cuivre", active: false, letter: "S" },
+                  { label: "Poterie", active: false, letter: "L" },
+                ].map((s) => (
+                  <div key={s.label} className="flex shrink-0 flex-col items-center gap-2">
+                    <div
+                      className={
+                        s.active
+                          ? "rotate-3 rounded-[24px] bg-gradient-to-br from-clay-tan to-clay-rose p-1"
+                          : "rounded-[24px] border border-clay-tan/30 p-1"
+                      }
+                    >
+                      <div
+                        className={`flex h-14 w-14 items-center justify-center rounded-[20px] font-display text-lg font-bold text-clay-deep ${s.active ? "-rotate-3 border-2 border-white bg-clay-mist" : "bg-clay-mist/60"}`}
+                      >
+                        {s.letter}
+                      </div>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">créateur</span>
+                    <span className={`font-body text-[10px] font-bold uppercase tracking-tighter ${s.active ? "text-clay-rose" : "text-clay-deep/50"}`}>
+                      {s.label}
+                    </span>
                   </div>
                 ))}
               </div>
 
-              {/* Live badge */}
-              <div className="mx-4 mb-3 flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 p-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive">
-                  <Video className="h-5 w-5 text-destructive-foreground" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="rounded-sm bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground">LIVE</span>
-                    <span className="text-xs font-semibold">Missou vend en direct</span>
+              {/* Live banner */}
+              <section className="mt-8 px-6">
+                <div className="relative h-48 overflow-hidden rounded-[36px] bg-gradient-to-br from-clay-tan via-clay-sand to-clay-deep shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-t from-clay-deep via-clay-deep/20 to-transparent" />
+                  <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-clay-rose px-3 py-1">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-white">En direct</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">142 personnes regardent</p>
+                  <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-xl font-bold leading-tight text-white">Missou vend en direct</h3>
+                      <p className="mt-1 font-body text-xs text-white/80">142 personnes regardent</p>
+                    </div>
+                    <Button size="sm" className="h-8 shrink-0 rounded-2xl bg-white font-display text-xs font-bold text-clay-deep hover:bg-white/90">
+                      <Video className="mr-1 h-3.5 w-3.5" /> Voir
+                    </Button>
+                  </div>
                 </div>
-                <Button size="sm" className="h-7 text-xs">Voir</Button>
-              </div>
+              </section>
 
               {/* Feed card */}
-              <div className="mx-4 mb-3 overflow-hidden rounded-2xl border bg-card">
-                <div className="flex items-center gap-2 p-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/20" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1 text-xs font-semibold">
-                      Amira <BadgeCheck className="h-3 w-3 text-primary" />
+              <section className="mt-8 px-6">
+                <div className="overflow-hidden rounded-[40px] border border-clay-mist bg-white">
+                  <div className="flex items-center gap-3 p-5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-clay-mist font-display font-bold text-clay-deep">A</div>
+                    <div className="flex-1">
+                      <h4 className="flex items-center gap-1 font-display text-sm font-bold text-clay-deep">
+                        Amira <BadgeCheck className="h-3.5 w-3.5 text-clay-rose" />
+                      </h4>
+                      <p className="flex items-center gap-1 font-body text-[10px] font-medium uppercase tracking-wider text-clay-deep/50">
+                        <MapPin className="h-2.5 w-2.5" /> Tunis · Céramique
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <MapPin className="h-2.5 w-2.5" /> Tunis
+                    <button className="text-clay-sand" aria-label="Options">
+                      <span className="text-lg leading-none">···</span>
+                    </button>
+                  </div>
+                  <div className="px-4">
+                    <div className="relative aspect-[4/5] overflow-hidden rounded-[32px] bg-gradient-to-br from-clay-mist via-clay-tan to-clay-rose">
+                      <div className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-[24px] bg-white/30 p-4 backdrop-blur-md">
+                        <div>
+                          <span className="block font-display text-[10px] uppercase tracking-widest text-white/80">Prix</span>
+                          <span className="font-display text-lg font-bold text-white">140 DT</span>
+                        </div>
+                        <button className="rounded-xl bg-white p-2.5 text-clay-deep" aria-label="Ajouter au panier">
+                          <ShoppingBag className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h5 className="font-display text-lg font-bold leading-tight text-clay-deep">Jarre gravée à la main</h5>
+                    <p className="mt-2 font-body text-sm leading-relaxed text-clay-deep/70">
+                      Pièce signature, émaillée selon la tradition de Nabeul.
+                    </p>
+                    <div className="mt-4 flex items-center gap-5 text-clay-deep/50">
+                      <span className="flex items-center gap-1.5 font-body text-xs font-bold">
+                        <Heart className="h-5 w-5 text-clay-rose" /> 284
+                      </span>
+                      <span className="flex items-center gap-1.5 font-body text-xs font-bold">
+                        <MessageCircle className="h-5 w-5" /> 42
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div className="aspect-square bg-gradient-to-br from-primary/30 via-warning/30 to-destructive/30" />
-                <div className="flex items-center gap-3 p-3">
-                  <Heart className="h-5 w-5" />
-                  <MessageCircle className="h-5 w-5" />
-                  <ShoppingBag className="ml-auto h-5 w-5" />
-                </div>
-              </div>
+              </section>
 
-              {/* Bonus feature banner */}
-              <div className="mx-4 mb-20 flex items-center gap-2 rounded-xl bg-primary/10 p-3">
-                <Zap className="h-4 w-4 text-primary" />
-                <p className="text-[10px] leading-tight">
-                  <strong>Bonus app :</strong> notifications quand tes créateurs favoris publient une story
-                </p>
-              </div>
-
-              {/* Bottom nav */}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-around border-t bg-background/95 px-4 py-3 backdrop-blur">
-                <Home className="h-5 w-5 text-primary" />
-                <Search className="h-5 w-5 text-muted-foreground" />
-                <div className="-mt-6 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-warning shadow-lg">
-                  <Plus className="h-5 w-5 text-primary-foreground" />
+              {/* Bonus banner */}
+              <section className="mb-8 mt-6 px-6">
+                <div className="relative overflow-hidden rounded-[36px] bg-clay-deep p-8">
+                  <div className="absolute -mr-16 -mt-16 right-0 top-0 h-32 w-32 rounded-full bg-clay-sand opacity-20" />
+                  <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-clay-tan">Bonus app</span>
+                  <h3 className="mt-2 font-display text-xl font-bold leading-tight text-white">
+                    Notifications dès qu'un<br />créateur favori publie
+                  </h3>
+                  <Button
+                    size="sm"
+                    className="mt-6 rounded-2xl bg-clay-tan font-display text-xs font-bold text-white hover:bg-clay-tan/90"
+                    onClick={() => navigate("/notifications")}
+                  >
+                    <Zap className="mr-1 h-3.5 w-3.5" /> Activer
+                  </Button>
                 </div>
-                <Heart className="h-5 w-5 text-muted-foreground" />
-                <User className="h-5 w-5 text-muted-foreground" />
+              </section>
+            </main>
+
+            {/* Bottom navigation */}
+            <nav className="absolute inset-x-0 bottom-0 flex items-end justify-between border-t border-clay-mist bg-clay-shell/90 px-8 pb-8 pt-4 backdrop-blur-xl">
+              <div className="flex flex-col items-center gap-1.5 text-clay-sand">
+                <Home className="h-6 w-6" />
+                <span className="h-1 w-1 rounded-full bg-clay-sand" />
               </div>
+              <Search className="h-6 w-6 text-clay-deep/40" />
+              <div className="-mb-4 flex h-14 w-14 rotate-45 items-center justify-center rounded-[22px] bg-clay-deep text-white shadow-xl">
+                <Plus className="h-7 w-7 -rotate-45" />
+              </div>
+              <Heart className="h-6 w-6 text-clay-deep/40" />
+              <User className="h-6 w-6 text-clay-deep/40" />
+            </nav>
+
+            {/* Home bar */}
+            <div className="absolute inset-x-0 bottom-1 flex justify-center py-2">
+              <div className="h-1.5 w-32 rounded-full bg-clay-deep/10" />
             </div>
           </div>
 
