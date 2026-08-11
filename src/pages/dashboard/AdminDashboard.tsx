@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { Check, X, Flag, Trash2, Users, Store, MessageSquare, Star, FileText, TrendingUp, Eye, Heart, ShoppingBag, Package, Radio, ShieldCheck, Award, MessageCircle } from "lucide-react";
+import { Check, X, Flag, Trash2, Users, Store, MessageSquare, Star, FileText, TrendingUp, Eye, Heart, ShoppingBag, Package, Radio, ShieldCheck, Award, MessageCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,14 @@ type Stats = {
   signups7d: number;
   confirmedPurchases: number;
   supporters: number;
+};
+
+const applicationStoragePath = (value: string) => {
+  if (!value) return "";
+  const marker = "/applications/";
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex >= 0) return decodeURIComponent(value.slice(markerIndex + marker.length).split("?")[0]);
+  return value.replace(/^\/+/, "");
 };
 
 export default function AdminDashboard() {
@@ -74,7 +82,7 @@ export default function AdminDashboard() {
       supabase.from("purchase_clicks").select("*", { count: "exact", head: true }),
       supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", sevenAgo),
       supabase.from("startup_applications").select("*").order("created_at", { ascending: false }).limit(50),
-      supabase.from("complaints").select("*, startups:startup_id(name, slug), profiles:reporter_id(full_name)").order("created_at", { ascending: false }),
+      supabase.from("complaints").select("*").order("created_at", { ascending: false }),
       supabase.from("startups").select("id, name, slug, city, status, badge, is_live, supporters_count, likes_count, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("profiles").select("id, full_name, city, preferred_language, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("product_comments").select("id, content, created_at, is_anonymous, user_id, product_id, profiles:user_id(full_name), products:product_id(name)").order("created_at", { ascending: false }).limit(50),
@@ -107,8 +115,47 @@ export default function AdminDashboard() {
       if (sid) likeMap[sid] = (likeMap[sid] ?? 0) + 1;
     });
     setCreatorLikes(likeMap);
-    setApps(appsR.data ?? []);
-    setComplaints(complaintsR.data ?? []);
+    const applicationRows = appsR.data ?? [];
+    const applicationPaths = [...new Set(applicationRows.flatMap((application: any) => [
+      application.proof_video_url,
+      ...(application.proof_photos ?? []),
+    ]).filter(Boolean).map(applicationStoragePath))];
+    const { data: signedApplicationFiles, error: signedFilesError } = applicationPaths.length
+      ? await supabase.storage.from("applications").createSignedUrls(applicationPaths, 60 * 60)
+      : { data: [], error: null };
+    if (signedFilesError) toast.error(signedFilesError.message);
+    const signedUrlsByPath = new Map(
+      (signedApplicationFiles ?? [])
+        .filter((file) => file.signedUrl)
+        .map((file) => [file.path, file.signedUrl]),
+    );
+    setApps(applicationRows.map((application: any) => ({
+      ...application,
+      proof_video_signed_url: application.proof_video_url
+        ? signedUrlsByPath.get(applicationStoragePath(application.proof_video_url)) ?? null
+        : null,
+      proof_photo_signed_urls: (application.proof_photos ?? [])
+        .map((url: string) => signedUrlsByPath.get(applicationStoragePath(url)))
+        .filter(Boolean),
+    })));
+    const complaintRows = complaintsR.data ?? [];
+    const complaintReporterIds = [...new Set(complaintRows.map((c: any) => c.reporter_id).filter(Boolean))];
+    const complaintStartupIds = [...new Set(complaintRows.map((c: any) => c.startup_id).filter(Boolean))];
+    const [complaintProfilesR, complaintStartupsR] = await Promise.all([
+      complaintReporterIds.length
+        ? supabase.from("profiles").select("id, full_name").in("id", complaintReporterIds)
+        : Promise.resolve({ data: [] }),
+      complaintStartupIds.length
+        ? supabase.from("startups").select("id, name, slug").in("id", complaintStartupIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const complaintProfiles = new Map((complaintProfilesR.data ?? []).map((profile: any) => [profile.id, profile]));
+    const complaintStartups = new Map((complaintStartupsR.data ?? []).map((startup: any) => [startup.id, startup]));
+    setComplaints(complaintRows.map((complaint: any) => ({
+      ...complaint,
+      profiles: complaintProfiles.get(complaint.reporter_id) ?? null,
+      startups: complaintStartups.get(complaint.startup_id) ?? null,
+    })));
     setCreators(creatorsR.data ?? []);
     setUsers(usersR.data ?? []);
     setComments(commentsR.data ?? []);
@@ -116,10 +163,27 @@ export default function AdminDashboard() {
 
     const [productsR, convsR] = await Promise.all([
       supabase.from("products").select("id, name, images, in_stock, created_at, startup_id, startups:startup_id(name, slug)").order("created_at", { ascending: false }).limit(100),
-      supabase.from("chat_conversations").select("id, created_at, last_message_at, buyer_id, startup_id, profiles:buyer_id(full_name), startups:startup_id(name, slug)").order("last_message_at", { ascending: false }).limit(100),
+      supabase.from("chat_conversations").select("id, created_at, last_message_at, buyer_id, startup_id").order("last_message_at", { ascending: false }).limit(100),
     ]);
     setProducts(productsR.data ?? []);
-    setConversations(convsR.data ?? []);
+    const conversationRows = convsR.data ?? [];
+    const buyerIds = [...new Set(conversationRows.map((c: any) => c.buyer_id).filter(Boolean))];
+    const conversationStartupIds = [...new Set(conversationRows.map((c: any) => c.startup_id).filter(Boolean))];
+    const [buyerProfilesR, conversationStartupsR] = await Promise.all([
+      buyerIds.length
+        ? supabase.from("profiles").select("id, full_name").in("id", buyerIds)
+        : Promise.resolve({ data: [] }),
+      conversationStartupIds.length
+        ? supabase.from("startups").select("id, name, slug").in("id", conversationStartupIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const buyerProfiles = new Map((buyerProfilesR.data ?? []).map((profile: any) => [profile.id, profile]));
+    const conversationStartups = new Map((conversationStartupsR.data ?? []).map((startup: any) => [startup.id, startup]));
+    setConversations(conversationRows.map((conversation: any) => ({
+      ...conversation,
+      profiles: buyerProfiles.get(conversation.buyer_id) ?? null,
+      startups: conversationStartups.get(conversation.startup_id) ?? null,
+    })));
 
     // Fetch a preview (latest message content + total count) per conversation
     const convIds = (convsR.data ?? []).map((c: any) => c.id);
@@ -203,8 +267,22 @@ export default function AdminDashboard() {
 
   const openConversation = async (id: string) => {
     setActiveConv(id);
-    const { data } = await supabase.from("chat_messages").select("id, content, created_at, sender_id, attachments, profiles:sender_id(full_name)").eq("conversation_id", id).order("created_at", { ascending: true });
-    setConvMessages(data ?? []);
+    const { data, error } = await supabase.from("chat_messages").select("id, content, created_at, sender_id, attachments").eq("conversation_id", id).order("created_at", { ascending: true });
+    if (error) {
+      toast.error(error.message);
+      setConvMessages([]);
+      return;
+    }
+    const messages = data ?? [];
+    const senderIds = [...new Set(messages.map((message: any) => message.sender_id).filter(Boolean))];
+    const { data: senderProfiles } = senderIds.length
+      ? await supabase.from("profiles").select("id, full_name").in("id", senderIds)
+      : { data: [] };
+    const profilesById = new Map((senderProfiles ?? []).map((profile: any) => [profile.id, profile]));
+    setConvMessages(messages.map((message: any) => ({
+      ...message,
+      profiles: profilesById.get(message.sender_id) ?? null,
+    })));
   };
 
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("dashboard.admin.loading")}</div></PageLayout>;
@@ -269,6 +347,51 @@ export default function AdminDashboard() {
                       {a.creator_story && <p className="mt-2 text-xs italic text-muted-foreground">"{a.creator_story}"</p>}
                       <p className="mt-2 text-xs text-muted-foreground">📱 {a.whatsapp_number} {a.instagram_url && `· IG`} {a.facebook_url && `· FB`} {a.tiktok_url && `· TikTok`}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</p>
+                      <div className="mt-5 border-t pt-4">
+                        <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                          <Video className="h-4 w-4" /> Documents de vérification
+                        </h4>
+                        <div className="grid gap-4 lg:grid-cols-[minmax(240px,360px)_1fr]">
+                          <div>
+                            <p className="mb-2 text-xs font-medium text-muted-foreground">Vidéo de preuve</p>
+                            {a.proof_video_signed_url ? (
+                              <video
+                                src={a.proof_video_signed_url}
+                                controls
+                                preload="metadata"
+                                className="max-h-64 w-full rounded-lg border bg-black"
+                              />
+                            ) : (
+                              <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                                Aucune vidéo disponible.
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="mb-2 text-xs font-medium text-muted-foreground">
+                              Photos de preuve ({a.proof_photo_signed_urls?.length ?? 0})
+                            </p>
+                            {a.proof_photo_signed_urls?.length ? (
+                              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                {a.proof_photo_signed_urls.map((url: string, index: number) => (
+                                  <a key={url} href={url} target="_blank" rel="noreferrer" className="group block">
+                                    <img
+                                      src={url}
+                                      alt={`Document de vérification ${index + 1}`}
+                                      loading="lazy"
+                                      className="aspect-square w-full rounded-lg border object-cover transition group-hover:opacity-80"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                                Aucune photo disponible.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     {a.status === "pending" && (
                       <div className="flex gap-2">

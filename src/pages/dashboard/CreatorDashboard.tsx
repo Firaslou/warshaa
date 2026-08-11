@@ -137,7 +137,7 @@ export default function CreatorDashboard() {
       }
     };
 
-    fetchRealAnalytics();
+    // Creator-specific timing is calculated in refreshAll from product_views.
   }, []);
   useEffect(() => {
     let interval;
@@ -170,7 +170,7 @@ export default function CreatorDashboard() {
     logo_url: "", cover_url: "",
   });
 
-  const refreshAll = async (uid: string) => {
+  const refreshAll = async (uid: string, preserveProfileForm = false) => {
     const { data: s } = await supabase.from("startups").select("*").eq("owner_id", uid).maybeSingle();
     setStartup(s);
     if (!s) {
@@ -178,29 +178,34 @@ export default function CreatorDashboard() {
       setApplication(a);
       return;
     }
-    setPf({
-      name: s.name ?? "",
-      tagline: s.tagline ?? "",
-      description: s.description ?? "",
-      creator_story: s.creator_story ?? "",
-      city: s.city ?? "",
-      delegation: s.delegation ?? "",
-      categories: s.categories ?? [],
-      instagram_url: s.instagram_url ?? "",
-      facebook_url: s.facebook_url ?? "",
-      tiktok_url: s.tiktok_url ?? "",
-      whatsapp_number: s.whatsapp_number ?? "",
-      logo_url: s.logo_url ?? "",
-      cover_url: s.cover_url ?? "",
-    });
-    const [{ count: clicksCount }, { data: prods }, { data: views }] = await Promise.all([
+    if (!preserveProfileForm) {
+      setPf({
+        name: s.name ?? "",
+        tagline: s.tagline ?? "",
+        description: s.description ?? "",
+        creator_story: s.creator_story ?? "",
+        city: s.city ?? "",
+        delegation: s.delegation ?? "",
+        categories: s.categories ?? [],
+        instagram_url: s.instagram_url ?? "",
+        facebook_url: s.facebook_url ?? "",
+        tiktok_url: s.tiktok_url ?? "",
+        whatsapp_number: s.whatsapp_number ?? "",
+        logo_url: s.logo_url ?? "",
+        cover_url: s.cover_url ?? "",
+      });
+    }
+    const [{ count: clicksCount }, { data: prods }] = await Promise.all([
       supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
       supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
-      supabase.from("product_views")
-        .select("created_at, product_id, products!inner(name, startup_id)")
-        .eq("products.startup_id", s.id)
-        .gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString()),
     ]);
+    const productIds = (prods ?? []).map((product) => product.id);
+    const { data: views } = productIds.length
+      ? await supabase.from("product_views")
+          .select("created_at, product_id")
+          .in("product_id", productIds)
+          .gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())
+      : { data: [] };
     setClicks(clicksCount ?? 0);
     setProducts(prods ?? []);
     const { data: aggData } = await supabase.rpc("get_startup_stats", { _startup_id: s.id });
@@ -220,18 +225,65 @@ export default function CreatorDashboard() {
       buckets[d.toISOString().slice(5, 10)] = 0;
     }
     const topMap: Record<string, { name: string; views: number }> = {};
+    const productNames = new Map((prods ?? []).map((product) => [product.id, product.name]));
     (views ?? []).forEach((v: any) => {
       const k = new Date(v.created_at).toISOString().slice(5, 10);
       if (k in buckets) buckets[k]++;
       const pid = v.product_id;
-      const pname = v.products?.name ?? "—";
+      const pname = productNames.get(pid) ?? "—";
       topMap[pid] = { name: pname, views: (topMap[pid]?.views ?? 0) + 1 };
     });
     setViews30d(Object.entries(buckets).map(([date, count]) => ({ date, count })));
     setTopProducts(Object.values(topMap).sort((a, b) => b.views - a.views).slice(0, 5));
+
+    // Creator-specific audience timing, derived from this creator's product views.
+    const hours = new Array(24).fill(0);
+    const days = new Array(7).fill(0);
+    (views ?? []).forEach((view: any) => {
+      const date = new Date(view.created_at);
+      hours[date.getHours()] += 1;
+      days[date.getDay()] += 1;
+    });
+    const totalRecentViews = views?.length ?? 0;
+    if (totalRecentViews > 0) {
+      const bestHour = hours.indexOf(Math.max(...hours));
+      const bestDayIndex = days.indexOf(Math.max(...days));
+      const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+      setBestTimeRange(`${bestHour}h00 - ${(bestHour + 3) % 24}h00`);
+      setBestDay(dayNames[bestDayIndex]);
+      setPeakPercentage(Math.round((hours[bestHour] / totalRecentViews) * 100));
+    } else {
+      setPeakPercentage(0);
+    }
   };
 
   useEffect(() => { if (user) refreshAll(user.id); }, [user]);
+
+  useEffect(() => {
+    if (!user || !startup?.id) return;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const refreshCreatorData = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => refreshAll(user.id, true), 300);
+    };
+    const channel = supabase
+      .channel(`creator-dashboard:${startup.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "startups", filter: `id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "purchase_clicks", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "purchase_confirmations", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reviews", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "startup_supporters", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "product_views" }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "product_likes" }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "product_comments" }, refreshCreatorData)
+      .subscribe();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [user, startup?.id]);
 
   const delegations = pf.city ? TUNISIA_DELEGATIONS[pf.city as keyof typeof TUNISIA_DELEGATIONS] ?? [] : [];
 

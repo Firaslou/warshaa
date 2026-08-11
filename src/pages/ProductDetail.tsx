@@ -65,10 +65,21 @@ interface StartupLite {
   cover_url?: string | null;
 }
 
+const getVisitorId = () => {
+  const storageKey = "warsha.visitor.id";
+  const existing = localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const created = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  localStorage.setItem(storageKey, created);
+  return created;
+};
+
 export default function ProductDetail() {
   const { id } = useParams();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -100,7 +111,7 @@ export default function ProductDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || authLoading) return;
     (async () => {
       setLoading(true);
       // Try demo first
@@ -169,6 +180,14 @@ export default function ProductDetail() {
           .maybeSingle();
         if (s) setStartup(s as StartupLite);
 
+        // Record a real visit for signed-in and anonymous users. The server
+        // deduplicates the same visitor/product for 30 minutes and ignores
+        // creator self-views.
+        await (supabase as any).rpc("record_product_view", {
+          _product_id: id,
+          _visitor_id: getVisitorId(),
+        });
+
         // Likes
         const { count } = await supabase
           .from("product_likes")
@@ -181,9 +200,6 @@ export default function ProductDetail() {
             .eq("product_id", id).eq("user_id", user.id).maybeSingle();
           setLiked(!!myLike);
 
-          // Log a view
-          supabase.from("product_views")
-            .insert({ product_id: id, user_id: user.id }).then(() => {});
         }
 
         // Comments + author names
@@ -237,7 +253,7 @@ export default function ProductDetail() {
       }
       setLoading(false);
     })();
-  }, [id, user]);
+  }, [id, user, authLoading]);
 
   const toggleLike = async () => {
     if (isDemo) {

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 
 export function Header() {
@@ -54,6 +55,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <NotificationBell />
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

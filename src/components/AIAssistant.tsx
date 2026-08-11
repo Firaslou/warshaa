@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Rec {
   id: string;
@@ -30,6 +31,7 @@ const SUGGESTIONS = [
 ];
 
 export function AIAssistant() {
+  const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,6 +50,13 @@ export function AIAssistant() {
 
   const send = async (text: string) => {
     if (!text.trim() || loading) return;
+    if (!user) {
+      setMsgs((current) => [
+        ...current,
+        { role: "assistant", content: "Connecte-toi pour utiliser l'assistant IA Warsha." },
+      ]);
+      return;
+    }
     const next: Msg[] = [...msgs, { role: "user", content: text }];
     setMsgs(next);
     setInput("");
@@ -189,24 +198,35 @@ export function AIAssistant() {
             </div>
           )}
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              send(input);
-            }}
-            className="flex items-center gap-2 border-t bg-background px-3 py-2"
-          >
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Que cherches-tu ?"
-              disabled={loading}
-              className="h-9"
-            />
-            <Button type="submit" size="icon" disabled={loading || !input.trim()} className="h-9 w-9 shrink-0">
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+          {!authLoading && !user ? (
+            <div className="border-t bg-background px-4 py-3 text-center">
+              <p className="mb-2 text-sm text-muted-foreground">
+                Connecte-toi pour utiliser l'assistant IA Warsha.
+              </p>
+              <Button asChild className="w-full gradient-warm text-primary-foreground">
+                <Link to="/login" onClick={() => setOpen(false)}>Se connecter</Link>
+              </Button>
+            </div>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                send(input);
+              }}
+              className="flex items-center gap-2 border-t bg-background px-3 py-2"
+            >
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Que cherches-tu ?"
+                disabled={loading || authLoading}
+                className="h-9"
+              />
+              <Button type="submit" size="icon" disabled={loading || authLoading || !input.trim()} className="h-9 w-9 shrink-0">
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          )}
         </div>
       )}
     </>
