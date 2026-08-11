@@ -85,11 +85,11 @@ export default function AdminDashboard() {
       supabase.from("complaints").select("*").order("created_at", { ascending: false }),
       supabase.from("startups").select("id, name, slug, city, status, badge, is_live, supporters_count, likes_count, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("profiles").select("id, full_name, city, preferred_language, created_at").order("created_at", { ascending: false }).limit(100),
-      supabase.from("product_comments").select("id, content, created_at, is_anonymous, user_id, product_id, profiles:user_id(full_name), products:product_id(name)").order("created_at", { ascending: false }).limit(50),
-      supabase.from("reviews").select("id, rating, comment, photo_url, created_at, user_id, profiles:user_id(full_name), startups:startup_id(name, slug)").order("created_at", { ascending: false }).limit(50),
+      supabase.from("product_comments").select("id, content, created_at, is_anonymous, user_id, product_id").order("created_at", { ascending: false }).limit(50),
+      supabase.from("reviews").select("id, rating, comment, photo_url, created_at, user_id, startup_id").order("created_at", { ascending: false }).limit(50),
       supabase.from("purchase_confirmations").select("*", { count: "exact", head: true }),
       supabase.from("startup_supporters").select("*", { count: "exact", head: true }),
-      supabase.from("product_likes").select("product_id, products!inner(startup_id)"),
+      supabase.from("product_likes").select("product_id"),
     ]);
 
     setStats({
@@ -109,12 +109,6 @@ export default function AdminDashboard() {
       confirmedPurchases: confirmedC.count ?? 0,
       supporters: supportersC.count ?? 0,
     });
-    const likeMap: Record<string, number> = {};
-    ((likesRows as any).data ?? []).forEach((l: any) => {
-      const sid = l.products?.startup_id;
-      if (sid) likeMap[sid] = (likeMap[sid] ?? 0) + 1;
-    });
-    setCreatorLikes(likeMap);
     const applicationRows = appsR.data ?? [];
     const applicationPaths = [...new Set(applicationRows.flatMap((application: any) => [
       application.proof_video_url,
@@ -158,14 +152,51 @@ export default function AdminDashboard() {
     })));
     setCreators(creatorsR.data ?? []);
     setUsers(usersR.data ?? []);
-    setComments(commentsR.data ?? []);
-    setReviews(reviewsR.data ?? []);
+    const commentRows = commentsR.data ?? [];
+    const reviewRows = reviewsR.data ?? [];
+    const authorIds = [...new Set([
+      ...commentRows.map((comment: any) => comment.user_id),
+      ...reviewRows.map((review: any) => review.user_id),
+    ].filter(Boolean))];
+    const commentProductIds = [...new Set(commentRows.map((comment: any) => comment.product_id).filter(Boolean))];
+    const reviewStartupIds = [...new Set(reviewRows.map((review: any) => review.startup_id).filter(Boolean))];
+    const [authorsR, commentProductsR, reviewStartupsR] = await Promise.all([
+      authorIds.length
+        ? supabase.from("profiles").select("id, full_name").in("id", authorIds)
+        : Promise.resolve({ data: [] }),
+      commentProductIds.length
+        ? supabase.from("products").select("id, name").in("id", commentProductIds)
+        : Promise.resolve({ data: [] }),
+      reviewStartupIds.length
+        ? supabase.from("startups").select("id, name, slug").in("id", reviewStartupIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const authorsById = new Map((authorsR.data ?? []).map((profile: any) => [profile.id, profile]));
+    const commentProductsById = new Map((commentProductsR.data ?? []).map((product: any) => [product.id, product]));
+    const reviewStartupsById = new Map((reviewStartupsR.data ?? []).map((reviewStartup: any) => [reviewStartup.id, reviewStartup]));
+    setComments(commentRows.map((comment: any) => ({
+      ...comment,
+      profiles: authorsById.get(comment.user_id) ?? null,
+      products: commentProductsById.get(comment.product_id) ?? null,
+    })));
+    setReviews(reviewRows.map((review: any) => ({
+      ...review,
+      profiles: authorsById.get(review.user_id) ?? null,
+      startups: reviewStartupsById.get(review.startup_id) ?? null,
+    })));
 
     const [productsR, convsR] = await Promise.all([
       supabase.from("products").select("id, name, images, in_stock, created_at, startup_id, startups:startup_id(name, slug)").order("created_at", { ascending: false }).limit(100),
       supabase.from("chat_conversations").select("id, created_at, last_message_at, buyer_id, startup_id").order("last_message_at", { ascending: false }).limit(100),
     ]);
     setProducts(productsR.data ?? []);
+    const productStartupById = new Map((productsR.data ?? []).map((product: any) => [product.id, product.startup_id]));
+    const likeMap: Record<string, number> = {};
+    ((likesRows as any).data ?? []).forEach((like: any) => {
+      const startupId = productStartupById.get(like.product_id) as string | undefined;
+      if (startupId) likeMap[startupId] = (likeMap[startupId] ?? 0) + 1;
+    });
+    setCreatorLikes(likeMap);
     const conversationRows = convsR.data ?? [];
     const buyerIds = [...new Set(conversationRows.map((c: any) => c.buyer_id).filter(Boolean))];
     const conversationStartupIds = [...new Set(conversationRows.map((c: any) => c.startup_id).filter(Boolean))];

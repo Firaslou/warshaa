@@ -359,6 +359,40 @@ export default function CreatorDashboard() {
     }).eq("id", startup.id);
     
     if (error) return toast({ title: error.message, variant: "destructive" });
+
+    if (newLive) {
+      const startedAt = new Date().toISOString();
+      const { data: scheduledEvent } = await supabase
+        .from("live_events")
+        .select("id")
+        .eq("startup_id", startup.id)
+        .eq("status", "scheduled")
+        .gte("scheduled_at", new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const liveEventResult = scheduledEvent
+        ? await supabase.from("live_events").update({ status: "live", scheduled_at: startedAt }).eq("id", scheduledEvent.id)
+        : await supabase.from("live_events").insert({
+            startup_id: startup.id,
+            title: `Live de ${startup.name}`,
+            description: "Le créateur est en direct sur Warsha.",
+            scheduled_at: startedAt,
+            duration_minutes: 60,
+            platform: "Warsha",
+            status: "live",
+          });
+      if (liveEventResult.error) {
+        toast({ title: "Live démarré, mais le calendrier n'a pas pu être mis à jour.", variant: "destructive" });
+      }
+    } else {
+      await supabase
+        .from("live_events")
+        .update({ status: "ended" })
+        .eq("startup_id", startup.id)
+        .eq("status", "live");
+    }
+
     toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
     refreshAll(user!.id);
   };

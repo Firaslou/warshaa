@@ -34,10 +34,20 @@ export default function LiveCalendar() {
   const load = async () => {
     const { data } = await supabase
       .from("live_events")
-      .select("*, startups!inner(name, slug, logo_url, cover_url, status)")
-      .eq("startups.status", "approved")
+      .select("*")
       .order("scheduled_at", { ascending: true });
-    setEvents((data ?? []) as any);
+    const rows = data ?? [];
+    const startupIds = [...new Set(rows.map((event) => event.startup_id))];
+    const { data: startups } = startupIds.length
+      ? await supabase.from("startups")
+          .select("id, name, slug, logo_url, cover_url, status")
+          .in("id", startupIds)
+          .eq("status", "approved")
+      : { data: [] };
+    const startupsById = new Map((startups ?? []).map((startup) => [startup.id, startup]));
+    setEvents(rows
+      .filter((event) => startupsById.has(event.startup_id))
+      .map((event) => ({ ...event, startups: startupsById.get(event.startup_id) })) as LiveEvent[]);
 
     if (user) {
       const { data: rems } = await supabase
@@ -50,6 +60,23 @@ export default function LiveCalendar() {
   };
 
   useEffect(() => { load(); }, [user?.id]);
+
+  useEffect(() => {
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(load, 250);
+    };
+    const channel = supabase
+      .channel("public-live-calendar")
+      .on("postgres_changes", { event: "*", schema: "public", table: "live_events" }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "startups" }, refresh)
+      .subscribe();
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   const toggleReminder = async (eventId: string) => {
     if (!user) {
@@ -68,8 +95,8 @@ export default function LiveCalendar() {
 
   const now = Date.now();
   const filtered = events.filter((e) => {
-    const t = new Date(e.scheduled_at).getTime() + e.duration_minutes * 60_000;
-    return tab === "upcoming" ? t >= now : t < now;
+    const endTime = new Date(e.scheduled_at).getTime() + e.duration_minutes * 60_000;
+    return tab === "upcoming" ? e.status === "live" || endTime >= now : e.status !== "live" && endTime < now;
   });
 
   return (
@@ -104,7 +131,7 @@ export default function LiveCalendar() {
           <div className="grid gap-4 md:grid-cols-2">
             {filtered.map((e) => {
               const date = new Date(e.scheduled_at);
-              const isLiveNow = date.getTime() <= now && now < date.getTime() + e.duration_minutes * 60_000;
+              const isLiveNow = e.status === "live" || (date.getTime() <= now && now < date.getTime() + e.duration_minutes * 60_000);
               const reminded = reminderIds.has(e.id);
               return (
                 <Card key={e.id} className="overflow-hidden">
