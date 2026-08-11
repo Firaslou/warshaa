@@ -47,6 +47,14 @@ All colors MUST be HSL.
     --radius: 0.75rem;
 
     --gradient-warm: linear-gradient(135deg, hsl(16 55% 45%), hsl(22 70% 60%));
+
+    /* Palette "Argile du désert" — utilisée par l'aperçu app mobile */
+    --clay-shell: 30 40% 98%;
+    --clay-mist: 29 55% 90%;
+    --clay-tan: 30 53% 64%;
+    --clay-sand: 31 42% 59%;
+    --clay-rose: 6 41% 61%;
+    --clay-deep: 26 20% 45%;
     --gradient-soft: linear-gradient(180deg, hsl(36 33% 97%), hsl(38 60% 92%));
     --shadow-elegant: 0 20px 50px -20px hsl(16 55% 45% / 0.25);
     --shadow-card: 0 4px 20px -4px hsl(20 14% 12% / 0.08);
