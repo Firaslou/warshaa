@@ -139,29 +139,6 @@ export default function CreatorDashboard() {
 
     // Creator-specific timing is calculated in refreshAll from product_views.
   }, []);
-  useEffect(() => {
-    let interval;
-    
-    if (startup?.is_live) {
-      // On commence avec un nombre de spectateurs aléatoire au démarrage du live
-      setViewerCount(Math.floor(Math.random() * 20) + 15);
-
-      // Toutes les 5 secondes, le nombre varie légèrement
-      interval = setInterval(() => {
-        setViewerCount(prev => {
-          const change = Math.floor(Math.random() * 5) - 2; // -2, -1, 0, 1 ou 2
-          const next = prev + change;
-          return next < 0 ? 0 : next;
-        });
-      }, 5000);
-    } else {
-      // Si le live est éteint, on remet le compteur à 0
-      setViewerCount(0);
-    }
-
-    return () => clearInterval(interval);
-  }, [startup?.is_live]);
-
   // Profile form state
   const [pf, setPf] = useState({
     name: "", tagline: "", description: "", creator_story: "",
@@ -428,41 +405,11 @@ export default function CreatorDashboard() {
     };
   }, [stream]);
 
-  // 🚀 MOTEUR DE SIMULATION : Vues et Commentaires
+  // Do not invent viewers or comments. Until a real streaming-presence backend is
+  // connected, the dashboard displays zero instead of misleading simulated data.
   useEffect(() => {
-    let viewsInterval;
-    let commentsInterval;
-
-    if (startup?.is_live) {
-      // 1. Simulation des vues (ça monte et ça descend)
-      setViewerCount(Math.floor(Math.random() * 20) + 15); // Démarre entre 15 et 35
-      viewsInterval = setInterval(() => {
-        setViewerCount(prev => Math.max(5, prev + (Math.floor(Math.random() * 11) - 5))); // +/- 5 vues
-      }, 3000);
-
-      // 2. Simulation des commentaires
-      const fakeUsers = ["Sarah", "Ahmed", "Julien_99", "Marie.C", "Karim"];
-      const fakeMsgs = ["Trop bien le concept !", "Salut !! 👋", "On vous regarde depuis Paris", "C'est dispo quand ?", "J'adore 😍", "Continuez comme ça !"];
-      
-      commentsInterval = setInterval(() => {
-        const user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
-        const msg = fakeMsgs[Math.floor(Math.random() * fakeMsgs.length)];
-        
-        setComments(prev => {
-          const newComments = [...prev, { id: Date.now(), user, msg }];
-          return newComments.slice(-6); // On garde seulement les 6 derniers messages pour ne pas remplir l'écran
-        });
-      }, 4500); // Un commentaire toutes les 4,5 secondes
-
-    } else {
-      setViewerCount(0);
-      setComments([]); // Vide les commentaires si le live s'arrête
-    }
-
-    return () => {
-      clearInterval(viewsInterval);
-      clearInterval(commentsInterval);
-    };
+    setViewerCount(0);
+    setComments([]);
   }, [startup?.is_live]);
   const markNewPost = async () => {
     if (!startup) return;

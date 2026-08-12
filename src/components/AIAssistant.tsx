@@ -77,7 +77,7 @@ export function AIAssistant() {
           recommendations: data?.recommendations ?? [],
         },
       ]);
-    } catch (e: any) {
+    } catch {
       setMsgs((m) => [
         ...m,
         { role: "assistant", content: "Oups, une erreur est survenue. Réessaie dans un instant." },

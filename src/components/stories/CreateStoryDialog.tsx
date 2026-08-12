@@ -114,7 +114,7 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
 
   const stopRecording = () => {
     if (recordTimer.current) { clearInterval(recordTimer.current); recordTimer.current = null; }
-    recorderRef.current?.state === "recording" && recorderRef.current.stop();
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     setRecording(false);
   };
 

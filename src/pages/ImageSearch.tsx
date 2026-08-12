@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ResultRow {
   id: string;
@@ -18,6 +19,7 @@ interface ResultRow {
 }
 
 export default function ImageSearch() {
+  const { user, loading: authLoading } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function ImageSearch() {
       if (error) throw error;
       setDescription(data?.description ?? "");
       setResults((data?.results ?? []) as ResultRow[]);
-    } catch (e: any) {
+    } catch {
       toast.error("Recherche échouée. Réessaie.");
     } finally {
       setLoading(false);
@@ -84,7 +86,16 @@ export default function ImageSearch() {
           </p>
         </div>
 
-        {!preview ? (
+        {!authLoading && !user ? (
+          <div className="rounded-2xl border bg-card p-8 text-center shadow-sm">
+            <p className="mb-4 text-muted-foreground">
+              Connecte-toi pour utiliser la recherche par image.
+            </p>
+            <Button asChild className="gradient-warm text-primary-foreground">
+              <Link to="/login">Se connecter</Link>
+            </Button>
+          </div>
+        ) : !preview ? (
           <button
             onClick={() => fileRef.current?.click()}
             className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/50 p-12 text-center transition hover:border-primary hover:bg-card"

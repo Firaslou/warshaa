@@ -80,7 +80,7 @@ export default function LiveCalendar() {
 
   const toggleReminder = async (eventId: string) => {
     if (!user) {
-      toast({ title: t("common.loginRequired", "Please sign in") });
+      toast({ title: t("nav.login") });
       return;
     }
     if (reminderIds.has(eventId)) {
