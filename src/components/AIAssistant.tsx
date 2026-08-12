@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Send, Sparkles, X, ArrowRight } from "lucide-react";
+import { Bot, Send, Sparkles, X, ArrowRight, ShoppingBag, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface Rec {
+interface CreatorRec {
   id: string;
   name: string;
   slug: string;
@@ -17,17 +17,49 @@ interface Rec {
   city: string | null;
 }
 
+interface ProductRec {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  currency: string;
+  images: string[];
+  category: string | null;
+  in_stock: boolean;
+  is_eco: boolean;
+  discount_percentage: number | null;
+  creator: CreatorRec;
+}
+
+interface PlanItem {
+  label: string;
+  products: ProductRec[];
+}
+
+interface AssistantContext {
+  language?: string;
+  intent?: string;
+  event?: string | null;
+  role?: string | null;
+  budget?: number | null;
+  style?: string | null;
+  category?: string | null;
+  city?: string | null;
+}
+
 interface Msg {
   role: "user" | "assistant";
   content: string;
-  recommendations?: Rec[];
+  creators?: CreatorRec[];
+  products?: ProductRec[];
+  plan?: PlanItem[];
 }
 
 const SUGGESTIONS = [
   "Un cadeau artisanal pour ma mère",
-  "Bijoux faits main à Tunis",
-  "Cosmétiques naturels",
-  "Décoration berbère",
+  "Une tenue simple pour un mariage à moins de 300 DT",
+  "عندي anniversaire متاع أختي، شنوة يلزمني؟",
+  "J'ai oublié le nom d'un petit sac beige avec une chaîne dorée",
 ];
 
 export function AIAssistant() {
@@ -35,11 +67,12 @@ export function AIAssistant() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [context, setContext] = useState<AssistantContext>({});
   const [msgs, setMsgs] = useState<Msg[]>([
     {
       role: "assistant",
       content:
-        "Salut ! Je suis ton assistant Warsha 🌿 Dis-moi ce que tu cherches et je te recommande les meilleurs créateurs tunisiens.",
+        "Salut ! Je peux chercher des produits et des créateurs, retrouver un article ou t'aider à préparer un événement. Parle-moi en français, tunisien, arabe ou anglais 🌿",
     },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,15 +99,18 @@ export function AIAssistant() {
         .filter((m) => m.role === "user" || m.role === "assistant")
         .map((m) => ({ role: m.role, content: m.content }));
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { messages: payload },
+        body: { messages: payload, context },
       });
       if (error) throw error;
+      if (data?.context) setContext(data.context as AssistantContext);
       setMsgs((m) => [
         ...m,
         {
           role: "assistant",
           content: data?.reply || "Désolé, je n'ai pas trouvé de réponse.",
-          recommendations: data?.recommendations ?? [],
+          creators: data?.creators ?? [],
+          products: data?.products ?? [],
+          plan: data?.plan ?? [],
         },
       ]);
     } catch {
@@ -109,7 +145,7 @@ export function AIAssistant() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-tight">Assistant Warsha</p>
-              <p className="text-xs text-muted-foreground">Trouve le bon créateur</p>
+              <p className="text-xs text-muted-foreground">Produits, créateurs et événements</p>
             </div>
           </div>
 
@@ -126,9 +162,73 @@ export function AIAssistant() {
                 >
                   {m.content}
                 </div>
-                {m.recommendations && m.recommendations.length > 0 && (
+                {m.plan && m.plan.length > 0 && (
+                  <div className="w-full rounded-xl border bg-background p-3">
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold">
+                      <ListChecks className="h-3.5 w-3.5 text-primary" /> Checklist proposée
+                    </p>
+                    <div className="space-y-2">
+                      {m.plan.map((item) => (
+                        <div key={item.label}>
+                          <p className="text-xs font-medium capitalize">{item.label}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {item.products.slice(0, 3).map((product) => (
+                              <Link
+                                key={product.id}
+                                to={`/product/${product.id}`}
+                                onClick={() => setOpen(false)}
+                                className="rounded-full bg-muted px-2 py-1 text-[11px] hover:bg-primary/10 hover:text-primary"
+                              >
+                                {product.name}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {m.products && m.products.length > 0 && (
                   <div className="flex w-full flex-col gap-2">
-                    {m.recommendations.map((r) => (
+                    {m.products.slice(0, 6).map((product) => {
+                      const discount = Math.max(0, Math.min(100, product.discount_percentage ?? 0));
+                      const finalPrice = product.price == null ? null : product.price * (1 - discount / 100);
+                      return (
+                        <Link
+                          key={product.id}
+                          to={`/product/${product.id}`}
+                          onClick={() => setOpen(false)}
+                          className="flex items-center gap-3 rounded-xl border bg-background p-2 transition hover:border-primary hover:shadow-sm"
+                        >
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                            {product.images?.[0] ? (
+                              <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{product.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{product.creator?.name}</p>
+                            <div className="mt-1 flex items-center gap-2 text-xs">
+                              {finalPrice != null && (
+                                <span className="font-bold text-primary">{finalPrice.toFixed(3)} {product.currency}</span>
+                              )}
+                              {!product.in_stock && <span className="text-destructive">Rupture</span>}
+                              {product.is_eco && <span title="Produit écologique">🌿</span>}
+                            </div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+                {m.creators && m.creators.length > 0 && (
+                  <div className="flex w-full flex-col gap-2">
+                    {m.creators.map((r) => (
                       <div
                         key={r.id}
                         className="flex items-center gap-3 rounded-xl border bg-background p-2 transition hover:border-primary hover:shadow-sm"
