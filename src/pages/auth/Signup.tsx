@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sparkles } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { BrandLogo } from "@/components/BrandLogo";
 import { MathCaptcha } from "@/components/MathCaptcha";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -113,8 +113,8 @@ export default function Signup() {
       <div className="container flex min-h-[70vh] items-center justify-center py-12">
         <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-elegant">
           <div className="mb-6 text-center">
-            <Sparkles className="mx-auto h-8 w-8 text-primary" />
-            <h1 className="mt-3 font-serif text-3xl font-bold">{t("auth.signupTitle")}</h1>
+            <BrandLogo showName={false} className="justify-center" markClassName="h-20" />
+            <h1 className="mt-2 font-serif text-3xl font-bold">{t("auth.signupTitle")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{t("auth.signupSubtitle")}</p>
           </div>
           <form onSubmit={onSubmit} className="space-y-4">

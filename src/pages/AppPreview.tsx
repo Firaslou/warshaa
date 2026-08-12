@@ -4,6 +4,7 @@ import {
   MessageCircle, Video, Zap, ArrowLeft, MapPin, BadgeCheck, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function AppPreview() {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export default function AppPreview() {
 
             {/* Header */}
             <header className="flex items-center justify-between px-6 py-2">
-              <h2 className="font-display text-2xl font-bold tracking-tight text-clay-deep">Warsha</h2>
+              <BrandLogo markClassName="h-10" nameClassName="font-display text-xl text-clay-deep" />
               <div className="flex gap-3">
                 <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-clay-mist text-clay-deep">
                   <Bell className="h-5 w-5" />

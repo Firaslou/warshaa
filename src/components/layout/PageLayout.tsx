@@ -4,9 +4,9 @@ import { Footer } from "./Footer";
 
 export function PageLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="site-canvas flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="relative z-[1] flex-1">{children}</main>
       <Footer />
     </div>
   );

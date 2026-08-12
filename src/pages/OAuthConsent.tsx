@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { Sparkles } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type OAuthNs = {
   getAuthorizationDetails: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
@@ -64,7 +64,7 @@ export default function OAuthConsent() {
       <div className="container flex min-h-[70vh] items-center justify-center py-12">
         <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-elegant">
           <div className="mb-6 text-center">
-            <Sparkles className="mx-auto h-8 w-8 text-primary" />
+            <BrandLogo showName={false} className="justify-center" markClassName="h-20" />
             <h1 className="mt-3 font-serif text-2xl font-bold">Autoriser l'accès</h1>
           </div>
           {error && (

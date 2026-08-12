@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, ShoppingBag, MessageCircle, MapPin } from "lucide-react";
+import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
+import { BrandLogo } from "@/components/BrandLogo";
 import { cn } from "@/lib/utils";
 
 export function Header() {
@@ -44,11 +45,13 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 shadow-[0_8px_30px_-24px_hsl(var(--foreground)/0.35)] backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <span className="font-serif text-xl font-bold tracking-tight">{t("common.appName")}</span>
+        <Link to="/" aria-label={t("common.appName")} className="group flex items-center">
+          <BrandLogo
+            markClassName="h-11 transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105"
+            nameClassName="text-[1.35rem]"
+          />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">{links}</nav>

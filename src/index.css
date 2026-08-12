@@ -118,6 +118,11 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-image:
+      radial-gradient(circle at 8% 12%, hsl(var(--primary) / 0.075), transparent 24rem),
+      radial-gradient(circle at 94% 70%, hsl(var(--accent) / 0.5), transparent 28rem),
+      repeating-linear-gradient(112deg, transparent 0 34px, hsl(var(--foreground) / 0.012) 35px 36px);
+    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5 {
@@ -127,6 +132,54 @@ All colors MUST be HSL.
 
   [dir="rtl"] body {
     font-family: 'Cairo', 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .site-canvas {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .site-canvas::before {
+    position: fixed;
+    z-index: 0;
+    top: 13vh;
+    right: -7rem;
+    width: min(34rem, 64vw);
+    aspect-ratio: 807 / 638;
+    content: "";
+    pointer-events: none;
+    background: url('/brand/warsha-mark.png') center / contain no-repeat;
+    opacity: 0.028;
+    transform: rotate(-4deg);
+  }
+
+  .site-canvas::after {
+    position: fixed;
+    z-index: 0;
+    bottom: -8rem;
+    left: -8rem;
+    width: 24rem;
+    height: 24rem;
+    content: "";
+    pointer-events: none;
+    border: 1px solid hsl(var(--primary) / 0.09);
+    border-radius: 38% 62% 54% 46%;
+    box-shadow:
+      3rem -2rem 0 -1px hsl(var(--background)),
+      3rem -2rem 0 0 hsl(var(--primary) / 0.055),
+      6rem 1rem 0 -1px hsl(var(--background)),
+      6rem 1rem 0 0 hsl(var(--primary) / 0.04);
+    transform: rotate(22deg);
+  }
+
+  @media (max-width: 640px) {
+    .site-canvas::before {
+      right: -8rem;
+      width: 25rem;
+      opacity: 0.022;
+    }
   }
 }
 

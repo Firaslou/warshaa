@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { BrandLogo } from "@/components/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -41,7 +41,7 @@ export default function ResetPassword() {
       <div className="container flex min-h-[70vh] items-center justify-center py-12">
         <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-elegant">
           <div className="mb-6 text-center">
-            <Sparkles className="mx-auto h-8 w-8 text-primary" />
+            <BrandLogo showName={false} className="justify-center" markClassName="h-20" />
             <h1 className="mt-3 font-serif text-3xl font-bold">Nouveau mot de passe</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Choisissez un mot de passe d'au moins 6 caractères.
