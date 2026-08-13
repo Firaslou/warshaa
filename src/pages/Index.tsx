@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { StartupCard, StartupCardData } from "@/components/StartupCard";
-import { DEMO_STARTUPS } from "@/lib/demo";
 import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
 import { StoriesBar } from "@/components/stories/StoriesBar";
@@ -28,9 +27,15 @@ interface CoupDeCoeurData extends StartupCardData {
   creator_story?: string | null;
 }
 
-interface NewThisWeekData extends StartupCardData {
-  logo_url?: string | null;
-  last_post_at?: string | null;
+interface NewThisWeekProduct {
+  id: string;
+  name: string;
+  images: string[];
+  price: number | null;
+  currency: string;
+  category: string | null;
+  created_at: string;
+  startups: { name: string; slug: string; logo_url: string | null; city: string | null } | null;
 }
 
 interface NextLive {
@@ -45,9 +50,9 @@ interface NextLive {
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [startups, setStartups] = useState<StartupCardData[]>(DEMO_STARTUPS);
+  const [startups, setStartups] = useState<StartupCardData[]>([]);
   const [pool, setPool] = useState<CoupDeCoeurData[]>([]);
-  const [newThisWeek, setNewThisWeek] = useState<NewThisWeekData[]>([]);
+  const [newThisWeek, setNewThisWeek] = useState<NewThisWeekProduct[]>([]);
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [nextLive, setNextLive] = useState<NextLive | null>(null);
   const [stats, setStats] = useState({
@@ -61,29 +66,28 @@ const Index = () => {
     (async () => {
       const { data } = await supabase
         .from("startups")
-        .select("id, slug, name, tagline, city, category, cover_url, badge, likes_count, supporters_count")
+        .select("id, slug, name, tagline, city, category, logo_url, badge, likes_count, supporters_count")
         .eq("status", "approved")
         .order("supporters_count", { ascending: false })
         .limit(10);
       if (data && data.length > 0) setStartups(data as StartupCardData[]);
 
-      // Pool for daily pick: include logo and story
+      // Pool for daily pick and recent activity: include logo, story and manual post date.
       const { data: poolData } = await supabase
         .from("startups")
-        .select("id, slug, name, tagline, city, category, cover_url, logo_url, creator_story, badge, likes_count, supporters_count")
+        .select("id, slug, name, tagline, city, category, logo_url, creator_story, badge, likes_count, supporters_count, last_post_at")
         .eq("status", "approved");
       if (poolData && poolData.length > 0) setPool(poolData as CoupDeCoeurData[]);
 
-      // "New this week" — startups with last_post_at within last 7 days
+      // Display the actual products published during the last seven days.
       const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-      const { data: weekData } = await supabase
-        .from("startups")
-        .select("id, slug, name, tagline, city, category, cover_url, logo_url, badge, likes_count, supporters_count, last_post_at")
-        .eq("status", "approved")
-        .gte("last_post_at", weekAgo)
-        .order("last_post_at", { ascending: false })
-        .limit(12);
-      if (weekData) setNewThisWeek(weekData as NewThisWeekData[]);
+      const { data: recentProducts } = await supabase
+        .from("products")
+        .select("id, name, images, price, currency, category, created_at, startups:startup_id(name, slug, logo_url, city)")
+        .gte("created_at", weekAgo)
+        .order("created_at", { ascending: false })
+        .limit(24);
+      setNewThisWeek((recentProducts ?? []) as unknown as NewThisWeekProduct[]);
 
       // Prochain live (bannière mobile)
       const { data: liveData } = await supabase
@@ -232,8 +236,8 @@ const Index = () => {
           <div className="overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-elegant">
             <div className="grid md:grid-cols-2">
               <Link to={`/startup/${coupDeCoeur.slug}`} className="group relative aspect-[4/3] overflow-hidden bg-muted md:aspect-auto">
-                {coupDeCoeur.cover_url ? (
-                  <img src={coupDeCoeur.cover_url} alt={coupDeCoeur.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                {coupDeCoeur.logo_url ? (
+                  <img src={coupDeCoeur.logo_url} alt={coupDeCoeur.name} className="h-full w-full object-contain p-10 transition-transform duration-700 group-hover:scale-105" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center gradient-soft">
                     <Store className="h-16 w-16 text-primary/40" />
@@ -306,7 +310,7 @@ const Index = () => {
               <Clock className="h-3 w-3" /> {t("newThisWeek.newBadge")}
             </div>
             <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("newThisWeek.title")}</h2>
-            <p className="mt-2 text-muted-foreground">{t("newThisWeek.subtitle")}</p>
+            <p className="mt-2 text-muted-foreground">Les produits publiés durant les 7 derniers jours</p>
           </div>
           {newThisWeek.length > PER_SLIDE && (
             <div className="hidden gap-2 md:flex">
@@ -332,41 +336,39 @@ const Index = () => {
             >
               {Array.from({ length: slideCount }).map((_, slideI) => (
                 <div key={slideI} className="grid w-full shrink-0 grid-cols-2 gap-5 md:grid-cols-4">
-                  {newThisWeek.slice(slideI * PER_SLIDE, slideI * PER_SLIDE + PER_SLIDE).map((s) => (
+                  {newThisWeek.slice(slideI * PER_SLIDE, slideI * PER_SLIDE + PER_SLIDE).map((product) => (
                     <Link
-                      key={s.id}
-                      to={`/startup/${s.slug}`}
+                      key={product.id}
+                      to={`/product/${product.id}`}
                       className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary hover:shadow-elegant"
                     >
                       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                        {s.cover_url ? (
-                          <img src={s.cover_url} alt={s.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        {product.images?.[0] ? (
+                          <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center gradient-soft">
                             <Store className="h-10 w-10 text-primary/40" />
                           </div>
                         )}
                         <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-semibold shadow-card backdrop-blur">
-                          <Clock className="h-3 w-3 text-primary" /> {fmtRelative(s.last_post_at)}
+                          <Clock className="h-3 w-3 text-primary" /> {fmtRelative(product.created_at)}
                         </div>
                       </div>
                       <div className="p-4">
                         <div className="flex items-center gap-2">
-                          {s.logo_url ? (
-                            <img src={s.logo_url} alt="" className="h-8 w-8 rounded-full border border-border object-cover" />
+                          {product.startups?.logo_url ? (
+                            <img src={product.startups.logo_url} alt="" className="h-8 w-8 rounded-full border border-border object-cover" />
                           ) : (
                             <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-warm text-xs font-bold text-primary-foreground">
-                              {s.name.charAt(0).toUpperCase()}
+                              {product.startups?.name?.charAt(0).toUpperCase() ?? "W"}
                             </div>
                           )}
-                          <h3 className="truncate font-serif text-base font-semibold">{s.name}</h3>
+                          <div className="min-w-0 flex-1"><h3 className="truncate font-serif text-base font-semibold">{product.name}</h3><p className="truncate text-[11px] text-muted-foreground">{product.startups?.name}</p></div>
                         </div>
-                        {s.tagline && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{s.tagline}</p>}
-                        {s.city && (
-                          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <MapPin className="h-3 w-3" /> {s.city}
-                          </p>
-                        )}
+                        <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                          {product.category && <span className="truncate text-muted-foreground">{product.category}</span>}
+                          {product.price != null && <strong className="whitespace-nowrap text-primary">{Number(product.price).toFixed(3)} {product.currency}</strong>}
+                        </div>
                       </div>
                     </Link>
                   ))}

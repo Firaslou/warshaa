@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Menu, Hammer, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, MessageCircle } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -24,6 +26,25 @@ export function Header() {
   const { t } = useTranslation();
   const { user, isAdmin, isCreator, signOut } = useAuth();
   const navigate = useNavigate();
+  const [hasActiveLive, setHasActiveLive] = useState(false);
+
+  useEffect(() => {
+    const checkLives = async () => {
+      const { count } = await supabase
+        .from("live_events")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "live");
+      setHasActiveLive((count ?? 0) > 0);
+    };
+    void checkLives();
+    const channel = supabase
+      .channel("header-live-indicator")
+      .on("postgres_changes", { event: "*", schema: "public", table: "live_events" }, checkLives)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -38,7 +59,17 @@ export function Header() {
       <NavLink to="/products" className={navLinkClass}>{t("nav.products")}</NavLink>
       <NavLink to="/discover" className={navLinkClass}>{t("nav.discover")}</NavLink>
       <NavLink to="/map" className={navLinkClass}>{t("nav.map")}</NavLink>
-      <NavLink to="/lives" className={navLinkClass}>{t("liveCalendar.nav")}</NavLink>
+      <NavLink to="/lives" className={navLinkClass}>
+        <span className="relative inline-flex items-center gap-1.5">
+          {t("liveCalendar.nav")}
+          {hasActiveLive && (
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+            </span>
+          )}
+        </span>
+      </NavLink>
       <NavLink to="/image-search" className={navLinkClass}>Recherche image</NavLink>
       <NavLink to="/apply" className={navLinkClass}>{t("nav.apply")}</NavLink>
     </>

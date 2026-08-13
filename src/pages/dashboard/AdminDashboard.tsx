@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { Check, X, Flag, Trash2, Users, Store, MessageSquare, Star, FileText, TrendingUp, Eye, Heart, ShoppingBag, Package, Radio, ShieldCheck, Award, MessageCircle, Video } from "lucide-react";
+import { Check, X, Flag, Trash2, Users, Store, MessageSquare, Star, FileText, TrendingUp, Eye, Heart, ShoppingBag, Package, Radio, ShieldCheck, Award, MessageCircle, Video, History, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,6 +68,15 @@ export default function AdminDashboard() {
     reviews: "", reviewRating: "all",
   });
   const [creatorLikes, setCreatorLikes] = useState<Record<string, number>>({});
+  const [applicationNotes, setApplicationNotes] = useState<Record<string, string>>({});
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [pages, setPages] = useState<Record<string, number>>({});
+  const pageSize = 20;
+
+  const logAdminAction = async (action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) => {
+    if (!user) return;
+    await supabase.from("admin_audit_logs").insert({ admin_id: user.id, action, entity_type: entityType, entity_id: entityId, details });
+  };
 
   const fetchAll = async () => {
     const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -206,6 +215,8 @@ export default function AdminDashboard() {
       if (startupId) likeMap[startupId] = (likeMap[startupId] ?? 0) + 1;
     });
     setCreatorLikes(likeMap);
+    const { data: logs } = await (supabase as any).from("admin_audit_logs").select("*").order("created_at", { ascending: false }).limit(100);
+    setAuditLogs(logs ?? []);
     const conversationRows = convsR.data ?? [];
     const buyerIds = [...new Set(conversationRows.map((c: any) => c.buyer_id).filter(Boolean))];
     const conversationStartupIds = [...new Set(conversationRows.map((c: any) => c.startup_id).filter(Boolean))];
@@ -249,15 +260,32 @@ export default function AdminDashboard() {
   useEffect(() => { if (isAdmin) fetchAll(); }, [isAdmin]);
 
   const decide = async (app: any, status: "approved" | "rejected") => {
+    const reason = applicationNotes[app.id]?.trim() ?? "";
+    if (status === "rejected" && !reason) {
+      toast.error("Ajoutez un motif avant de refuser la candidature.");
+      return;
+    }
     if (status === "approved") {
       const { data, error } = await supabase.functions.invoke("approve-creator-application", { body: { application_id: app.id } });
       if (error) { toast.error(error.message); return; }
       if ((data as any)?.error) { toast.error((data as any).error); return; }
       toast.success(t("dashboard.admin.approved"));
     } else {
-      await supabase.from("startup_applications").update({ status, reviewed_at: new Date().toISOString() }).eq("id", app.id);
+      await supabase.from("startup_applications").update({ status, admin_notes: reason, reviewed_at: new Date().toISOString() }).eq("id", app.id);
       toast.success(t("dashboard.admin.rejectedToast"));
     }
+    await (supabase as any).from("admin_audit_logs").insert({ admin_id: user!.id, action: status, entity_type: "startup_application", entity_id: app.id, details: { reason: reason || null, brand_name: app.brand_name } });
+    fetchAll();
+  };
+
+  const requestMoreDocuments = async (app: any) => {
+    const note = applicationNotes[app.id]?.trim() ?? "";
+    if (!note) { toast.error("Précisez les documents ou informations demandés."); return; }
+    const { error } = await supabase.from("startup_applications").update({ admin_notes: note }).eq("id", app.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("notifications").insert({ user_id: app.applicant_id, type: "application_documents", title: "Informations supplémentaires demandées", body: note, link: "/creator" });
+    await (supabase as any).from("admin_audit_logs").insert({ admin_id: user!.id, action: "request_documents", entity_type: "startup_application", entity_id: app.id, details: { note, brand_name: app.brand_name } });
+    toast.success("La demande a été envoyée au candidat.");
     fetchAll();
   };
 
@@ -269,39 +297,46 @@ export default function AdminDashboard() {
 
   const deleteComplaint = async (id: string) => {
     await supabase.from("complaints").delete().eq("id", id);
+    await logAdminAction("delete", "complaint", id);
     toast.success(t("dashboard.admin.complaintDeleted")); fetchAll();
   };
 
   const deleteComment = async (id: string) => {
     await supabase.from("product_comments").delete().eq("id", id);
+    await logAdminAction("delete", "product_comment", id);
     toast.success(t("dashboard.admin.commentDeleted")); fetchAll();
   };
 
   const deleteReview = async (id: string) => {
     await supabase.from("reviews").delete().eq("id", id);
+    await logAdminAction("delete", "review", id);
     toast.success(t("dashboard.admin.reviewDeleted")); fetchAll();
   };
 
   const deleteStartup = async (id: string) => {
     if (!confirm(t("dashboard.admin.confirmDeleteCreator"))) return;
     await supabase.from("startups").delete().eq("id", id);
+    await logAdminAction("delete", "startup", id);
     toast.success(t("dashboard.admin.creatorDeleted")); fetchAll();
   };
 
   const deleteProduct = async (id: string) => {
     if (!confirm(t("dashboard.admin.confirmDeleteProduct"))) return;
     await supabase.from("products").delete().eq("id", id);
+    await logAdminAction("delete", "product", id);
     toast.success(t("dashboard.admin.productDeleted")); fetchAll();
   };
 
   const stopLive = async (id: string) => {
     await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", id);
+    await logAdminAction("stop_live", "startup", id);
     toast.success(t("dashboard.admin.liveStopped")); fetchAll();
   };
 
   const setBadge = async (id: string, badge: "new" | "verified" | "certified") => {
     const { error } = await supabase.from("startups").update({ badge }).eq("id", id);
     if (error) { toast.error(error.message); return; }
+    await logAdminAction("set_badge", "startup", id, { badge });
     toast.success(`Badge: ${badge}`); fetchAll();
   };
 
@@ -359,6 +394,7 @@ export default function AdminDashboard() {
   const filteredReviews = reviews.filter((review) =>
     matches(filters.reviews, review.comment, review.profiles?.full_name, review.startups?.name) &&
     (filters.reviewRating === "all" || review.rating === Number(filters.reviewRating)));
+  const paginate = <T,>(key: string, items: T[]) => items.slice(((pages[key] ?? 1) - 1) * pageSize, (pages[key] ?? 1) * pageSize);
 
   return (
     <PageLayout>
@@ -394,6 +430,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="users">{t("dashboard.admin.tabUsers")}</TabsTrigger>
             <TabsTrigger value="comments">{t("dashboard.admin.tabComments")}</TabsTrigger>
             <TabsTrigger value="reviews">{t("dashboard.admin.tabReviews")}</TabsTrigger>
+            <TabsTrigger value="audit"><History className="mr-1 h-3 w-3" />Historique</TabsTrigger>
           </TabsList>
 
           {/* APPLICATIONS */}
@@ -403,7 +440,7 @@ export default function AdminDashboard() {
             </FilterBar>
             {filteredApps.length === 0 ? (
               <p className="text-muted-foreground">{t("dashboard.admin.noApps")}</p>
-            ) : filteredApps.map((a) => (
+            ) : paginate("applications", filteredApps).map((a) => (
               <Card key={a.id}>
                 <CardContent className="pt-6">
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -463,17 +500,27 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
+                      <div className="mt-4">
+                        <Textarea
+                          value={applicationNotes[a.id] ?? a.admin_notes ?? ""}
+                          onChange={(event) => setApplicationNotes((current) => ({ ...current, [a.id]: event.target.value }))}
+                          placeholder="Motif du refus ou liste des documents supplémentaires…"
+                          rows={2}
+                        />
+                      </div>
                     </div>
                     {a.status === "pending" && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Button size="sm" onClick={() => decide(a, "approved")} className="gradient-warm text-primary-foreground"><Check className="mr-1 h-3 w-3" /> {t("dashboard.admin.approve")}</Button>
                         <Button size="sm" variant="outline" onClick={() => decide(a, "rejected")}><X className="mr-1 h-3 w-3" /> {t("dashboard.admin.reject")}</Button>
+                        <Button size="sm" variant="secondary" onClick={() => requestMoreDocuments(a)}><Send className="mr-1 h-3 w-3" /> Demander des pièces</Button>
                       </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
             ))}
+            <PaginationControls page={pages.applications ?? 1} total={filteredApps.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, applications: page }))} />
           </TabsContent>
 
           {/* COMPLAINTS */}
@@ -481,7 +528,7 @@ export default function AdminDashboard() {
             <FilterBar query={filters.complaints} onQueryChange={(value) => updateFilter("complaints", value)} placeholder="Rechercher une réclamation…">
               <StatusFilter value={filters.complaintStatus} onChange={(value) => updateFilter("complaintStatus", value)} values={["pending", "reviewing", "resolved", "rejected"]} />
             </FilterBar>
-            {filteredComplaints.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComplaints")}</p> : filteredComplaints.map((c) => (
+            {filteredComplaints.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComplaints")}</p> : paginate("complaints", filteredComplaints).map((c) => (
               <Card key={c.id}>
                 <CardContent className="pt-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -513,6 +560,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ))}
+            <PaginationControls page={pages.complaints ?? 1} total={filteredComplaints.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, complaints: page }))} />
           </TabsContent>
 
           {/* CREATORS */}
@@ -530,7 +578,7 @@ export default function AdminDashboard() {
                   <TableHead>{t("dashboard.admin.registered")}</TableHead><TableHead className="text-right">{t("dashboard.admin.actions")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {filteredCreators.map((c) => (
+                  {paginate("creators", filteredCreators).map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium"><Link to={`/startup/${c.slug}`} className="hover:underline">{c.name}</Link></TableCell>
                       <TableCell>{c.city ?? "—"}</TableCell>
@@ -565,6 +613,7 @@ export default function AdminDashboard() {
                 </TableBody>
               </Table>
             </CardContent></Card>
+            <PaginationControls page={pages.creators ?? 1} total={filteredCreators.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, creators: page }))} />
           </TabsContent>
 
           {/* PRODUCTS */}
@@ -583,7 +632,7 @@ export default function AdminDashboard() {
                   <TableHead className="text-right">{t("dashboard.admin.actions")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {filteredProducts.map((p) => (
+                  {paginate("products", filteredProducts).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.images?.[0] && <img src={p.images[0]} className="h-10 w-10 rounded object-cover" />}</TableCell>
                       <TableCell className="font-medium">{p.name}</TableCell>
@@ -600,6 +649,7 @@ export default function AdminDashboard() {
                 </TableBody>
               </Table>
             </CardContent></Card>
+            <PaginationControls page={pages.products ?? 1} total={filteredProducts.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, products: page }))} />
           </TabsContent>
 
           {/* CHATS */}
@@ -671,7 +721,7 @@ export default function AdminDashboard() {
                   <TableHead>{t("dashboard.admin.name")}</TableHead><TableHead>{t("dashboard.admin.city")}</TableHead><TableHead>{t("dashboard.admin.language")}</TableHead><TableHead>{t("dashboard.admin.registeredAt")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {filteredUsers.map((u) => (
+                  {paginate("users", filteredUsers).map((u) => (
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">{u.full_name ?? "—"}</TableCell>
                       <TableCell>{u.city ?? "—"}</TableCell>
@@ -682,12 +732,13 @@ export default function AdminDashboard() {
                 </TableBody>
               </Table>
             </CardContent></Card>
+            <PaginationControls page={pages.users ?? 1} total={filteredUsers.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, users: page }))} />
           </TabsContent>
 
           {/* COMMENTS */}
           <TabsContent value="comments" className="mt-6 space-y-3">
             <FilterBar query={filters.comments} onQueryChange={(value) => updateFilter("comments", value)} placeholder="Rechercher un commentaire, un produit ou un créateur…" />
-            {filteredComments.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComments")}</p> : filteredComments.map((c) => (
+            {filteredComments.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComments")}</p> : paginate("comments", filteredComments).map((c) => (
               <Card key={c.id}><CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -701,6 +752,7 @@ export default function AdminDashboard() {
                 </div>
               </CardContent></Card>
             ))}
+            <PaginationControls page={pages.comments ?? 1} total={filteredComments.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, comments: page }))} />
           </TabsContent>
 
           {/* REVIEWS */}
@@ -708,7 +760,7 @@ export default function AdminDashboard() {
             <FilterBar query={filters.reviews} onQueryChange={(value) => updateFilter("reviews", value)} placeholder="Rechercher un avis, un utilisateur ou un créateur…">
               <StatusFilter value={filters.reviewRating} onChange={(value) => updateFilter("reviewRating", value)} values={["5", "4", "3", "2", "1"]} labels={{ "5": "5 étoiles", "4": "4 étoiles", "3": "3 étoiles", "2": "2 étoiles", "1": "1 étoile" }} />
             </FilterBar>
-            {filteredReviews.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noReviews")}</p> : filteredReviews.map((r) => (
+            {filteredReviews.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noReviews")}</p> : paginate("reviews", filteredReviews).map((r) => (
               <Card key={r.id}><CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -723,6 +775,22 @@ export default function AdminDashboard() {
                 </div>
               </CardContent></Card>
             ))}
+            <PaginationControls page={pages.reviews ?? 1} total={filteredReviews.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, reviews: page }))} />
+          </TabsContent>
+
+          <TabsContent value="audit" className="mt-6">
+            <Card><CardContent className="p-0"><Table>
+              <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Action</TableHead><TableHead>Élément</TableHead><TableHead>Détails</TableHead></TableRow></TableHeader>
+              <TableBody>{paginate("audit", auditLogs).map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell className="text-xs">{new Date(log.created_at).toLocaleString()}</TableCell>
+                  <TableCell><Badge variant="outline">{log.action}</Badge></TableCell>
+                  <TableCell>{log.entity_type}</TableCell>
+                  <TableCell className="max-w-md text-xs text-muted-foreground">{log.details?.reason ?? log.details?.note ?? log.details?.brand_name ?? "—"}</TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table></CardContent></Card>
+            <PaginationControls page={pages.audit ?? 1} total={auditLogs.length} pageSize={pageSize} onChange={(page) => setPages((current) => ({ ...current, audit: page }))} />
           </TabsContent>
         </Tabs>
       </div>
@@ -773,5 +841,17 @@ function StatusFilter({ value, onChange, values, labels = {} }: {
         {values.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? option}</SelectItem>)}
       </SelectContent>
     </Select>
+  );
+}
+
+function PaginationControls({ page, total, pageSize, onChange }: { page: number; total: number; pageSize: number; onChange: (page: number) => void }) {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  if (total <= pageSize) return null;
+  return (
+    <div className="mt-4 flex items-center justify-end gap-3 text-sm text-muted-foreground">
+      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>Précédent</Button>
+      <span>Page {Math.min(page, pageCount)} / {pageCount}</span>
+      <Button variant="outline" size="sm" disabled={page >= pageCount} onClick={() => onChange(page + 1)}>Suivant</Button>
+    </div>
   );
 }

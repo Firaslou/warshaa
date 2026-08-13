@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import Index from "./pages/Index.tsx";
 import Creators from "./pages/Creators.tsx";
 import Discover from "./pages/Discover.tsx";
@@ -38,33 +39,36 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/creators" element={<Creators />} />
-            <Route path="/discover" element={<Discover />} />
-            <Route path="/map" element={<MapView />} />
-            <Route path="/lives" element={<LiveCalendar />} />
-            <Route path="/image-search" element={<ImageSearch />} />
-            <Route path="/startup/:slug" element={<StartupDetail />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/apply" element={<Apply />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/my-account" element={<MyAccount />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/dashboard" element={<ClientDashboard />} />
-            <Route path="/dashboard/favorites" element={<ClientDashboard />} />
-            <Route path="/creator" element={<CreatorDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/app-preview" element={<AppPreview />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <AIAssistant />
+          <FavoritesProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/creators" element={<Creators />} />
+              <Route path="/discover" element={<Discover />} />
+              <Route path="/map" element={<MapView />} />
+              <Route path="/lives" element={<LiveCalendar />} />
+              <Route path="/image-search" element={<ImageSearch />} />
+              <Route path="/startup/:slug" element={<StartupDetail />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/apply" element={<Apply />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/my-account" element={<MyAccount />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/dashboard" element={<ClientDashboard />} />
+              <Route path="/dashboard/favorites" element={<ClientDashboard />} />
+              <Route path="/favorites" element={<ClientDashboard />} />
+              <Route path="/creator" element={<CreatorDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/app-preview" element={<AppPreview />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <AIAssistant />
+          </FavoritesProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -14,6 +14,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavorites } from "@/contexts/FavoritesContext";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { getDemoProductById } from "@/lib/demo";
 import { DEMO_STARTUPS } from "@/lib/demo";
@@ -62,7 +63,6 @@ interface StartupLite {
   city?: string | null;
   whatsapp_number?: string | null;
   logo_url?: string | null;
-  cover_url?: string | null;
 }
 
 const getVisitorId = () => {
@@ -141,7 +141,6 @@ export default function ProductDetail() {
             name: demoStartup.name,
             city: demoStartup.city,
             whatsapp_number: "+21620000000",
-            cover_url: demoStartup.cover_url ?? null,
             logo_url: null,
           });
         }
@@ -175,7 +174,7 @@ export default function ProductDetail() {
         setProduct(prod as Product);
         const { data: s } = await supabase
           .from("startups")
-          .select("id, slug, name, city, whatsapp_number, logo_url, cover_url")
+          .select("id, slug, name, city, whatsapp_number, logo_url")
           .eq("id", (prod as any).startup_id)
           .maybeSingle();
         if (s) setStartup(s as StartupLite);
@@ -255,24 +254,21 @@ export default function ProductDetail() {
     })();
   }, [id, user, authLoading]);
 
+  const { isProductFavorite, toggleProductFavorite } = useFavorites();
+  const isFav = product ? isProductFavorite(product.id) : false;
+
   const toggleLike = async () => {
     if (isDemo) {
       setLiked((v) => !v);
-      setLikes((n) => liked ? n - 1 : n + 1);
+      setLikes((n) => (liked ? n - 1 : n + 1));
       return;
     }
-    if (!user) { toast.info("Connectez-vous pour aimer ce produit."); return; }
     if (!product) return;
-    if (liked) {
-      await supabase.from("product_likes")
-        .delete().eq("product_id", product.id).eq("user_id", user.id);
-      setLiked(false);
-      setLikes((n) => Math.max(0, n - 1));
-    } else {
-      await supabase.from("product_likes")
-        .insert({ product_id: product.id, user_id: user.id });
-      setLiked(true);
-      setLikes((n) => n + 1);
+    const wasFav = isProductFavorite(product.id);
+    const nextFav = await toggleProductFavorite(product.id);
+    if (nextFav !== wasFav) {
+      setLikes((n) => (nextFav ? n + 1 : Math.max(0, n - 1)));
+      setLiked(nextFav);
     }
   };
 
@@ -464,8 +460,8 @@ export default function ProductDetail() {
             {startup && (
               <Link to={`/startup/${startup.slug}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <div className="h-8 w-8 overflow-hidden rounded-full bg-muted">
-                  {startup.logo_url || startup.cover_url ? (
-                    <img src={(startup.logo_url || startup.cover_url)!} alt={startup.name} className="h-full w-full object-cover" />
+                  {startup.logo_url ? (
+                    <img src={startup.logo_url} alt={startup.name} className="h-full w-full object-contain" />
                   ) : null}
                 </div>
                 <span className="font-medium">{startup.name}</span>
@@ -534,8 +530,12 @@ export default function ProductDetail() {
               <Button variant="outline" onClick={openChat}>
                 <Lock className="mr-2 h-4 w-4" /> Chat privé
               </Button>
-              <Button variant="outline" onClick={toggleLike}>
-                <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} />
+              <Button
+                variant={(isFav || liked) ? "secondary" : "outline"}
+                onClick={toggleLike}
+                title={(isFav || liked) ? "Retirer des favoris" : "Ajouter aux favoris"}
+              >
+                <Heart className={cn("mr-2 h-4 w-4", (isFav || liked) && "fill-rose-500 text-rose-500")} />
                 {likes}
               </Button>
               {!isDemo && (

@@ -20,9 +20,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
 import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
+import { LiveRoomModal } from "@/components/live/LiveRoomModal";
 import { LineChart, Line as RechartsLine, XAxis as RechartsXAxis, YAxis as RechartsYAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar as RechartsBar, CartesianGrid } from "recharts";
 const XAxis = RechartsXAxis as any;
 const YAxis = RechartsYAxis as any;
@@ -73,7 +74,8 @@ export default function CreatorDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [comments, setComments] = useState([]);
+  const [showCreatorLiveModal, setShowCreatorLiveModal] = useState(false);
+  const [activeLiveEventId, setActiveLiveEventId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
   // États pour stocker les vraies heures calculées
   const [bestTimeRange, setBestTimeRange] = useState("18h00 - 21h00");
@@ -330,12 +332,16 @@ export default function CreatorDashboard() {
       }
     }
 
+  const toggleLive = async () => {
+    if (!startup) return;
+    const newLive = !startup.is_live;
+
     const { error } = await supabase.from("startups").update({
       is_live: newLive,
       live_started_at: newLive ? new Date().toISOString() : null,
     }).eq("id", startup.id);
     
-    if (error) return toast({ title: error.message, variant: "destructive" });
+    if (error) return toast.error(error.message);
 
     if (newLive) {
       const startedAt = new Date().toISOString();
@@ -348,29 +354,37 @@ export default function CreatorDashboard() {
         .order("scheduled_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      const liveEventResult = scheduledEvent
-        ? await supabase.from("live_events").update({ status: "live", scheduled_at: startedAt }).eq("id", scheduledEvent.id)
-        : await supabase.from("live_events").insert({
-            startup_id: startup.id,
-            title: `Live de ${startup.name}`,
-            description: "Le créateur est en direct sur Warsha.",
-            scheduled_at: startedAt,
-            duration_minutes: 60,
-            platform: "Warsha",
-            status: "live",
-          });
-      if (liveEventResult.error) {
-        toast({ title: "Live démarré, mais le calendrier n'a pas pu être mis à jour.", variant: "destructive" });
+
+      let liveId = scheduledEvent?.id;
+
+      if (scheduledEvent) {
+        await supabase.from("live_events").update({ status: "live", scheduled_at: startedAt }).eq("id", scheduledEvent.id);
+      } else {
+        const { data: newEv } = await supabase.from("live_events").insert({
+          startup_id: startup.id,
+          title: `Live de ${startup.name}`,
+          description: "Le créateur est en direct sur Warsha.",
+          scheduled_at: startedAt,
+          duration_minutes: 60,
+          platform: "Warsha",
+          status: "live",
+        }).select("id").single();
+        liveId = newEv?.id;
       }
+
+      setActiveLiveEventId(liveId || null);
+      setShowCreatorLiveModal(true);
+      toast.success(t("dashboard.creator.toastLiveStarted"));
     } else {
       await supabase
         .from("live_events")
-        .update({ status: "ended" })
+        .update({ status: "ended", updated_at: new Date().toISOString() })
         .eq("startup_id", startup.id)
         .eq("status", "live");
+      setShowCreatorLiveModal(false);
+      toast.info(t("dashboard.creator.toastLiveEnded"));
     }
 
-    toast({ title: newLive ? t("dashboard.creator.toastLiveStarted") : t("dashboard.creator.toastLiveEnded") });
     refreshAll(user!.id);
   };
 
@@ -758,124 +772,92 @@ export default function CreatorDashboard() {
 
           {/* LIVE */}
           <TabsContent value="live">
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Radio className="h-5 w-5 text-primary" /> {t("dashboard.creator.liveTitle")}</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                
-                {/* L'ÉCRAN VIDÉO DU CRÉATEUR */}
-                <div className="relative aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-black flex items-center justify-center">
-                  {startup?.is_live ? (
-          <div className="relative w-full h-full min-h-[300px]">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className={`h-full w-full object-cover ${facingMode === "user" ? "transform scale-x-[-1]" : ""}`}
-            />
-            {/* 👁️ LE BADGE DES SPECTATEURS INTÉGRÉ PROPREMENT */}
-            <div className="absolute top-4 left-4 bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-lg animate-pulse">
-              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-              <span>• LIVE</span>
-              <span className="ml-1 flex items-center gap-1">
-                👁️ {viewerCount || 0}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-muted-foreground/40 min-h-[300px]">
-            <Radio className="h-12 w-12 mb-2" />
-            <p>La caméra est éteinte</p>
-          </div>
-        )}
-
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                  <div className="flex items-center gap-4">
-                    <p className="text-sm text-muted-foreground">
+            <Card className="rounded-3xl border-border/80 shadow-xs">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 font-serif text-xl">
+                    <Radio className="h-5 w-5 text-primary animate-pulse" /> {t("dashboard.creator.liveTitle")}
+                  </CardTitle>
+                  <Badge variant={startup?.is_live ? "destructive" : "secondary"} className="gap-1.5 rounded-full px-3 py-1">
+                    <span className={cn("h-2 w-2 rounded-full", startup?.is_live ? "bg-white animate-ping" : "bg-muted-foreground")} />
+                    <span>{startup?.is_live ? "En direct sur Warsha" : "Hors ligne"}</span>
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="rounded-2xl border border-border/80 bg-muted/40 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="space-y-1.5 text-center md:text-left">
+                    <h4 className="font-serif text-lg font-bold">
+                      {startup?.is_live ? "Votre diffusion est en cours" : "Prêt à lancer un live ?"}
+                    </h4>
+                    <p className="text-sm text-muted-foreground max-w-lg">
                       {startup?.is_live
                         ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
-                        : t("dashboard.creator.liveInvite")}
+                        : "Présentez vos créations artisanales en direct, répondez aux questions de vos acheteurs et épinglez vos produits en un clic."}
                     </p>
-
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-4 border-border">
-                      👁️ <span className="font-medium text-foreground">{viewerCount || 0} vues</span>
-                    </div>
                   </div>
-                  
-                  <div className="flex gap-2">
-                    {startup?.is_live && (
-                      <Button onClick={switchCamera} variant="outline">
-                        🔄 Tourner la caméra
+
+                  <div className="flex flex-wrap gap-3">
+                    {startup?.is_live ? (
+                      <>
+                        <Button
+                          onClick={() => setShowCreatorLiveModal(true)}
+                          className="gradient-warm text-primary-foreground rounded-2xl shadow-xs font-semibold"
+                        >
+                          Ouvrir le Studio Live
+                        </Button>
+                        <Button
+                          onClick={toggleLive}
+                          variant="destructive"
+                          className="rounded-2xl font-semibold"
+                        >
+                          Arrêter le live
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={toggleLive}
+                        className="gradient-warm text-primary-foreground rounded-2xl shadow-xs font-semibold px-6"
+                      >
+                        <Radio className="mr-2 h-4 w-4" /> Démarrer un direct maintenant
                       </Button>
                     )}
-
-                    <Button 
-                      onClick={toggleLive} 
-                      variant={startup?.is_live ? "destructive" : "default"} 
-                      className={startup?.is_live ? "" : "gradient-warm text-primary-foreground"}
-                    >
-                      {startup?.is_live ? t("dashboard.creator.stopLive") : t("dashboard.creator.startLive")}
-                    </Button>
-                  </div>
                   </div>
                 </div>
-                {/* 🚀 L'INTERFACE PLEIN ÉCRAN FAÇON FACEBOOK LIVE QUE TU VIENS DE COLLER */}
-                {startup?.is_live && (
-                  <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between overflow-hidden">
-          
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
 
-                    <div className="relative z-10 flex justify-between items-start p-4 bg-gradient-to-b from-black/70 to-transparent h-32">
-                      <div className="flex gap-2 items-center">
-                      <span className="bg-red-600 animate-pulse text-white px-3 py-1 rounded-sm text-xs font-bold uppercase tracking-wider">
-                        En direct
-                      </span>
-                      <span className="bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-sm text-xs flex items-center gap-1 font-medium">
-                        👁️ {viewerCount}
-                      </span>
-                    </div>
-            
-                    <div className="flex gap-3">
-                      <button onClick={switchCamera} className="bg-black/40 backdrop-blur-sm p-3 rounded-full text-white text-lg">
-                        🔄
-                      </button>
-                      <button onClick={toggleLive} className="bg-black/40 backdrop-blur-sm p-3 rounded-full text-white text-lg">
-                        ✖️
-                      </button>
-                    </div>
+                <div className="grid sm:grid-cols-3 gap-4 pt-2">
+                  <div className="rounded-2xl border border-border/60 bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground font-medium">Contrôles pendant le live</p>
+                    <p className="text-xs font-bold text-foreground mt-1">Pause, micro, caméra & épinglage</p>
                   </div>
-
-                  <div className="relative z-10 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent min-h-[30vh] flex flex-col justify-end">
-                    <div className="flex flex-col gap-3 mb-4 max-w-[85%]">
-                      {comments.map(c => (
-                        <div key={c.id} className="animate-in fade-in slide-in-from-bottom-2 flex flex-col drop-shadow-md">
-                          <span className="text-white/70 text-xs font-semibold">{c.user}</span>
-                          <span className="text-white text-sm font-medium">{c.msg}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="w-full flex items-center gap-2">
-                      <div className="flex-1 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-white/50 text-sm">
-                        Ajouter un commentaire...
-                      </div>
-                      <div className="bg-primary p-2 rounded-full text-white/90">
-                        ❤️
-                      </div>
-                    </div>
+                  <div className="rounded-2xl border border-border/60 bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground font-medium">Interactions en direct</p>
+                    <p className="text-xs font-bold text-foreground mt-1">Chat temps réel & réactions animées</p>
                   </div>
-
+                  <div className="rounded-2xl border border-border/60 bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground font-medium">Ventes assistées</p>
+                    <p className="text-xs font-bold text-foreground mt-1">Lien direct vers WhatsApp</p>
+                  </div>
                 </div>
-              )}
-
               </CardContent>
             </Card>
+
+            {/* Live Room Modal for Creator */}
+            {startup && (
+              <LiveRoomModal
+                open={showCreatorLiveModal}
+                onOpenChange={(open) => {
+                  setShowCreatorLiveModal(open);
+                  refreshAll(user.id);
+                }}
+                liveEventId={activeLiveEventId || startup.id}
+                startupId={startup.id}
+                startupName={startup.name}
+                startupSlug={startup.slug}
+                startupLogo={startup.logo_url}
+                isCreator={true}
+              />
+            )}
             
             <Card className="mt-6">
               <CardHeader><CardTitle>{t("dashboard.creator.newPostTitle")}</CardTitle></CardHeader>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Store } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Store, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { StoryViewer, StoryGroup } from "./StoryViewer";
@@ -25,16 +26,27 @@ interface RawStory {
   background?: string | null;
 }
 
+interface ActiveLive {
+  id: string;
+  startup_id: string;
+  title: string;
+  startup_name: string;
+  startup_slug: string;
+  logo_url: string | null;
+}
+
 export function StoriesBar({ startupId, startupSlug, className }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [groups, setGroups] = useState<StoryGroup[]>([]);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [startIdx, setStartIdx] = useState(0);
   const [ownStartup, setOwnStartup] = useState<{ id: string; slug: string; name: string; logo_url: string | null } | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [activeLives, setActiveLives] = useState<ActiveLive[]>([]);
 
   const load = useCallback(async () => {
-    if (!user) { setGroups([]); return; }
+    if (!user) { setGroups([]); setActiveLives([]); return; }
     // Only show stories from creators the user supports (always include own startup)
     const { data: supports } = await supabase
       .from("startup_supporters")
@@ -49,9 +61,29 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
     (own ?? []).forEach((s: any) => allowed.add(s.id));
     if (startupId) {
       if (!allowed.has(startupId)) { setGroups([]); return; }
-    } else if (allowed.size === 0) {
-      setGroups([]); return;
     }
+
+    const allowedIds = Array.from(allowed);
+    if (allowedIds.length > 0) {
+      const { data: liveRows } = await supabase
+        .from("live_events")
+        .select("id, startup_id, title")
+        .eq("status", "live")
+        .in("startup_id", startupId ? [startupId] : allowedIds);
+      const liveStartupIds = [...new Set((liveRows ?? []).map((live) => live.startup_id))];
+      const { data: liveStartups } = liveStartupIds.length
+        ? await supabase.from("startups").select("id, name, slug, logo_url").in("id", liveStartupIds)
+        : { data: [] };
+      const liveStartupMap = new Map((liveStartups ?? []).map((startup) => [startup.id, startup]));
+      setActiveLives((liveRows ?? []).flatMap((live) => {
+        const startup = liveStartupMap.get(live.startup_id);
+        return startup ? [{ id: live.id, startup_id: live.startup_id, title: live.title, startup_name: startup.name, startup_slug: startup.slug, logo_url: startup.logo_url }] : [];
+      }));
+    } else {
+      setActiveLives([]);
+    }
+
+    if (startupId ? !allowed.has(startupId) : allowed.size === 0) { setGroups([]); return; }
     let q = supabase
       .from("stories")
       .select("id, startup_id, user_id, media_url, media_type, caption, created_at, background")
@@ -91,6 +123,15 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel(`stories-and-lives:${user.id}:${startupId ?? "all"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stories" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "live_events" }, () => void load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [load, startupId, user]);
+
   // Detect if current user owns a startup (for the "+" button)
   useEffect(() => {
     if (!user) { setOwnStartup(null); return; }
@@ -117,7 +158,7 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
     );
   };
 
-  if (groups.length === 0 && !ownStartup) return null;
+  if (groups.length === 0 && activeLives.length === 0 && !ownStartup) return null;
 
   return (
     <>
@@ -142,6 +183,22 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
             <span className="max-w-[64px] truncate text-[11px] font-medium text-foreground/80">Ta story</span>
           </button>
         )}
+        {activeLives.map((live) => (
+          <button
+            key={`live-${live.id}`}
+            onClick={() => navigate(`/lives?live=${live.id}`)}
+            className="group flex w-16 shrink-0 flex-col items-center gap-1.5"
+            title={live.title}
+          >
+            <div className="relative rounded-full bg-gradient-to-br from-red-500 via-pink-500 to-orange-400 p-[3px] shadow-[0_0_18px_rgba(239,68,68,0.35)] transition group-hover:scale-105">
+              <div className="rounded-full bg-background p-0.5">
+                {live.logo_url ? <img src={live.logo_url} alt={live.startup_name} className="h-14 w-14 rounded-full object-cover" /> : <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive text-destructive-foreground"><Radio className="h-5 w-5" /></div>}
+              </div>
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-destructive px-1.5 py-0.5 text-[8px] font-black leading-none text-destructive-foreground">LIVE</span>
+            </div>
+            <span className="mt-1 max-w-[64px] truncate text-[11px] font-semibold text-destructive">{live.startup_name}</span>
+          </button>
+        ))}
         {groups.map((g, i) => (
           <button
             key={g.startup_id}

@@ -13,9 +13,11 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { ComplaintDialog } from "@/components/ComplaintDialog";
 import { StoriesBar } from "@/components/stories/StoriesBar";
+import { LiveRoomModal } from "@/components/live/LiveRoomModal";
 import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavorites } from "@/contexts/FavoritesContext";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -82,6 +84,8 @@ export default function StartupDetail() {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, purchases: 0, clicks: 0, likes: 0, supporters: 0 });
   const [isDemo, setIsDemo] = useState(false);
+  const [liveRoomOpen, setLiveRoomOpen] = useState(false);
+  const [activeLiveEvent, setActiveLiveEvent] = useState<any | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [reviewPhoto, setReviewPhoto] = useState<File | null>(null);
@@ -128,6 +132,18 @@ export default function StartupDetail() {
           supporters: Number(a.supporters ?? 0),
         });
         
+        if (s.is_live) {
+          const { data: liveEv } = await supabase
+            .from("live_events")
+            .select("*")
+            .eq("startup_id", s.id)
+            .eq("status", "live")
+            .maybeSingle();
+          setActiveLiveEvent(liveEv);
+        } else {
+          setActiveLiveEvent(null);
+        }
+
         if (user) {
           const { data: fav } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
           setIsFavorite(!!fav);
@@ -169,16 +185,12 @@ export default function StartupDetail() {
     })();
   }, [slug, user]);
 
+  const { isStartupFavorite, toggleStartupFavorite } = useFavorites();
+  const isFavorite = startup ? isStartupFavorite(startup.id) : false;
+
   const toggleFavorite = async () => {
-    if (!user) { toast.info(t("apply.needAccount")); return; }
     if (!startup) return;
-    if (isFavorite) {
-      await supabase.from("favorites").delete().eq("user_id", user.id).eq("startup_id", startup.id);
-      setIsFavorite(false);
-    } else {
-      await supabase.from("favorites").insert({ user_id: user.id, startup_id: startup.id });
-      setIsFavorite(true);
-    }
+    await toggleStartupFavorite(startup.id);
   };
 
   const toggleSupport = async () => {
@@ -319,8 +331,13 @@ export default function StartupDetail() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="icon" onClick={toggleFavorite}>
-                  <Heart className={cn("h-4 w-4", isFavorite && "fill-primary text-primary")} />
+                <Button
+                  variant={isFavorite ? "secondary" : "outline"}
+                  size="icon"
+                  onClick={toggleFavorite}
+                  title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                >
+                  <Heart className={cn("h-4 w-4", isFavorite && "fill-rose-500 text-rose-500")} />
                 </Button>
                 <Button
                   variant={isSupporter ? "default" : "outline"}
@@ -383,15 +400,28 @@ export default function StartupDetail() {
 
       <div className="container grid gap-12 pb-16 md:grid-cols-3">
         <div className="space-y-12 md:col-span-2">
-          <section className="overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-muted via-secondary/30 to-muted">
+          <section className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-xs">
+            <div className={cn(
+              "relative flex aspect-video items-center justify-center p-6 text-center transition",
+              startup.is_live
+                ? "bg-gradient-to-br from-destructive/10 via-background to-primary/10 border-2 border-destructive/40"
+                : "bg-gradient-to-br from-muted via-secondary/30 to-muted"
+            )}>
               {startup.is_live ? (
-                <div className="text-center">
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-destructive px-3 py-1 text-xs font-medium text-destructive-foreground animate-pulse">
-                    <Radio className="h-3 w-3" /> EN DIRECT
+                <div className="space-y-3 max-w-md animate-fade-in">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground animate-pulse shadow-md">
+                    <Radio className="h-3.5 w-3.5" /> EN DIRECT MAINTENANT
                   </div>
-                  <p className="font-serif text-2xl font-bold">{startup.name} est en live !</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Vidéo bientôt disponible.</p>
+                  <h3 className="font-serif text-2xl font-bold md:text-3xl">{startup.name} est en direct !</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Posez vos questions en temps réel dans le chat, envoyez des réactions et achetez les pièces présentées.
+                  </p>
+                  <Button
+                    onClick={() => setLiveRoomOpen(true)}
+                    className="gradient-warm text-primary-foreground font-semibold rounded-2xl px-6 h-10 shadow-sm"
+                  >
+                    Rejoindre le Live en direct
+                  </Button>
                 </div>
               ) : (
                 <div className="text-center">
@@ -668,6 +698,20 @@ export default function StartupDetail() {
         startupId={startup.id}
         startupName={startup.name}
       />
+
+      {startup && (
+        <LiveRoomModal
+          open={liveRoomOpen}
+          onOpenChange={setLiveRoomOpen}
+          liveEventId={activeLiveEvent?.id || startup.id}
+          startupId={startup.id}
+          startupName={startup.name}
+          startupSlug={startup.slug}
+          startupLogo={startup.logo_url}
+          isCreator={user?.id === startup.owner_id}
+          initialStreamUrl={activeLiveEvent?.stream_url}
+        />
+      )}
     </PageLayout>
   );
 }

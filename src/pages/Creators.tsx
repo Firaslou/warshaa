@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, MessageCircle, X, SearchCheck, Loader2, UsersRound, Hammer } from "lucide-react";
+import { MessageCircle, X, SearchCheck, Loader2, UsersRound, Hammer, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,34 +10,52 @@ import {
 } from "@/components/ui/select";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { StartupCard, StartupCardData } from "@/components/StartupCard";
+import { SmartSearchInput } from "@/components/search/SmartSearchInput";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS, type Governorate } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
+import { fuzzyMatch } from "@/lib/search-utils";
 
 export default function Creators() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const [startups, setStartups] = useState<StartupCardData[]>([]);
-  const [search, setSearch] = useState("");
   const [aiFilters, setAiFilters] = useState<any | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [commentSearch, setCommentSearch] = useState("");
   const [matchedByComment, setMatchedByComment] = useState<Set<string> | null>(null);
   const [searchingComments, setSearchingComments] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  const search = params.get("q") ?? "";
   const governorate = params.get("gov") ?? "all";
   const delegation = params.get("del") ?? "all";
   const category = params.get("category") ?? "all";
 
+  const loadStartups = async () => {
+    setLoading(true);
+    setLoadError(null);
+    const { data, error } = await supabase
+      .from("startups")
+      .select("id, slug, name, tagline, city, category, logo_url, badge, likes_count, supporters_count, delegation")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+    if (error) setLoadError(error.message);
+    else setStartups((data ?? []) as unknown as StartupCardData[]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("startups")
-        .select("id, slug, name, tagline, city, category, cover_url, badge, likes_count, supporters_count, delegation")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
-      if (data && data.length > 0) setStartups(data as unknown as StartupCardData[]);
-    })();
+    void loadStartups();
+    const channel = supabase
+      .channel("creators-list-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "startups" }, () => void loadStartups())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Recherche dans les commentaires (debounced)
@@ -49,7 +67,6 @@ export default function Creators() {
     }
     setSearchingComments(true);
     const timer = setTimeout(async () => {
-      // 1) Récupère les commentaires qui matchent
       const { data: comments } = await supabase
         .from("product_comments")
         .select("product_id")
@@ -61,7 +78,6 @@ export default function Creators() {
         setSearchingComments(false);
         return;
       }
-      // 2) Remonte vers les startups
       const { data: prods } = await supabase
         .from("products")
         .select("startup_id")
@@ -72,26 +88,56 @@ export default function Creators() {
     return () => clearTimeout(timer);
   }, [commentSearch]);
 
+  const updateParam = (updates: Record<string, string>) => {
+    const next = new URLSearchParams(params);
+    Object.entries(updates).forEach(([k, v]) => {
+      if (v === "all" || !v) next.delete(k);
+      else next.set(k, v);
+    });
+    setParams(next, { replace: true });
+  };
+
+  const setSearch = (val: string) => {
+    updateParam({ q: val });
+    if (aiFilters) setAiFilters(null);
+  };
+
   const delegationsForGov = useMemo(() => {
     if (governorate === "all") return [];
     return TUNISIA_DELEGATIONS[governorate as Governorate] ?? [];
   }, [governorate]);
+
+  const suggestionsPool = useMemo(() => {
+    const list: Array<{ label: string; category?: string }> = [];
+    startups.forEach((s) => {
+      if (s.name) list.push({ label: s.name, category: s.category || undefined });
+      if (s.category) list.push({ label: s.category });
+    });
+    return list;
+  }, [startups]);
 
   const filtered = useMemo(() => {
     return startups.filter((s: any) => {
       if (governorate !== "all" && s.city !== governorate) return false;
       if (delegation !== "all" && s.delegation !== delegation) return false;
       if (category !== "all" && t(`categoriesExt.${category}`) !== s.category && category !== s.category) return false;
-      if (search && !s.name.toLowerCase().includes(search.toLowerCase()) &&
-          !s.tagline?.toLowerCase().includes(search.toLowerCase())) return false;
+
+      if (search.trim()) {
+        const textTarget = `${s.name} ${s.tagline ?? ""} ${s.category ?? ""} ${s.city ?? ""} ${s.delegation ?? ""}`;
+        if (!fuzzyMatch(search, textTarget)) return false;
+      }
+
       if (matchedByComment && !matchedByComment.has(s.id)) return false;
+
       if (aiFilters) {
         const hay = `${s.name} ${s.tagline ?? ""} ${s.category ?? ""}`.toLowerCase();
         const terms: string[] = [
           ...(Array.isArray(aiFilters.keywords) ? aiFilters.keywords : []),
           aiFilters.color,
           aiFilters.category,
-        ].filter((x: any) => typeof x === "string" && x.trim().length > 1).map((x: string) => x.toLowerCase());
+        ]
+          .filter((x: any) => typeof x === "string" && x.trim().length > 1)
+          .map((x: string) => x.toLowerCase());
         if (terms.length && !terms.some((t) => hay.includes(t))) return false;
         if (aiFilters.city) {
           const c = String(aiFilters.city).toLowerCase();
@@ -102,22 +148,14 @@ export default function Creators() {
     });
   }, [startups, governorate, delegation, category, search, matchedByComment, aiFilters, t]);
 
-  const updateParam = (updates: Record<string, string>) => {
-    const next = new URLSearchParams(params);
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v === "all") next.delete(k); else next.set(k, v);
-    });
-    setParams(next);
-  };
-
   const resetFilters = () => {
-    setParams(new URLSearchParams());
-    setSearch("");
+    setParams({}, { replace: true });
     setCommentSearch("");
     setAiFilters(null);
   };
 
-  const hasActiveFilters = governorate !== "all" || delegation !== "all" || category !== "all" || search || commentSearch || aiFilters;
+  const hasActiveFilters =
+    governorate !== "all" || delegation !== "all" || category !== "all" || search || commentSearch || aiFilters;
 
   const runAiSearch = async () => {
     if (!search.trim()) return;
@@ -125,44 +163,43 @@ export default function Creators() {
     try {
       const { data, error } = await supabase.functions.invoke("smart-search", { body: { query: search } });
       if (!error) setAiFilters(data?.filters ?? null);
-    } finally { setAiLoading(false); }
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
     <PageLayout>
-      <div className="container py-12">
+      <div className="container py-10">
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-4xl font-bold md:text-5xl">{t("nav.creators")}</h1>
-          <p className="mt-3 text-muted-foreground">{t("home.featuredSubtitle")}</p>
+          <h1 className="font-serif text-3xl font-bold tracking-tight md:text-5xl">{t("nav.creators")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t("home.featuredSubtitle")}</p>
         </div>
 
-        {/* Filtres */}
-        <div className="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder='Ex : "céramiste à Nabeul"'
+        {/* Filtres & Recherche intelligente */}
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <SmartSearchInput
               value={search}
-              onChange={(e) => { setSearch(e.target.value); if (aiFilters) setAiFilters(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runAiSearch(); } }}
-              className="pl-9 pr-10"
+              onChange={setSearch}
+              suggestionsPool={suggestionsPool}
+              placeholder="Rechercher un artisan, atelier, ville..."
+              aiLoading={aiLoading}
+              onRunAiSearch={runAiSearch}
             />
-            <button
-              type="button"
-              onClick={runAiSearch}
-              disabled={aiLoading || !search.trim()}
-              title="Recherche intelligente (IA)"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-primary hover:bg-primary/10 disabled:opacity-40"
-            >
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
-            </button>
           </div>
 
           <Select value={governorate} onValueChange={(v) => updateParam({ gov: v, del: "all" })}>
-            <SelectTrigger><SelectValue placeholder="Gouvernorat" /></SelectTrigger>
+            <SelectTrigger className="h-11 rounded-2xl text-sm shadow-xs">
+              <SelectValue placeholder="Gouvernorat" />
+            </SelectTrigger>
             <SelectContent className="bg-popover max-h-72">
               <SelectItem value="all">{t("common.all")} — Gouvernorat</SelectItem>
-              {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              {TUNISIA_GOVERNORATES.map((g) => (
+                <SelectItem key={g} value={g}>
+                  {g}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -171,81 +208,122 @@ export default function Creators() {
             onValueChange={(v) => updateParam({ del: v })}
             disabled={governorate === "all"}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-11 rounded-2xl text-sm shadow-xs">
               <SelectValue placeholder={governorate === "all" ? "Choisir un gouvernorat" : "Délégation"} />
             </SelectTrigger>
             <SelectContent className="bg-popover max-h-72">
               <SelectItem value="all">{t("common.all")} — Délégation</SelectItem>
-              {delegationsForGov.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-            </SelectContent>
-          </Select>
-
-          <Select value={category} onValueChange={(v) => updateParam({ category: v })}>
-            <SelectTrigger><SelectValue placeholder={t("common.category")} /></SelectTrigger>
-            <SelectContent className="bg-popover max-h-72">
-              <SelectItem value="all">{t("common.all")} — {t("common.category")}</SelectItem>
-              {CATEGORIES_KEYS.map((k) => (
-                <SelectItem key={k} value={k}>{t(`categoriesExt.${k}`)}</SelectItem>
+              {delegationsForGov.map((d) => (
+                <SelectItem key={d} value={d}>
+                  {d}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <div className="relative">
-            <MessageCircle className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Select value={category} onValueChange={(v) => updateParam({ category: v })}>
+            <SelectTrigger className="h-11 rounded-2xl text-sm shadow-xs">
+              <SelectValue placeholder={t("common.category")} />
+            </SelectTrigger>
+            <SelectContent className="bg-popover max-h-72">
+              <SelectItem value="all">
+                {t("common.all")} — {t("common.category")}
+              </SelectItem>
+              {CATEGORIES_KEYS.map((k) => (
+                <SelectItem key={k} value={k}>
+                  {t(`categoriesExt.${k}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Secondary comment search */}
+        <div className="mb-4 flex items-center gap-2">
+          <div className="relative max-w-sm flex-1">
+            <MessageCircle className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Rechercher dans les avis…"
+              placeholder="Rechercher dans les avis et retours clients…"
               value={commentSearch}
               onChange={(e) => setCommentSearch(e.target.value)}
-              className="pl-9"
+              className="h-9 rounded-2xl pl-10 text-xs shadow-xs"
             />
           </div>
         </div>
 
         {aiFilters && (
           <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-            <SearchCheck className="h-3 w-3 text-primary" />
-            <span className="text-muted-foreground">Filtres IA :</span>
-            {Array.isArray(aiFilters.keywords) && aiFilters.keywords.map((k: string) => (
-              <Badge key={k} variant="secondary">{k}</Badge>
-            ))}
-            {aiFilters.color && <Badge variant="outline">{aiFilters.color}</Badge>}
-            {aiFilters.city && <Badge variant="outline">{aiFilters.city}</Badge>}
-            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setAiFilters(null)}>
+            <SearchCheck className="h-4 w-4 text-primary" />
+            <span className="font-medium text-muted-foreground">Filtres IA :</span>
+            {Array.isArray(aiFilters.keywords) &&
+              aiFilters.keywords.map((k: string) => (
+                <Badge key={k} variant="secondary" className="rounded-full">
+                  {k}
+                </Badge>
+              ))}
+            {aiFilters.color && (
+              <Badge variant="outline" className="rounded-full">
+                Couleur: {aiFilters.color}
+              </Badge>
+            )}
+            {aiFilters.city && (
+              <Badge variant="outline" className="rounded-full">
+                {aiFilters.city}
+              </Badge>
+            )}
+            <Button variant="ghost" size="sm" className="h-6 rounded-full px-2" onClick={() => setAiFilters(null)}>
               <X className="h-3 w-3" />
             </Button>
           </div>
         )}
 
         {hasActiveFilters && (
-          <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="mb-6 flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
-              {searchingComments && " · recherche en cours…"}
+              {filtered.length} créateur{filtered.length > 1 ? "s" : ""}
+              {searchingComments && " · recherche dans les commentaires…"}
             </span>
-            <Button variant="ghost" size="sm" onClick={resetFilters}>
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 text-xs">
               <X className="mr-1 h-3 w-3" /> Réinitialiser
             </Button>
           </div>
         )}
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="py-20 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
+            {t("common.loading")}
+          </div>
+        ) : loadError ? (
           <div className="py-20 text-center">
-            <UsersRound className="mx-auto mb-3 h-10 w-10 text-primary/40" />
-            <p className="mb-1 font-serif text-xl font-semibold">
-              Aucun créateur disponible pour le moment.
-            </p>
-            <p className="mb-6 text-muted-foreground">Soyez le premier à le faire&nbsp;!</p>
-            <Button
-              size="lg"
-              className="gradient-warm text-primary-foreground"
-              onClick={() => navigate("/apply")}
-            >
-              <Hammer className="mr-2 h-4 w-4" /> Devenir créateur
+            <p className="text-sm text-destructive">Impossible de charger les créateurs.</p>
+            <Button variant="outline" className="mt-4 rounded-xl" onClick={loadStartups}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Réessayer
             </Button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-12">
+            <EmptyState
+              icon={UsersRound}
+              title="Aucun créateur ne correspond à vos filtres"
+              description="Essayez de modifier votre recherche ou de réinitialiser les filtres géographiques et catégories."
+              action={{
+                label: "Réinitialiser les filtres",
+                onClick: resetFilters,
+              }}
+              secondaryAction={{
+                label: "Devenir créateur",
+                to: "/apply",
+              }}
+              suggestions={["Poterie", "Céramique", "Tapis", "Cuir", "Huile d'olive", "Bijoux"]}
+              onSelectSuggestion={(s) => setSearch(s)}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((s, i) => <StartupCard key={s.id} startup={s} index={i} />)}
+            {filtered.map((s, i) => (
+              <StartupCard key={s.id} startup={s} index={i} />
+            ))}
           </div>
         )}
       </div>

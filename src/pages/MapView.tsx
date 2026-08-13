@@ -18,7 +18,6 @@ interface CreatorPin {
   city: string | null;
   delegation: string | null;
   category: string | null;
-  cover_url: string | null;
   logo_url: string | null;
 }
 
@@ -40,7 +39,7 @@ export default function MapView() {
     (async () => {
       const { data } = await supabase
         .from("startups")
-        .select("id, name, slug, city, delegation, category, cover_url, logo_url")
+        .select("id, name, slug, city, delegation, category, logo_url")
         .eq("status", "approved");
       setCreators((data ?? []) as CreatorPin[]);
       setLoading(false);

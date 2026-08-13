@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Bell, CheckCheck, MessageCircle, Settings } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -34,6 +34,7 @@ const browserNotificationEnabled = (type: string) => {
 export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -62,6 +63,13 @@ export function NotificationBell() {
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         (payload) => {
           const notification = payload.new as NotificationRow;
+          const isAlreadyViewing = notification.type === "message"
+            && notification.link === `${location.pathname}${location.search}`
+            && document.visibilityState === "visible";
+          if (isAlreadyViewing) {
+            void supabase.from("notifications").update({ read: true }).eq("id", notification.id).eq("user_id", user.id);
+            return;
+          }
           setItems((current) => [notification, ...current.filter((item) => item.id !== notification.id)].slice(0, 30));
           setUnreadCount((count) => count + 1);
           toast(notification.title, {
@@ -93,7 +101,7 @@ export function NotificationBell() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname, location.search]);
 
   const openNotification = async (notification: NotificationRow) => {
     if (!notification.read) {
