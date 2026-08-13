@@ -47,8 +47,8 @@ export function NotificationBell() {
 
     const load = async () => {
       const [{ data }, { count }] = await Promise.all([
-        supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(30),
-        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("read", false),
+        supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("read", false),
       ]);
       setItems(data ?? []);
       setUnreadCount(count ?? 0);
@@ -97,7 +97,7 @@ export function NotificationBell() {
 
   const openNotification = async (notification: NotificationRow) => {
     if (!notification.read) {
-      const { error } = await supabase.from("notifications").update({ read: true }).eq("id", notification.id);
+      const { error } = await supabase.from("notifications").update({ read: true }).eq("id", notification.id).eq("user_id", user.id);
       if (!error) {
         setItems((current) => current.map((item) => item.id === notification.id ? { ...item, read: true } : item));
         setUnreadCount((count) => Math.max(0, count - 1));
@@ -108,7 +108,7 @@ export function NotificationBell() {
   };
 
   const markAllRead = async () => {
-    const { error } = await supabase.from("notifications").update({ read: true }).eq("read", false);
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
     if (error) {
       toast.error("Impossible de marquer les notifications comme lues.");
       return;
