@@ -261,6 +261,13 @@ export default function StartupDetail() {
 
   const myReview = reviews.find((r) => r.user_id === user?.id);
 
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1);
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (target) requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, [reviews]);
+
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
   if (!startup) return <PageLayout><div className="container py-20 text-center">{t("notFound.title")}</div></PageLayout>;
 
@@ -537,7 +544,7 @@ export default function StartupDetail() {
             )}
           </section>
 
-          <section>
+          <section id="reviews" className="scroll-mt-24">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="font-serif text-2xl font-bold">
                 {t("startup.reviews")}
@@ -579,7 +586,7 @@ export default function StartupDetail() {
             ) : (
               <div className="space-y-4">
                 {reviews.map((r) => (
-                  <div key={r.id} className="rounded-xl bg-card p-4 shadow-card">
+                  <div id={`review-${r.id}`} key={r.id} className="scroll-mt-24 rounded-xl bg-card p-4 shadow-card target:ring-2 target:ring-primary/50">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{reviewAuthors[r.user_id] ?? "Utilisateur"}</span>

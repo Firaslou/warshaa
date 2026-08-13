@@ -372,6 +372,13 @@ export default function ProductDetail() {
   const myReview = reviews.find((r) => r.user_id === user?.id);
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1);
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (target) requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, [comments, reviews]);
+
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
   if (!product) return <PageLayout><div className="container py-20 text-center">{t("notFound.title")}</div></PageLayout>;
 
@@ -557,7 +564,7 @@ export default function ProductDetail() {
         </div>
 
         {/* REVIEWS */}
-        <section className="mx-auto mt-12 max-w-3xl">
+        <section id="reviews" className="mx-auto mt-12 max-w-3xl scroll-mt-24">
           <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold">
             <Star className="h-5 w-5" />
             Avis ({reviews.length})
@@ -618,7 +625,7 @@ export default function ProductDetail() {
               <p className="py-8 text-center text-sm text-muted-foreground">Aucun avis pour le moment.</p>
             ) : (
               reviews.map((r) => (
-                <div key={r.id} className="rounded-xl border border-border bg-card p-4">
+                <div id={`review-${r.id}`} key={r.id} className="scroll-mt-24 rounded-xl border border-border bg-card p-4 target:ring-2 target:ring-primary/50">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">{r.author_name ?? "Utilisateur"}</span>
@@ -641,7 +648,7 @@ export default function ProductDetail() {
         </section>
 
         {/* COMMENTS */}
-        <section className="mx-auto mt-12 max-w-3xl">
+        <section id="comments" className="mx-auto mt-12 max-w-3xl scroll-mt-24">
           <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold">
             <MessageCircle className="h-5 w-5" />
             Commentaires ({comments.length})
@@ -678,7 +685,7 @@ export default function ProductDetail() {
               <p className="py-8 text-center text-sm text-muted-foreground">Aucun commentaire pour le moment. Soyez le premier !</p>
             ) : (
               comments.map((c) => (
-                <div key={c.id} className="rounded-xl border border-border bg-card p-4">
+                <div id={`comment-${c.id}`} key={c.id} className="scroll-mt-24 rounded-xl border border-border bg-card p-4 target:ring-2 target:ring-primary/50">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-sm font-semibold">{c.author_name ?? "Utilisateur"}</span>
                     <span className="text-xs text-muted-foreground">

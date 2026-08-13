@@ -57,7 +57,16 @@ export default function AdminDashboard() {
   const [convMessages, setConvMessages] = useState<any[]>([]);
   const [convPreviews, setConvPreviews] = useState<Record<string, { content: string; count: number }>>({});
   const [responses, setResponses] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState({
+    applications: "", applicationStatus: "all",
+    complaints: "", complaintStatus: "all",
+    creators: "", creatorStatus: "all",
+    products: "", productStock: "all",
+    chats: "",
+    users: "", userLanguage: "all",
+    comments: "",
+    reviews: "", reviewRating: "all",
+  });
   const [creatorLikes, setCreatorLikes] = useState<Record<string, number>>({});
 
   const fetchAll = async () => {
@@ -165,7 +174,7 @@ export default function AdminDashboard() {
         ? supabase.from("profiles").select("id, full_name").in("id", authorIds)
         : Promise.resolve({ data: [] }),
       commentProductIds.length
-        ? supabase.from("products").select("id, name").in("id", commentProductIds)
+        ? supabase.from("products").select("id, name, startup_id, startups:startup_id(name, slug)").in("id", commentProductIds)
         : Promise.resolve({ data: [] }),
       reviewStartupIds.length
         ? supabase.from("startups").select("id, name, slug").in("id", reviewStartupIds)
@@ -320,8 +329,36 @@ export default function AdminDashboard() {
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) return <PageLayout><div className="container py-20 text-center text-muted-foreground">{t("dashboard.admin.accessDenied")}</div></PageLayout>;
 
-  const filteredCreators = creators.filter((c) => c.name?.toLowerCase().includes(search.toLowerCase()) || c.city?.toLowerCase().includes(search.toLowerCase()));
-  const filteredUsers = users.filter((u) => u.full_name?.toLowerCase().includes(search.toLowerCase()));
+  const updateFilter = (key: keyof typeof filters, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+  const matches = (query: string, ...values: unknown[]) => {
+    const normalized = query.trim().toLocaleLowerCase();
+    return !normalized || values.some((value) => String(value ?? "").toLocaleLowerCase().includes(normalized));
+  };
+
+  const filteredApps = apps.filter((application) =>
+    matches(filters.applications, application.brand_name, application.description, application.city, application.category, ...(application.categories ?? [])) &&
+    (filters.applicationStatus === "all" || application.status === filters.applicationStatus));
+  const filteredComplaints = complaints.filter((complaint) =>
+    matches(filters.complaints, complaint.subject, complaint.message, complaint.startups?.name, complaint.profiles?.full_name) &&
+    (filters.complaintStatus === "all" || complaint.status === filters.complaintStatus));
+  const filteredCreators = creators.filter((creator) =>
+    matches(filters.creators, creator.name, creator.city, creator.badge) &&
+    (filters.creatorStatus === "all" || creator.status === filters.creatorStatus));
+  const filteredProducts = products.filter((product) =>
+    matches(filters.products, product.name, product.startups?.name) &&
+    (filters.productStock === "all" || (filters.productStock === "in" ? product.in_stock : !product.in_stock)));
+  const filteredConversations = conversations.filter((conversation) =>
+    matches(filters.chats, conversation.profiles?.full_name, conversation.startups?.name, convPreviews[conversation.id]?.content));
+  const filteredUsers = users.filter((profile) =>
+    matches(filters.users, profile.full_name, profile.city, profile.preferred_language) &&
+    (filters.userLanguage === "all" || profile.preferred_language === filters.userLanguage));
+  const filteredComments = comments.filter((comment) =>
+    matches(filters.comments, comment.content, comment.profiles?.full_name, comment.products?.name, comment.products?.startups?.name));
+  const filteredReviews = reviews.filter((review) =>
+    matches(filters.reviews, review.comment, review.profiles?.full_name, review.startups?.name) &&
+    (filters.reviewRating === "all" || review.rating === Number(filters.reviewRating)));
 
   return (
     <PageLayout>
@@ -361,9 +398,12 @@ export default function AdminDashboard() {
 
           {/* APPLICATIONS */}
           <TabsContent value="applications" className="mt-6 space-y-4">
-            {apps.length === 0 ? (
+            <FilterBar query={filters.applications} onQueryChange={(value) => updateFilter("applications", value)} placeholder="Rechercher une candidature…">
+              <StatusFilter value={filters.applicationStatus} onChange={(value) => updateFilter("applicationStatus", value)} values={["pending", "approved", "rejected"]} />
+            </FilterBar>
+            {filteredApps.length === 0 ? (
               <p className="text-muted-foreground">{t("dashboard.admin.noApps")}</p>
-            ) : apps.map((a) => (
+            ) : filteredApps.map((a) => (
               <Card key={a.id}>
                 <CardContent className="pt-6">
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -438,7 +478,10 @@ export default function AdminDashboard() {
 
           {/* COMPLAINTS */}
           <TabsContent value="complaints" className="mt-6 space-y-4">
-            {complaints.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComplaints")}</p> : complaints.map((c) => (
+            <FilterBar query={filters.complaints} onQueryChange={(value) => updateFilter("complaints", value)} placeholder="Rechercher une réclamation…">
+              <StatusFilter value={filters.complaintStatus} onChange={(value) => updateFilter("complaintStatus", value)} values={["pending", "reviewing", "resolved", "rejected"]} />
+            </FilterBar>
+            {filteredComplaints.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComplaints")}</p> : filteredComplaints.map((c) => (
               <Card key={c.id}>
                 <CardContent className="pt-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -448,7 +491,7 @@ export default function AdminDashboard() {
                         <Badge variant="outline">{c.status}</Badge>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {t("dashboard.admin.against")} <strong>{c.startups?.name ?? "—"}</strong> · {t("dashboard.admin.by")} {c.profiles?.full_name ?? t("dashboard.admin.user")} · {new Date(c.created_at).toLocaleString()}
+                        {t("dashboard.admin.against")} {c.startups?.slug ? <Link to={`/startup/${c.startups.slug}`} className="font-semibold text-primary hover:underline">{c.startups.name}</Link> : <strong>—</strong>} · {t("dashboard.admin.by")} {c.profiles?.full_name ?? t("dashboard.admin.user")} · {new Date(c.created_at).toLocaleString()}
                       </p>
                       <p className="mt-3 whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-sm">{c.message}</p>
                     </div>
@@ -474,7 +517,9 @@ export default function AdminDashboard() {
 
           {/* CREATORS */}
           <TabsContent value="creators" className="mt-6">
-            <Input placeholder={t("dashboard.admin.searchCreator")} value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4 max-w-sm" />
+            <FilterBar query={filters.creators} onQueryChange={(value) => updateFilter("creators", value)} placeholder={t("dashboard.admin.searchCreator")}>
+              <StatusFilter value={filters.creatorStatus} onChange={(value) => updateFilter("creatorStatus", value)} values={["pending", "approved", "rejected"]} />
+            </FilterBar>
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
@@ -524,6 +569,9 @@ export default function AdminDashboard() {
 
           {/* PRODUCTS */}
           <TabsContent value="products" className="mt-6">
+            <FilterBar query={filters.products} onQueryChange={(value) => updateFilter("products", value)} placeholder="Rechercher un produit ou un créateur…">
+              <StatusFilter value={filters.productStock} onChange={(value) => updateFilter("productStock", value)} values={["in", "out"]} labels={{ in: "En stock", out: "Hors stock" }} />
+            </FilterBar>
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
@@ -535,7 +583,7 @@ export default function AdminDashboard() {
                   <TableHead className="text-right">{t("dashboard.admin.actions")}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {products.map((p) => (
+                  {filteredProducts.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.images?.[0] && <img src={p.images[0]} className="h-10 w-10 rounded object-cover" />}</TableCell>
                       <TableCell className="font-medium">{p.name}</TableCell>
@@ -556,22 +604,26 @@ export default function AdminDashboard() {
 
           {/* CHATS */}
           <TabsContent value="chats" className="mt-6">
+            <FilterBar query={filters.chats} onQueryChange={(value) => updateFilter("chats", value)} placeholder="Rechercher un utilisateur, un créateur ou un message…" />
             <div className="grid gap-4 md:grid-cols-[320px_1fr]">
               <Card className="h-[600px] overflow-y-auto">
                 <CardContent className="p-2">
-                  {conversations.length === 0 ? (
+                  {filteredConversations.length === 0 ? (
                     <p className="p-3 text-sm text-muted-foreground">{t("dashboard.admin.noConversations")}</p>
-                  ) : conversations.map((c) => (
-                    <button
+                  ) : filteredConversations.map((c) => (
+                    <div
                       key={c.id}
                       onClick={() => openConversation(c.id)}
-                      className={`w-full rounded-md p-3 text-left text-sm transition-colors hover:bg-muted ${activeConv === c.id ? "bg-muted" : ""}`}
+                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openConversation(c.id); }}
+                      role="button"
+                      tabIndex={0}
+                      className={`w-full cursor-pointer rounded-md p-3 text-left text-sm transition-colors hover:bg-muted ${activeConv === c.id ? "bg-muted" : ""}`}
                     >
                       <div className="flex items-center gap-2 font-medium">
                         <MessageCircle className="h-3 w-3 shrink-0" />
                         <span className="truncate">{c.profiles?.full_name ?? t("dashboard.admin.user")}</span>
                       </div>
-                      <div className="mt-1 truncate text-xs text-muted-foreground">↔ {c.startups?.name ?? "—"}</div>
+                      <div className="mt-1 truncate text-xs text-muted-foreground">↔ {c.startups?.slug ? <Link to={`/startup/${c.startups.slug}`} onClick={(event) => event.stopPropagation()} className="text-primary hover:underline">{c.startups.name}</Link> : "—"}</div>
                       {convPreviews[c.id]?.content && (
                         <div className="mt-1 truncate text-xs italic text-foreground/70">"{convPreviews[c.id].content}"</div>
                       )}
@@ -579,7 +631,7 @@ export default function AdminDashboard() {
                         <span>{new Date(c.last_message_at).toLocaleString()}</span>
                         {convPreviews[c.id]?.count ? <span>{convPreviews[c.id].count} msg</span> : null}
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </CardContent>
               </Card>
@@ -610,7 +662,9 @@ export default function AdminDashboard() {
 
           {/* USERS */}
           <TabsContent value="users" className="mt-6">
-            <Input placeholder={t("dashboard.admin.searchUser")} value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4 max-w-sm" />
+            <FilterBar query={filters.users} onQueryChange={(value) => updateFilter("users", value)} placeholder={t("dashboard.admin.searchUser")}>
+              <StatusFilter value={filters.userLanguage} onChange={(value) => updateFilter("userLanguage", value)} values={["fr", "ar", "en"]} labels={{ fr: "Français", ar: "العربية", en: "English" }} />
+            </FilterBar>
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
@@ -632,14 +686,16 @@ export default function AdminDashboard() {
 
           {/* COMMENTS */}
           <TabsContent value="comments" className="mt-6 space-y-3">
-            {comments.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComments")}</p> : comments.map((c) => (
+            <FilterBar query={filters.comments} onQueryChange={(value) => updateFilter("comments", value)} placeholder="Rechercher un commentaire, un produit ou un créateur…" />
+            {filteredComments.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noComments")}</p> : filteredComments.map((c) => (
               <Card key={c.id}><CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">
-                      <strong>{c.is_anonymous ? t("dashboard.admin.anonymous") : (c.profiles?.full_name ?? t("dashboard.admin.user"))}</strong> · {t("dashboard.admin.on")} <em>{c.products?.name ?? "—"}</em> · {new Date(c.created_at).toLocaleString()}
+                      <strong>{c.is_anonymous ? t("dashboard.admin.anonymous") : (c.profiles?.full_name ?? t("dashboard.admin.user"))}</strong> · {t("dashboard.admin.on")} <Link to={`/product/${c.product_id}#comment-${c.id}`} className="text-primary hover:underline"><em>{c.products?.name ?? "—"}</em></Link>
+                      {c.products?.startups?.slug && <> · créateur <Link to={`/startup/${c.products.startups.slug}`} className="text-primary hover:underline">{c.products.startups.name}</Link></>} · {new Date(c.created_at).toLocaleString()}
                     </p>
-                    <p className="mt-2 text-sm">{c.content}</p>
+                    <Link to={`/product/${c.product_id}#comment-${c.id}`} className="mt-2 block rounded-md text-sm hover:bg-muted/50 hover:text-primary">{c.content}</Link>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => deleteComment(c.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
@@ -649,15 +705,18 @@ export default function AdminDashboard() {
 
           {/* REVIEWS */}
           <TabsContent value="reviews" className="mt-6 space-y-3">
-            {reviews.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noReviews")}</p> : reviews.map((r) => (
+            <FilterBar query={filters.reviews} onQueryChange={(value) => updateFilter("reviews", value)} placeholder="Rechercher un avis, un utilisateur ou un créateur…">
+              <StatusFilter value={filters.reviewRating} onChange={(value) => updateFilter("reviewRating", value)} values={["5", "4", "3", "2", "1"]} labels={{ "5": "5 étoiles", "4": "4 étoiles", "3": "3 étoiles", "2": "2 étoiles", "1": "1 étoile" }} />
+            </FilterBar>
+            {filteredReviews.length === 0 ? <p className="text-muted-foreground">{t("dashboard.admin.noReviews")}</p> : filteredReviews.map((r) => (
               <Card key={r.id}><CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">
-                      <strong>{r.profiles?.full_name ?? t("dashboard.admin.user")}</strong> · {t("dashboard.admin.on")} <Link className="hover:underline" to={`/startup/${r.startups?.slug}`}><em>{r.startups?.name}</em></Link> · {new Date(r.created_at).toLocaleString()}
+                      <strong>{r.profiles?.full_name ?? t("dashboard.admin.user")}</strong> · {t("dashboard.admin.on")} <Link className="text-primary hover:underline" to={`/startup/${r.startups?.slug}#review-${r.id}`}><em>{r.startups?.name}</em></Link> · {new Date(r.created_at).toLocaleString()}
                     </p>
                     <div className="mt-1 flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-amber-500 text-amber-500" : "text-muted"}`} />)}</div>
-                    {r.comment && <p className="mt-2 text-sm">{r.comment}</p>}
+                    {r.comment && <Link to={`/startup/${r.startups?.slug}#review-${r.id}`} className="mt-2 block rounded-md text-sm hover:bg-muted/50 hover:text-primary">{r.comment}</Link>}
                     {r.photo_url && <img src={r.photo_url} alt="review" className="mt-2 h-20 w-20 rounded object-cover" />}
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => deleteReview(r.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -683,5 +742,36 @@ function StatCard({ icon, label, value, sub, highlight }: { icon: React.ReactNod
         {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+function FilterBar({ query, onQueryChange, placeholder, children }: {
+  query: string;
+  onQueryChange: (value: string) => void;
+  placeholder: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+      <Input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={placeholder} className="sm:max-w-md" />
+      {children}
+    </div>
+  );
+}
+
+function StatusFilter({ value, onChange, values, labels = {} }: {
+  value: string;
+  onChange: (value: string) => void;
+  values: string[];
+  labels?: Record<string, string>;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="sm:w-[190px]"><SelectValue /></SelectTrigger>
+      <SelectContent className="bg-popover">
+        <SelectItem value="all">Tous</SelectItem>
+        {values.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? option}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 }

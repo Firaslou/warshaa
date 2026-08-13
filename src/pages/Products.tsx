@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DEMO_PRODUCTS, DEMO_STARTUPS } from "@/lib/demo";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS, type Governorate } from "@/lib/tunisia";
 import { useMemo } from "react";
+import { toast } from "sonner";
 
 interface ProductRow {
   id: string;
@@ -45,6 +46,7 @@ export default function Products() {
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("relevance");
   const [likes, setLikes] = useState<Record<string, number>>({});
+  const [likedProductIds, setLikedProductIds] = useState<Set<string>>(new Set());
   const [views, setViews] = useState<Record<string, number>>({});
   const [purchases, setPurchases] = useState<Record<string, number>>({});
 
@@ -109,16 +111,63 @@ export default function Products() {
     })();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (!user) {
+        setLikedProductIds(new Set());
+        return;
+      }
+
+      const productIds = products.filter((product) => !product.isDemo).map((product) => product.id);
+      if (!productIds.length) return;
+
+      const { data, error } = await supabase
+        .from("product_likes")
+        .select("product_id")
+        .eq("user_id", user.id)
+        .in("product_id", productIds);
+
+      if (!cancelled && !error) {
+        setLikedProductIds(new Set((data ?? []).map((row) => row.product_id)));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [products, user]);
+
   const toggleLike = async (productId: string) => {
     if (!user) return;
-    const { data: existing } = await supabase
-      .from("product_likes").select("id").eq("user_id", user.id).eq("product_id", productId).maybeSingle();
-    if (existing) {
-      await supabase.from("product_likes").delete().eq("id", existing.id);
-      setLikes((m) => ({ ...m, [productId]: Math.max(0, (m[productId] ?? 1) - 1) }));
-    } else {
-      await supabase.from("product_likes").insert({ user_id: user.id, product_id: productId });
-      setLikes((m) => ({ ...m, [productId]: (m[productId] ?? 0) + 1 }));
+    const wasLiked = likedProductIds.has(productId);
+
+    setLikedProductIds((current) => {
+      const next = new Set(current);
+      if (wasLiked) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+    setLikes((current) => ({
+      ...current,
+      [productId]: Math.max(0, (current[productId] ?? 0) + (wasLiked ? -1 : 1)),
+    }));
+
+    const { error } = wasLiked
+      ? await supabase.from("product_likes").delete().eq("user_id", user.id).eq("product_id", productId)
+      : await supabase.from("product_likes").insert({ user_id: user.id, product_id: productId });
+
+    if (error) {
+      setLikedProductIds((current) => {
+        const next = new Set(current);
+        if (wasLiked) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+      setLikes((current) => ({
+        ...current,
+        [productId]: Math.max(0, (current[productId] ?? 0) + (wasLiked ? 1 : -1)),
+      }));
+      toast.error("Impossible de mettre à jour ce favori.");
     }
   };
 
@@ -358,8 +407,15 @@ export default function Products() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Button size="sm" variant="ghost" onClick={() => toggleLike(p.id)} disabled={!user || p.isDemo}>
-                    <Heart className="h-4 w-4" />
+                  <Button
+                    size="sm"
+                    variant={likedProductIds.has(p.id) ? "secondary" : "ghost"}
+                    onClick={() => toggleLike(p.id)}
+                    disabled={!user || p.isDemo}
+                    aria-pressed={likedProductIds.has(p.id)}
+                    title={likedProductIds.has(p.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  >
+                    <Heart className={`h-4 w-4 ${likedProductIds.has(p.id) ? "fill-primary text-primary" : ""}`} />
                   </Button>
                   {p.startups?.whatsapp_number && (
                     <Button size="sm" className="gradient-warm text-primary-foreground"
