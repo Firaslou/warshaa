@@ -33,7 +33,7 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
       className="group block animate-slide-up"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      <div className="overflow-hidden rounded-xl bg-card shadow-card transition-smooth hover-lift">
+      <div className="overflow-hidden rounded-[32px] border border-clay-mist bg-card shadow-card md:rounded-xl md:border-transparent transition-smooth hover-lift">
         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
           {startup.cover_url ? (
             <img

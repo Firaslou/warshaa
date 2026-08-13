@@ -22,8 +22,8 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsRes, error: claimsErr } = await authClient.auth.getClaims(token);
-    if (claimsErr || !claimsRes?.claims) {
+    const { data: userRes, error: claimsErr } = await authClient.auth.getUser(token);
+    if (claimsErr || !userRes?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
     const { data: isStartup } = await admin.rpc("has_role", {
-      _user_id: claimsRes.claims.sub,
+      _user_id: userRes.user.id,
       _role: "startup",
     });
     if (!isStartup) {

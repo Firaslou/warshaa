@@ -45,24 +45,26 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 shadow-[0_8px_30px_-24px_hsl(var(--foreground)/0.35)] backdrop-blur-xl">
-      <div className="container flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 w-full border-b border-clay-mist bg-clay-shell/90 shadow-[0_8px_30px_-24px_hsl(var(--clay-deep)/0.5)] backdrop-blur-xl md:border-border/60 md:bg-background/85">
+      <div className="container flex h-16 items-center justify-between gap-4 md:h-16">
         <Link to="/" aria-label={t("common.appName")} className="group flex items-center">
           <BrandLogo
             markClassName="h-11 transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105"
-            nameClassName="text-[1.35rem]"
+            nameClassName="font-display text-[1.35rem] text-clay-deep md:text-foreground"
           />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">{links}</nav>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
-          <NotificationBell />
+          <span className="flex items-center gap-2 [&_button]:rounded-2xl [&_button]:bg-clay-mist [&_button]:text-clay-deep md:[&_button]:rounded-md md:[&_button]:bg-transparent md:[&_button]:text-foreground">
+            <LanguageSwitcher />
+            <NotificationBell />
+          </span>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
+                <Button variant="ghost" size="sm" className="gap-2 rounded-2xl bg-clay-mist text-clay-deep md:bg-transparent md:text-foreground">
                   <UserIcon className="h-4 w-4" />
                   <span className="hidden sm:inline">{user.email?.split("@")[0]}</span>
                 </Button>
@@ -109,16 +111,16 @@ export function Header() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="rounded-2xl bg-clay-mist text-clay-deep md:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
-              <nav className="mt-8 flex flex-col gap-4">{links}</nav>
+            <SheetContent side="right" className="border-clay-mist bg-clay-shell">
+              <nav className="mt-8 flex flex-col gap-4 font-display text-clay-deep [&_a]:text-base [&_a]:font-bold">{links}</nav>
               {!user && (
                 <div className="mt-6 flex flex-col gap-2">
-                  <Button variant="outline" onClick={() => navigate("/login")}>{t("nav.login")}</Button>
-                  <Button className="gradient-warm text-primary-foreground" onClick={() => navigate("/signup")}>
+                  <Button variant="outline" className="rounded-2xl border-clay-tan/50 font-display text-clay-deep" onClick={() => navigate("/login")}>{t("nav.login")}</Button>
+                  <Button className="rounded-2xl bg-gradient-to-br from-clay-tan to-clay-rose font-display text-white" onClick={() => navigate("/signup")}>
                     {t("nav.signup")}
                   </Button>
                 </div>

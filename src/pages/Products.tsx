@@ -305,7 +305,7 @@ export default function Products() {
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {sorted.map((p) => (
-            <Card key={p.id} className="overflow-hidden">
+            <Card key={p.id} className="overflow-hidden rounded-[32px] border-clay-mist md:rounded-lg">
               {p.images?.[0] && (
                 <Link to={`/product/${p.id}`} className="relative block aspect-square w-full overflow-hidden bg-muted">
                   <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform hover:scale-105" loading="lazy" />

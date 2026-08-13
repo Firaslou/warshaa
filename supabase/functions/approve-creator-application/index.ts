@@ -35,13 +35,13 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsRes, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsRes?.claims) {
+    const { data: userRes, error: claimsErr } = await userClient.auth.getUser(token);
+    if (claimsErr || !userRes?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = claimsRes.claims.sub as string;
+    const callerId = userRes.user.id;
 
     const admin = createClient(SUPABASE_URL, SERVICE);
 
@@ -82,13 +82,13 @@ Deno.serve(async (req) => {
     const ownerId = app.applicant_id as string;
 
     // Get applicant email + profile name
-    const { data: userRes, error: userErr } = await admin.auth.admin.getUserById(ownerId);
-    if (userErr || !userRes?.user) {
+    const { data: ownerRes, error: userErr } = await admin.auth.admin.getUserById(ownerId);
+    if (userErr || !ownerRes?.user) {
       return new Response(JSON.stringify({ error: "Applicant user not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const recipientEmail = userRes.user.email;
+    const recipientEmail = ownerRes.user.email;
 
     // Ensure 'startup' role
     await admin
