@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, Eye, ShoppingBag, MessageCircle, Truck, ExternalLink, Search, X, Sparkles, Loader2 } from "lucide-react";
+import { Heart, Eye, ShoppingBag, MessageCircle, Truck, ExternalLink, Search, X, SearchCheck, Loader2 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -225,7 +225,7 @@ export default function Products() {
               title="Recherche intelligente (IA)"
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-primary hover:bg-primary/10 disabled:opacity-40"
             >
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
             </button>
           </div>
           <Select value={governorate} onValueChange={(v) => { setGovernorate(v); setDelegation("all"); }}>
@@ -257,7 +257,7 @@ export default function Products() {
 
         {aiFilters && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <Sparkles className="h-3 w-3 text-primary" />
+            <SearchCheck className="h-3 w-3 text-primary" />
             <span className="text-muted-foreground">Filtres IA :</span>
             {Array.isArray(aiFilters.keywords) && aiFilters.keywords.map((k: string) => (
               <Badge key={k} variant="secondary">{k}</Badge>

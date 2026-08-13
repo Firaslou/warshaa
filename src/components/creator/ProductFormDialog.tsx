@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, Video, X, Leaf, AlertTriangle, Loader2, Sparkles } from "lucide-react";
+import { Camera, Video, X, Leaf, AlertTriangle, Loader2, Bot } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,7 +215,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
             <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
             <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
               <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> Aide IA — décris en quelques mots
+                <Bot className="h-3.5 w-3.5" /> Aide IA — décris en quelques mots
               </div>
               <div className="flex gap-2">
                 <Input
@@ -232,7 +232,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
                   disabled={generating || !keywords.trim()}
                   className="shrink-0 gradient-warm text-primary-foreground"
                 >
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
                   {generating ? "..." : "Générer"}
                 </Button>
               </div>

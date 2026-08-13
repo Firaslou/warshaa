@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Heart, ArrowRight, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { StartupCardData } from "@/components/StartupCard";
@@ -43,7 +43,7 @@ export default function Discover() {
       <div className="container py-12">
         <div className="mb-10 text-center">
           <h1 className="font-serif text-4xl font-bold md:text-5xl">
-            <Sparkles className="mr-2 inline h-8 w-8 text-primary" />
+            <Heart className="mr-2 inline h-8 w-8 fill-primary/15 text-primary" />
             {t("discover.title")}
           </h1>
           <p className="mt-3 text-muted-foreground">{t("discover.subtitle")}</p>
@@ -69,7 +69,7 @@ export default function Discover() {
                   {t("common.discover")} <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={next}>
-                  <Sparkles className="mr-1 h-4 w-4" /> {t("discover.next")}
+                  <Shuffle className="mr-1 h-4 w-4" /> {t("discover.next")}
                 </Button>
               </div>
             </div>

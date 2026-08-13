@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { MapPin, BadgeCheck, Sparkles, Award, Heart } from "lucide-react";
+import { MapPin, BadgeCheck, BadgePlus, Award, Heart, Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
   const { t } = useTranslation();
 
   const badgeMeta = {
-    new: { label: t("startup.new"), icon: Sparkles, className: "bg-warning/15 text-warning-foreground border-warning/30" },
+    new: { label: t("startup.new"), icon: BadgePlus, className: "bg-warning/15 text-warning-foreground border-warning/30" },
     verified: { label: t("startup.verified"), icon: BadgeCheck, className: "bg-success/15 text-success border-success/30" },
     certified: { label: t("startup.certified"), icon: Award, className: "bg-primary/15 text-primary border-primary/30" },
   }[startup.badge];
@@ -44,7 +44,7 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center gradient-soft">
-              <Sparkles className="h-12 w-12 text-primary/40" />
+              <Store className="h-12 w-12 text-primary/40" />
             </div>
           )}
           <div className="absolute left-3 top-3">

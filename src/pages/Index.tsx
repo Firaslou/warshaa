@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight, Sparkles, Heart, MessageCircle, Search,
+  ArrowRight, Heart, MessageCircle, Search, HandHeart, Shuffle, Store, Shapes,
   Users, ShoppingBag, BadgeCheck, MapPin, Quote,
   Gem, Flame, Palette, Shirt, Briefcase, Coffee, Droplet, Cookie,
   Home as HomeIcon, Recycle, User, UserCheck, Baby, Gift, Star, MoreHorizontal,
@@ -173,7 +173,7 @@ const Index = () => {
         <div className="container relative py-20 md:py-28">
           <div className="mx-auto max-w-3xl text-center animate-fade-in">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-1.5 text-xs font-medium backdrop-blur">
-              <Sparkles className="h-3 w-3 text-primary" />
+              <HandHeart className="h-3 w-3 text-primary" />
               {t("common.tagline")}
             </div>
             <h1 className="text-balance font-serif text-4xl font-bold leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
@@ -187,7 +187,7 @@ const Index = () => {
                 {t("home.heroCta")} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/discover")}>
-                <Sparkles className="mr-1 h-4 w-4" /> {t("home.heroCtaSecondary")}
+                <Shuffle className="mr-1 h-4 w-4" /> {t("home.heroCtaSecondary")}
               </Button>
             </div>
           </div>
@@ -224,7 +224,7 @@ const Index = () => {
         <section className="container py-16 md:py-20">
           <div className="mb-6 text-center">
             <div className="inline-flex items-center gap-2 rounded-full gradient-warm px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-elegant">
-              <Sparkles className="h-3 w-3" /> {t("stats.dailyBadge")}
+              <Heart className="h-3 w-3 fill-current" /> {t("stats.dailyBadge")}
             </div>
             <h2 className="mt-3 font-serif text-3xl font-bold md:text-4xl">{t("stats.dailyTitle")}</h2>
             <p className="mt-2 text-sm capitalize text-muted-foreground">{todayLabel}</p>
@@ -236,7 +236,7 @@ const Index = () => {
                   <img src={coupDeCoeur.cover_url} alt={coupDeCoeur.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center gradient-soft">
-                    <Sparkles className="h-16 w-16 text-primary/40" />
+                    <Store className="h-16 w-16 text-primary/40" />
                   </div>
                 )}
                 {coupDeCoeur.badge && (coupDeCoeur.badge === "verified" || coupDeCoeur.badge === "certified") && (
@@ -289,7 +289,7 @@ const Index = () => {
                     {t("stats.dailyCta")} <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
                   <Button variant="outline" onClick={() => navigate("/discover")}>
-                    <Sparkles className="mr-1 h-4 w-4" /> {t("home.heroCtaSecondary")}
+                    <Shuffle className="mr-1 h-4 w-4" /> {t("home.heroCtaSecondary")}
                   </Button>
                 </div>
               </div>
@@ -343,7 +343,7 @@ const Index = () => {
                           <img src={s.cover_url} alt={s.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center gradient-soft">
-                            <Sparkles className="h-10 w-10 text-primary/40" />
+                            <Store className="h-10 w-10 text-primary/40" />
                           </div>
                         )}
                         <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-semibold shadow-card backdrop-blur">
@@ -413,7 +413,7 @@ const Index = () => {
         </div>
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
           {CATEGORIES_KEYS.map((key, i) => {
-            const Icon = CATEGORY_ICONS[key] ?? Sparkles;
+            const Icon = CATEGORY_ICONS[key] ?? Shapes;
             return (
               <Link
                 key={key}

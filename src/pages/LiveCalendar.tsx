@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Radio, Bell, BellRing, Calendar as CalendarIcon, Clock, ExternalLink, Sparkles } from "lucide-react";
+import { Radio, Bell, BellRing, Calendar as CalendarIcon, Clock, ExternalLink, CalendarOff } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -123,7 +123,7 @@ export default function LiveCalendar() {
         ) : filtered.length === 0 ? (
           <Card className="mx-auto max-w-md">
             <CardContent className="py-12 text-center">
-              <Sparkles className="mx-auto mb-3 h-8 w-8 text-primary/60" />
+              <CalendarOff className="mx-auto mb-3 h-8 w-8 text-primary/60" />
               <p className="text-sm text-muted-foreground">{t("liveCalendar.page.empty")}</p>
             </CardContent>
           </Card>

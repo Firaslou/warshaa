@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Users, ArrowRight, Sparkles } from "lucide-react";
+import { MapPin, Users, ArrowRight, MousePointerClick } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,7 +149,7 @@ export default function MapView() {
           <aside className="rounded-3xl border border-border bg-card p-5 shadow-card">
             {!activeGov ? (
               <div className="py-12 text-center">
-                <Sparkles className="mx-auto mb-3 h-8 w-8 text-primary/60" />
+                <MousePointerClick className="mx-auto mb-3 h-8 w-8 text-primary/60" />
                 <p className="text-sm text-muted-foreground">{t("map.selectHint")}</p>
                 <div className="mt-6 grid gap-1 text-left">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

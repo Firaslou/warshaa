@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, MessageCircle, X, Sparkles, Loader2 } from "lucide-react";
+import { Search, MessageCircle, X, SearchCheck, Loader2, UsersRound, Hammer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -154,7 +154,7 @@ export default function Creators() {
               title="Recherche intelligente (IA)"
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-primary hover:bg-primary/10 disabled:opacity-40"
             >
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
             </button>
           </div>
 
@@ -203,7 +203,7 @@ export default function Creators() {
 
         {aiFilters && (
           <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-            <Sparkles className="h-3 w-3 text-primary" />
+            <SearchCheck className="h-3 w-3 text-primary" />
             <span className="text-muted-foreground">Filtres IA :</span>
             {Array.isArray(aiFilters.keywords) && aiFilters.keywords.map((k: string) => (
               <Badge key={k} variant="secondary">{k}</Badge>
@@ -230,7 +230,7 @@ export default function Creators() {
 
         {filtered.length === 0 ? (
           <div className="py-20 text-center">
-            <Sparkles className="mx-auto mb-3 h-10 w-10 text-primary/40" />
+            <UsersRound className="mx-auto mb-3 h-10 w-10 text-primary/40" />
             <p className="mb-1 font-serif text-xl font-semibold">
               Aucun créateur disponible pour le moment.
             </p>
@@ -240,7 +240,7 @@ export default function Creators() {
               className="gradient-warm text-primary-foreground"
               onClick={() => navigate("/apply")}
             >
-              <Sparkles className="mr-2 h-4 w-4" /> Devenir créateur
+              <Hammer className="mr-2 h-4 w-4" /> Devenir créateur
             </Button>
           </div>
         ) : (

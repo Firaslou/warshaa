@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import {
-  Bell, Home, Search, Heart, User, Plus, Sparkles, ShoppingBag,
+  Bell, Home, Search, Heart, User, Plus, ShoppingBag,
   MessageCircle, Video, Zap, ArrowLeft, MapPin, BadgeCheck, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

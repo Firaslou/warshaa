@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Video, Heart, MessageCircle, Camera, Sparkles } from "lucide-react";
+import { ArrowLeft, Bell, Video, Heart, MessageCircle, Camera, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -140,7 +140,7 @@ export default function Notifications() {
           className="mt-6 w-full gradient-warm text-primary-foreground"
           size="lg"
         >
-          <Sparkles className="mr-2 h-4 w-4" /> Envoyer une notification de test
+          <Send className="mr-2 h-4 w-4" /> Envoyer une notification de test
         </Button>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">

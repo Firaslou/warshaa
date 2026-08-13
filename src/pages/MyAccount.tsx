@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, MessageCircle, Sparkles, KeyRound, User as UserIcon } from "lucide-react";
+import { Heart, MessageCircle, HandHeart, KeyRound, User as UserIcon } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +110,7 @@ export default function MyAccount() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary"/>{t("myAccount.supportedCreators")}</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><HandHeart className="h-4 w-4 text-primary"/>{t("myAccount.supportedCreators")}</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {supported.length === 0 && <p className="text-sm text-muted-foreground">—</p>}
                 {supported.map((s: any) => (

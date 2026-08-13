@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  MapPin, BadgeCheck, Sparkles, Award, Heart, MessageCircle, Star,
+  MapPin, BadgeCheck, BadgePlus, Award, Heart, MessageCircle, Star,
   Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart, Flag,
-  Send, Camera,
+  Send, Camera, PackageOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -265,7 +265,7 @@ export default function StartupDetail() {
   if (!startup) return <PageLayout><div className="container py-20 text-center">{t("notFound.title")}</div></PageLayout>;
 
   const badgeMeta = {
-    new: { label: t("startup.new"), icon: Sparkles, className: "bg-warning/15 text-warning-foreground border-warning/30" },
+    new: { label: t("startup.new"), icon: BadgePlus, className: "bg-warning/15 text-warning-foreground border-warning/30" },
     verified: { label: t("startup.verified"), icon: BadgeCheck, className: "bg-success/15 text-success border-success/30" },
     certified: { label: t("startup.certified"), icon: Award, className: "bg-primary/15 text-primary border-primary/30" },
   }[startup.badge];
@@ -430,7 +430,7 @@ export default function StartupDetail() {
                         <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />
                       ) : (
                         <div className="flex aspect-square items-center justify-center gradient-soft">
-                          <Sparkles className="h-6 w-6 text-primary/40" />
+                          <PackageOpen className="h-6 w-6 text-primary/40" />
                         </div>
                       )}
                       <div className="p-2">

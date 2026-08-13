@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, Sparkles, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, MessageCircle } from "lucide-react";
+import { Menu, Hammer, User as UserIcon, LogOut, Heart, LayoutDashboard, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -84,7 +84,7 @@ export function Header() {
                 </DropdownMenuItem>
                 {isCreator && (
                   <DropdownMenuItem onClick={() => navigate("/creator")}>
-                    <Sparkles className="mr-2 h-4 w-4" /> {t("dashboard.creator.title")}
+                    <Hammer className="mr-2 h-4 w-4" /> {t("dashboard.creator.title")}
                   </DropdownMenuItem>
                 )}
                 {isAdmin && (

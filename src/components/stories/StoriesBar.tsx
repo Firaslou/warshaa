@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { StoryViewer, StoryGroup } from "./StoryViewer";
@@ -132,7 +132,7 @@ export function StoriesBar({ startupId, startupSlug, className }: Props) {
                 {ownStartup.logo_url ? (
                   <img src={ownStartup.logo_url} alt="" className="h-full w-full rounded-full object-cover opacity-80" />
                 ) : (
-                  <Sparkles className="h-5 w-5 text-primary" />
+                  <Store className="h-5 w-5 text-primary" />
                 )}
               </div>
               <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full gradient-warm text-primary-foreground shadow-elegant">
