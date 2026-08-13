@@ -82,13 +82,13 @@ Deno.serve(async (req) => {
     const ownerId = app.applicant_id as string;
 
     // Get applicant email + profile name
-    const { data: userRes, error: userErr } = await admin.auth.admin.getUserById(ownerId);
-    if (userErr || !userRes?.user) {
+    const { data: ownerRes, error: userErr } = await admin.auth.admin.getUserById(ownerId);
+    if (userErr || !ownerRes?.user) {
       return new Response(JSON.stringify({ error: "Applicant user not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const recipientEmail = userRes.user.email;
+    const recipientEmail = ownerRes.user.email;
 
     // Ensure 'startup' role
     await admin
