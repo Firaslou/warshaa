@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
 import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
 import { LiveRoomModal } from "@/components/live/LiveRoomModal";
@@ -271,15 +272,15 @@ export default function CreatorDashboard() {
     const ext = file.name.split(".").pop();
     const path = `${user.id}/${startup.id}/${kind}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("startup-assets").upload(path, file);
-    if (error) return toast({ title: error.message, variant: "destructive" });
+    if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("startup-assets").getPublicUrl(path);
     setPf((p) => ({ ...p, [kind]: data.publicUrl }));
   };
 
   const saveProfile = async () => {
     if (!startup) return;
-    if (!pf.name.trim()) return toast({ title: t("dashboard.creator.toastBrandRequired"), variant: "destructive" });
-    if (pf.categories.length === 0) return toast({ title: t("dashboard.creator.toastCategoryRequired"), variant: "destructive" });
+    if (!pf.name.trim()) return toast.error(t("dashboard.creator.toastBrandRequired"));
+    if (pf.categories.length === 0) return toast.error(t("dashboard.creator.toastCategoryRequired"));
     setSavingProfile(true);
     const { error } = await supabase.from("startups").update({
       name: pf.name.trim(),
@@ -298,15 +299,15 @@ export default function CreatorDashboard() {
       cover_url: pf.cover_url || null,
     }).eq("id", startup.id);
     setSavingProfile(false);
-    if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: t("dashboard.creator.toastProfileUpdated") });
+    if (error) return toast.error(error.message);
+    toast.success(t("dashboard.creator.toastProfileUpdated"));
     refreshAll(user!.id);
   };
 
   const deleteProduct = async (id: string) => {
     const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: t("dashboard.creator.toastProductDeleted") });
+    if (error) return toast.error(error.message);
+    toast.success(t("dashboard.creator.toastProductDeleted"));
     refreshAll(user!.id);
   };
 
@@ -323,7 +324,7 @@ export default function CreatorDashboard() {
         setStream(mediaStream);
       } catch (err) {
         console.error("Accès caméra refusé:", err);
-        return toast({ title: "Erreur", description: "Veuillez autoriser l'accès à la caméra et au micro.", variant: "destructive" });
+        return toast.error("Veuillez autoriser l'accès à la caméra et au micro.");
       }
     } else {
       if (stream) {
@@ -397,7 +398,7 @@ export default function CreatorDashboard() {
       setStream(newStream);
     } catch (err) {
       console.error("Erreur switch caméra:", err);
-      toast({ title: "Erreur", description: "Impossible d'accéder à l'autre caméra.", variant: "destructive" });
+      toast.error("Impossible d'accéder à l'autre caméra.");
     }
   };
 
@@ -419,12 +420,11 @@ export default function CreatorDashboard() {
   // connected, the dashboard displays zero instead of misleading simulated data.
   useEffect(() => {
     setViewerCount(0);
-    setComments([]);
   }, [startup?.is_live]);
   const markNewPost = async () => {
     if (!startup) return;
     await supabase.from("startups").update({ last_post_at: new Date().toISOString() }).eq("id", startup.id);
-    toast({ title: t("dashboard.creator.toastNewPost") });
+    toast.success(t("dashboard.creator.toastNewPost"));
     refreshAll(user!.id);
   };
 
