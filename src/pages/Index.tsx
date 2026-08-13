@@ -33,6 +33,15 @@ interface NewThisWeekData extends StartupCardData {
   last_post_at?: string | null;
 }
 
+interface NextLive {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  cover_url: string | null;
+  startup_name: string;
+  startup_slug: string;
+}
+
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -40,6 +49,7 @@ const Index = () => {
   const [pool, setPool] = useState<CoupDeCoeurData[]>([]);
   const [newThisWeek, setNewThisWeek] = useState<NewThisWeekData[]>([]);
   const [carouselIdx, setCarouselIdx] = useState(0);
+  const [nextLive, setNextLive] = useState<NextLive | null>(null);
   const [stats, setStats] = useState({
     activeCreators: 0,
     monthSupporters: 0,
@@ -74,6 +84,33 @@ const Index = () => {
         .order("last_post_at", { ascending: false })
         .limit(12);
       if (weekData) setNewThisWeek(weekData as NewThisWeekData[]);
+
+      // Prochain live (bannière mobile)
+      const { data: liveData } = await supabase
+        .from("live_events")
+        .select("id, title, scheduled_at, cover_url, startup_id")
+        .eq("status", "scheduled")
+        .gte("scheduled_at", new Date(Date.now() - 3600 * 1000).toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(1);
+      const live = liveData?.[0];
+      if (live) {
+        const { data: ls } = await supabase
+          .from("startups")
+          .select("name, slug")
+          .eq("id", live.startup_id)
+          .maybeSingle();
+        if (ls) {
+          setNextLive({
+            id: live.id,
+            title: live.title,
+            scheduled_at: live.scheduled_at,
+            cover_url: live.cover_url,
+            startup_name: ls.name,
+            startup_slug: ls.slug,
+          });
+        }
+      }
 
       // Vrais chiffres agrégés (fonction serveur, accessible à tous les visiteurs)
       const { data: platform } = await supabase.rpc("get_platform_stats");
