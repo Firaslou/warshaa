@@ -56,8 +56,8 @@ export function Header() {
 
         <nav className="hidden items-center gap-7 md:flex">{links}</nav>
 
-        <div className="flex items-center gap-2 [&_.md\\:hidden]:contents">
-          <span className="flex items-center gap-2 md:contents [&>*]:rounded-2xl md:[&>*]:rounded-md [&>*>button]:rounded-2xl [&>*>button]:bg-clay-mist [&>*>button]:text-clay-deep md:[&>*>button]:bg-transparent md:[&>*>button]:text-foreground">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-2 [&_button]:rounded-2xl [&_button]:bg-clay-mist [&_button]:text-clay-deep md:[&_button]:rounded-md md:[&_button]:bg-transparent md:[&_button]:text-foreground">
             <LanguageSwitcher />
             <NotificationBell />
           </span>
