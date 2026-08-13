@@ -77,7 +77,7 @@ export default function StartupDetail() {
   const [startup, setStartup] = useState<Startup | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isFavorite, setIsFavorite] = useState(false);
+
   const [isSupporter, setIsSupporter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
@@ -145,8 +145,6 @@ export default function StartupDetail() {
         }
 
         if (user) {
-          const { data: fav } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
-          setIsFavorite(!!fav);
           const { data: sup } = await supabase.from("startup_supporters").select("id").eq("user_id", user.id).eq("startup_id", s.id).maybeSingle();
           setIsSupporter(!!sup);
         }
