@@ -1,13 +1,17 @@
 import { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
+import { MobileTabBar } from "./MobileTabBar";
 
 export function PageLayout({ children }: { children: ReactNode }) {
   return (
     <div className="site-canvas flex min-h-screen flex-col">
       <Header />
-      <main className="relative z-[1] flex-1">{children}</main>
-      <Footer />
+      <main className="relative z-[1] flex-1 pb-28 md:pb-0">{children}</main>
+      <div className="hidden md:block">
+        <Footer />
+      </div>
+      <MobileTabBar />
     </div>
   );
 }
