@@ -332,10 +332,6 @@ export default function CreatorDashboard() {
       }
     }
 
-  const toggleLive = async () => {
-    if (!startup) return;
-    const newLive = !startup.is_live;
-
     const { error } = await supabase.from("startups").update({
       is_live: newLive,
       live_started_at: newLive ? new Date().toISOString() : null,
