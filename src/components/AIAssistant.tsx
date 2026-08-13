@@ -128,7 +128,7 @@ export function AIAssistant() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-primary/25 shadow-lg transition-all",
+          "fixed bottom-28 right-5 z-50 flex h-14 w-14 md:bottom-6 md:right-6 md:h-16 md:w-16 items-center justify-center overflow-hidden rounded-full border border-primary/25 shadow-lg transition-all",
           "bg-[#faf7f1] text-foreground hover:scale-105 hover:border-primary/45 hover:shadow-elegant",
           open && "rotate-90",
         )}
@@ -142,7 +142,7 @@ export function AIAssistant() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[560px] max-h-[80vh] w-[calc(100vw-3rem)] max-w-sm flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl">
+        <div className="fixed bottom-44 right-5 z-50 md:bottom-24 md:right-6 flex h-[560px] max-h-[80vh] w-[calc(100vw-3rem)] max-w-sm flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl">
           <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/15 bg-[#faf7f1]">
               <img src="/favicon.png" alt="" aria-hidden="true" className="h-full w-full object-cover" />
