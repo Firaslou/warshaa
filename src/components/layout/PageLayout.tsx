@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileTabBar } from "./MobileTabBar";
+import { LiveQuickStartGate } from "@/components/live/LiveQuickStartGate";
 
 export function PageLayout({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export function PageLayout({ children }: { children: ReactNode }) {
         <Footer />
       </div>
       <MobileTabBar />
+      <LiveQuickStartGate />
     </div>
   );
 }
