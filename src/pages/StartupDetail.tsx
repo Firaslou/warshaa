@@ -13,7 +13,8 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { ComplaintDialog } from "@/components/ComplaintDialog";
 import { StoriesBar } from "@/components/stories/StoriesBar";
-import { LiveRoomModal } from "@/components/live/LiveRoomModal";
+import { ExternalLiveEmbed, detectExternalPlatform } from "@/components/live/ExternalLiveEmbed";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DEMO_STARTUPS, getDemoProductsForStartup } from "@/lib/demo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -438,13 +439,13 @@ export default function StartupDetail() {
                   </div>
                   <h3 className="font-serif text-2xl font-bold md:text-3xl">{startup.name} est en direct !</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Posez vos questions en temps réel dans le chat, envoyez des réactions et achetez les pièces présentées.
+                    Regardez la diffusion sur le réseau social du créateur. YouTube et Facebook peuvent s’afficher ici ; Instagram et TikTok s’ouvrent sur leur plateforme.
                   </p>
                   <Button
                     onClick={() => setLiveRoomOpen(true)}
                     className="gradient-warm text-primary-foreground font-semibold rounded-2xl px-6 h-10 shadow-sm"
                   >
-                    Rejoindre le Live en direct
+                    Regarder le Live
                   </Button>
                 </div>
               ) : (
@@ -742,19 +743,22 @@ export default function StartupDetail() {
         startupName={startup.name}
       />
 
-      {startup && (
-        <LiveRoomModal
-          open={liveRoomOpen}
-          onOpenChange={setLiveRoomOpen}
-          liveEventId={activeLiveEvent?.id || startup.id}
-          startupId={startup.id}
-          startupName={startup.name}
-          startupSlug={startup.slug}
-          startupLogo={startup.logo_url}
-          isCreator={user?.id === startup.owner_id}
-          initialStreamUrl={activeLiveEvent?.stream_url}
-        />
-      )}
+      <Dialog open={liveRoomOpen} onOpenChange={setLiveRoomOpen}>
+        <DialogContent className="max-w-5xl p-3 sm:p-5">
+          <DialogHeader><DialogTitle>{activeLiveEvent?.title || `Live de ${startup.name}`}</DialogTitle></DialogHeader>
+          {activeLiveEvent?.external_url || activeLiveEvent?.stream_url ? (
+            <ExternalLiveEmbed
+              url={activeLiveEvent.external_url || activeLiveEvent.stream_url}
+              platform={activeLiveEvent.external_platform ?? detectExternalPlatform(activeLiveEvent.external_url || activeLiveEvent.stream_url)}
+            />
+          ) : (
+            <div className="rounded-2xl border border-dashed p-10 text-center">
+              <p className="font-semibold">Le lien externe de ce Live n’est pas encore disponible.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Le créateur doit ajouter son lien YouTube, Facebook, Instagram ou TikTok.</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }

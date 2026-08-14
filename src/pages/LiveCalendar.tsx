@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LiveRoomModal } from "@/components/live/LiveRoomModal";
 import { LiveReplayDialog } from "@/components/live/LiveReplayDialog";
-import { AgoraLivePlayer } from "@/components/live/AgoraLivePlayer";
 import { ExternalLiveEmbed, type ExternalPlatform } from "@/components/live/ExternalLiveEmbed";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,15 +58,12 @@ export default function LiveCalendar() {
     </div>}
   </div>
 
-  {activeLiveModal && <DialogLive event={activeLiveModal} userId={user?.id} onClose={closeLive} />}
+  {activeLiveModal && <DialogLive event={activeLiveModal} onClose={closeLive} />}
   {activeReplay && <LiveReplayDialog open={!!activeReplay} onOpenChange={(open) => { if (!open) setActiveReplay(null); }} liveEventId={activeReplay.id} title={activeReplay.title} creatorName={activeReplay.startups?.name || "Créateur"} recordingUrl={activeReplay.recording_url} />}
   </PageLayout>;
 }
 
-function DialogLive({ event, userId, onClose }: { event: LiveEvent; userId?: string; onClose: () => void }) {
-  const isCreator = userId === event.startups?.owner_id;
-  if (event.live_mode === "agora" && event.agora_channel) {
-    return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"><div className="max-h-[94vh] w-full max-w-6xl overflow-auto rounded-3xl bg-background p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-xl font-bold">{event.title}</h2><Button variant="outline" onClick={onClose}>Fermer</Button></div><AgoraLivePlayer liveEventId={event.id} channel={event.agora_channel} startupId={event.startup_id} isHost={isCreator} /></div></div>;
-  }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"><div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-background p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-xl font-bold">{event.title}</h2><Button variant="outline" onClick={onClose}>Fermer</Button></div>{event.external_url ? <ExternalLiveEmbed url={event.external_url} platform={event.external_platform} /> : <LiveRoomModal open={true} onOpenChange={(open) => { if (!open) onClose(); }} liveEventId={event.id} startupId={event.startup_id} startupName={event.startups?.name || "Créateur"} startupSlug={event.startups?.slug || ""} startupLogo={event.startups?.logo_url} initialStreamUrl={event.stream_url} isCreator={isCreator} />}</div></div>;
+function DialogLive({ event, onClose }: { event: LiveEvent; onClose: () => void }) {
+  const externalUrl = event.external_url || event.stream_url;
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"><div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-background p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-xl font-bold">{event.title}</h2><Button variant="outline" onClick={onClose}>Fermer</Button></div>{externalUrl ? <ExternalLiveEmbed url={externalUrl} platform={event.external_platform} /> : <div className="rounded-2xl border border-dashed p-10 text-center"><p className="font-semibold">Ce Live historique n’a pas de lien externe.</p><p className="mt-2 text-sm text-muted-foreground">Le créateur doit ajouter un lien YouTube, Facebook, Instagram ou TikTok.</p></div>}</div></div>;
 }

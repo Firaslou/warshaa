@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
 import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
-import { LiveRoomModal } from "@/components/live/LiveRoomModal";
+import { OPEN_EXTERNAL_LIVE_EVENT } from "@/components/live/LiveQuickStartGate";
 import { LineChart, Line as RechartsLine, XAxis as RechartsXAxis, YAxis as RechartsYAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar as RechartsBar, CartesianGrid } from "recharts";
 const XAxis = RechartsXAxis as any;
 const YAxis = RechartsYAxis as any;
@@ -177,8 +177,6 @@ export default function CreatorDashboard() {
   const [productEdit, setProductEdit] = useState<any | null>(null);
   const [productOpen, setProductOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [showCreatorLiveModal, setShowCreatorLiveModal] = useState(false);
-  const [activeLiveEventId, setActiveLiveEventId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
   const [audienceTiming, setAudienceTiming] = useState<AudienceTiming>(EMPTY_AUDIENCE_TIMING);
   const [agg, setAgg] = useState({ likes: 0, supporters: 0, purchases: 0, comments: 0, reviews: 0, views: 0 });
@@ -351,70 +349,15 @@ export default function CreatorDashboard() {
     refreshAll(user!.id);
   };
 
-  const toggleLive = async () => {
+  const openExternalLiveManager = () => window.dispatchEvent(new Event(OPEN_EXTERNAL_LIVE_EVENT));
+
+  const stopLive = async () => {
     if (!startup) return;
-    const newLive = !startup.is_live;
-
-    const { error } = await supabase.from("startups").update({
-      is_live: newLive,
-      live_started_at: newLive ? new Date().toISOString() : null,
-    }).eq("id", startup.id);
-    
+    const { error } = await supabase.from("live_events").update({ status: "ended", updated_at: new Date().toISOString() }).eq("startup_id", startup.id).eq("status", "live");
     if (error) return toast.error(error.message);
-
-    if (newLive) {
-      const startedAt = new Date().toISOString();
-      const { data: scheduledEvent } = await supabase
-        .from("live_events")
-        .select("id")
-        .eq("startup_id", startup.id)
-        .eq("status", "scheduled")
-        .gte("scheduled_at", new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
-        .order("scheduled_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      let liveId = scheduledEvent?.id;
-
-      if (scheduledEvent) {
-        const { error: liveUpdateError } = await supabase
-          .from("live_events")
-          .update({ status: "live", scheduled_at: startedAt })
-          .eq("id", scheduledEvent.id);
-        if (liveUpdateError) {
-          await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", startup.id);
-          return toast.error(liveUpdateError.message);
-        }
-      } else {
-        const { data: newEv, error: liveInsertError } = await supabase.from("live_events").insert({
-          startup_id: startup.id,
-          title: `Live de ${startup.name}`,
-          description: "Le créateur est en direct sur Warsha.",
-          scheduled_at: startedAt,
-          duration_minutes: 60,
-          platform: "Warsha",
-          status: "live",
-        }).select("id").single();
-        if (liveInsertError || !newEv) {
-          await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", startup.id);
-          return toast.error(liveInsertError?.message ?? "Impossible de créer la salle du live.");
-        }
-        liveId = newEv?.id;
-      }
-
-      setActiveLiveEventId(liveId || null);
-      setShowCreatorLiveModal(true);
-      toast.success(t("dashboard.creator.toastLiveStarted"));
-    } else {
-      await supabase
-        .from("live_events")
-        .update({ status: "ended", updated_at: new Date().toISOString() })
-        .eq("startup_id", startup.id)
-        .eq("status", "live");
-      setShowCreatorLiveModal(false);
-      toast.info(t("dashboard.creator.toastLiveEnded"));
-    }
-
+    const { error: startupError } = await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", startup.id);
+    if (startupError) return toast.error(startupError.message);
+    toast.info("Live terminé sur Warsha. Arrêtez aussi la diffusion sur votre réseau social.");
     refreshAll(user!.id);
   };
 
@@ -808,7 +751,7 @@ export default function CreatorDashboard() {
                     <p className="text-sm text-muted-foreground max-w-lg">
                       {startup?.is_live
                         ? t("dashboard.creator.liveActiveSince", { time: startup.live_started_at ? new Date(startup.live_started_at).toLocaleTimeString() : "—" })
-                        : "Présentez vos créations artisanales en direct, répondez aux questions de vos acheteurs et épinglez vos produits en un clic."}
+                        : "Diffusez depuis YouTube, Facebook, Instagram ou TikTok, puis partagez le lien sur Warsha."}
                     </p>
                   </div>
 
@@ -816,13 +759,13 @@ export default function CreatorDashboard() {
                     {startup?.is_live ? (
                       <>
                         <Button
-                          onClick={() => setShowCreatorLiveModal(true)}
+                          onClick={openExternalLiveManager}
                           className="gradient-warm text-primary-foreground rounded-2xl shadow-xs font-semibold"
                         >
-                          Ouvrir le Studio Live
+                          Ouvrir le Live externe
                         </Button>
                         <Button
-                          onClick={toggleLive}
+                          onClick={() => void stopLive()}
                           variant="destructive"
                           className="rounded-2xl font-semibold"
                         >
@@ -831,7 +774,7 @@ export default function CreatorDashboard() {
                       </>
                     ) : (
                       <Button
-                        onClick={toggleLive}
+                        onClick={openExternalLiveManager}
                         className="gradient-warm text-primary-foreground rounded-2xl shadow-xs font-semibold px-6"
                       >
                         <Radio className="mr-2 h-4 w-4" /> Démarrer un direct maintenant
@@ -843,11 +786,11 @@ export default function CreatorDashboard() {
                 <div className="grid sm:grid-cols-3 gap-4 pt-2">
                   <div className="rounded-2xl border border-border/60 bg-card p-4 text-center">
                     <p className="text-xs text-muted-foreground font-medium">Contrôles pendant le live</p>
-                    <p className="text-xs font-bold text-foreground mt-1">Pause, micro, caméra & épinglage</p>
+                    <p className="text-xs font-bold text-foreground mt-1">Vidéo gérée par votre réseau social</p>
                   </div>
                   <div className="rounded-2xl border border-border/60 bg-card p-4 text-center">
                     <p className="text-xs text-muted-foreground font-medium">Interactions en direct</p>
-                    <p className="text-xs font-bold text-foreground mt-1">Chat temps réel & réactions animées</p>
+                    <p className="text-xs font-bold text-foreground mt-1">Commentaires sur la plateforme choisie</p>
                   </div>
                   <div className="rounded-2xl border border-border/60 bg-card p-4 text-center">
                     <p className="text-xs text-muted-foreground font-medium">Ventes assistées</p>
@@ -857,23 +800,6 @@ export default function CreatorDashboard() {
               </CardContent>
             </Card>
 
-            {/* Live Room Modal for Creator */}
-            {startup && (
-              <LiveRoomModal
-                open={showCreatorLiveModal}
-                onOpenChange={(open) => {
-                  setShowCreatorLiveModal(open);
-                  refreshAll(user.id);
-                }}
-                liveEventId={activeLiveEventId || startup.id}
-                startupId={startup.id}
-                startupName={startup.name}
-                startupSlug={startup.slug}
-                startupLogo={startup.logo_url}
-                isCreator={true}
-              />
-            )}
-            
           </TabsContent>
 
           {/* CALENDAR */}
