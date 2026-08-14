@@ -63,17 +63,26 @@ export default function Discover() {
 
   const isFav = current ? isStartupFavorite(current.id) : false;
 
-  const { data: products, isLoading: productsLoading } = useQuery({
-    queryKey: ["discover-products", current?.id],
+  const { data: products, isLoading: productsLoading, isError: productsError } = useQuery({
+    queryKey: ["discover-products", current?.id, animKey],
     queryFn: async () => {
       if (!current?.id) return [];
-      const { data, error } = await supabase
+      const fields = "id, name, images, price, currency, created_at";
+      let { data, error } = await supabase
         .from("products")
-        .select("id, name, images, price, currency, created_at")
+        .select(fields)
         .eq("startup_id", current.id)
         .eq("is_published", true);
+      if (error && /is_published/i.test(error.message)) {
+        const legacyResult = await supabase
+          .from("products")
+          .select(fields)
+          .eq("startup_id", current.id);
+        data = legacyResult.data;
+        error = legacyResult.error;
+      }
       if (error) throw error;
-      const items = data || [];
+      const items = Array.from(new Map((data ?? []).map((product) => [product.id, product])).values());
       if (!items.length) return [];
       const ids = items.map((product) => product.id);
       const [viewsResult, likesResult] = await Promise.all([
@@ -87,10 +96,15 @@ export default function Discover() {
       };
       const views = tally(viewsResult.data);
       const likes = tally(likesResult.data);
-      return items
+      const ranked = items
         .map((product) => ({ ...product, views: views[product.id] ?? 0, likes: likes[product.id] ?? 0 }))
-        .sort((a, b) => (b.likes * 3 + b.views) - (a.likes * 3 + a.views) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 3);
+        .sort((a, b) => (b.likes * 3 + b.views) - (a.likes * 3 + a.views) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const candidates = ranked.slice(0, 9);
+      for (let index = candidates.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [candidates[index], candidates[randomIndex]] = [candidates[randomIndex], candidates[index]];
+      }
+      return candidates.slice(0, 3);
     },
     enabled: !!current?.id,
   });
@@ -134,7 +148,7 @@ export default function Discover() {
                   <img
                     src={current.logo_url}
                     alt={current.name}
-                    className="h-full w-full object-contain p-7 transition-transform duration-700 hover:scale-105 sm:p-10"
+                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center gradient-soft">
@@ -165,7 +179,7 @@ export default function Discover() {
 
                   <div className="mt-5 border-t border-border/60 pt-4">
                     <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" />Ses produits les plus appréciés</h3>
-                    {productsLoading ? <div className="grid grid-cols-3 gap-2">{[0, 1, 2].map((item) => <div key={item} className="aspect-[4/3] animate-pulse rounded-xl bg-muted" />)}</div> : products && products.length > 0 ? <div className="grid grid-cols-3 gap-2 sm:gap-3">{products.map((product) => <button key={product.id} type="button" onClick={() => navigate(`/product/${product.id}`)} className="group min-w-0 overflow-hidden rounded-xl border border-border/60 bg-background text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"><div className="aspect-[4/3] overflow-hidden bg-muted">{product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center"><Store className="h-6 w-6 text-muted-foreground/30" /></div>}</div><div className="p-2"><p className="truncate text-xs font-semibold">{product.name}</p><p className="mt-0.5 text-[11px] font-medium text-primary">{product.price != null ? `${Number(product.price).toFixed(3)} ${product.currency}` : "Voir le produit"}</p></div></button>)}</div> : <p className="rounded-xl bg-muted/40 px-4 py-6 text-center text-xs text-muted-foreground">Ce créateur n’a pas encore publié de produit.</p>}
+                    {productsLoading ? <div className="grid grid-cols-3 gap-2">{[0, 1, 2].map((item) => <div key={item} className="aspect-[4/3] animate-pulse rounded-xl bg-muted" />)}</div> : productsError ? <p className="rounded-xl bg-destructive/5 px-4 py-6 text-center text-xs text-destructive">Impossible de charger les produits de ce créateur.</p> : products && products.length > 0 ? <div className="grid grid-cols-3 gap-2 sm:gap-3">{products.map((product) => <button key={product.id} type="button" onClick={() => navigate(`/product/${product.id}`)} className="group min-w-0 overflow-hidden rounded-xl border border-border/60 bg-background text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"><div className="aspect-[4/3] overflow-hidden bg-muted">{product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center"><Store className="h-6 w-6 text-muted-foreground/30" /></div>}</div><div className="p-2"><p className="truncate text-xs font-semibold">{product.name}</p><p className="mt-0.5 text-[11px] font-medium text-primary">{product.price != null ? `${Number(product.price).toFixed(3)} ${product.currency}` : "Voir le produit"}</p></div></button>)}</div> : <p className="rounded-xl bg-muted/40 px-4 py-6 text-center text-xs text-muted-foreground">Ce créateur n’a pas encore publié de produit.</p>}
                   </div>
 
                   <div className="mt-auto flex flex-col gap-2 pt-5 sm:flex-row">
