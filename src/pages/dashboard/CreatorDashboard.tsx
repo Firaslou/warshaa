@@ -32,6 +32,104 @@ const Tooltip = RechartsTooltip as any;
 const Line = RechartsLine as any;
 const Bar = RechartsBar as any;
 
+type AudiencePeriod = {
+  label: string;
+  range: string;
+  count: number;
+  share: number;
+  intensity: number;
+  color: string;
+};
+
+type AudienceTiming = {
+  primaryRange: string | null;
+  secondaryRange: string | null;
+  bestDay: string | null;
+  primaryShare: number;
+  totalEvents: number;
+  viewCount: number;
+  clickCount: number;
+  periods: AudiencePeriod[];
+};
+
+const EMPTY_AUDIENCE_TIMING: AudienceTiming = {
+  primaryRange: null,
+  secondaryRange: null,
+  bestDay: null,
+  primaryShare: 0,
+  totalEvents: 0,
+  viewCount: 0,
+  clickCount: 0,
+  periods: [
+    { label: "Nuit", range: "00h00 - 06h00", count: 0, share: 0, intensity: 0, color: "bg-indigo-400" },
+    { label: "Matinée", range: "06h00 - 12h00", count: 0, share: 0, intensity: 0, color: "bg-sky-500" },
+    { label: "Après-midi", range: "12h00 - 18h00", count: 0, share: 0, intensity: 0, color: "bg-orange-500" },
+    { label: "Soirée", range: "18h00 - 00h00", count: 0, share: 0, intensity: 0, color: "bg-blue-600" },
+  ],
+};
+
+const formatHourRange = (start: number) => {
+  const formatHour = (hour: number) => `${String(hour % 24).padStart(2, "0")}h00`;
+  return `${formatHour(start)} - ${formatHour(start + 3)}`;
+};
+
+const analyseAudienceTiming = (viewDates: string[], clickDates: string[]): AudienceTiming => {
+  const dates = [...viewDates, ...clickDates]
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()));
+  if (dates.length === 0) return EMPTY_AUDIENCE_TIMING;
+
+  const hours = new Array<number>(24).fill(0);
+  const days = new Array<number>(7).fill(0);
+  dates.forEach((date) => {
+    hours[date.getHours()] += 1;
+    days[date.getDay()] += 1;
+  });
+
+  const windows = hours.map((_, start) =>
+    hours[start] + hours[(start + 1) % 24] + hours[(start + 2) % 24],
+  );
+  const primaryStart = windows.indexOf(Math.max(...windows));
+  const primaryHours = new Set([primaryStart, (primaryStart + 1) % 24, (primaryStart + 2) % 24]);
+  const secondaryCandidates = windows
+    .map((count, start) => ({ count, start }))
+    .filter(({ start }) =>
+      ![start, (start + 1) % 24, (start + 2) % 24].some((hour) => primaryHours.has(hour)),
+    )
+    .sort((a, b) => b.count - a.count);
+  const secondaryStart = secondaryCandidates[0]?.count ? secondaryCandidates[0].start : null;
+
+  const definitions = [
+    { label: "Nuit", range: "00h00 - 06h00", start: 0, end: 6, color: "bg-indigo-400" },
+    { label: "Matinée", range: "06h00 - 12h00", start: 6, end: 12, color: "bg-sky-500" },
+    { label: "Après-midi", range: "12h00 - 18h00", start: 12, end: 18, color: "bg-orange-500" },
+    { label: "Soirée", range: "18h00 - 00h00", start: 18, end: 24, color: "bg-blue-600" },
+  ];
+  const periodCounts = definitions.map(({ start, end }) =>
+    hours.slice(start, end).reduce((sum, count) => sum + count, 0),
+  );
+  const maximumPeriodCount = Math.max(...periodCounts, 1);
+  const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+
+  return {
+    primaryRange: formatHourRange(primaryStart),
+    secondaryRange: secondaryStart === null ? null : formatHourRange(secondaryStart),
+    bestDay: dayNames[days.indexOf(Math.max(...days))],
+    primaryShare: Math.round((windows[primaryStart] / dates.length) * 100),
+    totalEvents: dates.length,
+    viewCount: viewDates.length,
+    clickCount: clickDates.length,
+    periods: definitions.map((period, index) => ({
+      label: period.label,
+      range: period.range,
+      count: periodCounts[index],
+      share: Math.round((periodCounts[index] / dates.length) * 100),
+      intensity: Math.round((periodCounts[index] / maximumPeriodCount) * 100),
+      color: period.color,
+    })),
+  };
+};
+
 export default function CreatorDashboard() {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
@@ -75,70 +173,8 @@ export default function CreatorDashboard() {
   const [showCreatorLiveModal, setShowCreatorLiveModal] = useState(false);
   const [activeLiveEventId, setActiveLiveEventId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
-  // États pour stocker les vraies heures calculées
-  const [bestTimeRange, setBestTimeRange] = useState("18h00 - 21h00");
-  const [peakPercentage, setPeakPercentage] = useState(0);
+  const [audienceTiming, setAudienceTiming] = useState<AudienceTiming>(EMPTY_AUDIENCE_TIMING);
   const [agg, setAgg] = useState({ likes: 0, supporters: 0, purchases: 0, comments: 0, reviews: 0, views: 0 });
-  const [bestDay, setBestDay] = useState("Mer. & Dim.");
-
-  // Analyse de l'activité en temps réel
-  useEffect(() => {
-    const fetchRealAnalytics = async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from('analytics_events')
-          .select('created_at');
-
-        if (error || !data || data.length === 0) return;
-
-        // --- CALCUL DES HEURES ---
-        const hoursCount = new Array(24).fill(0);
-        // --- CALCUL DES JOURS ---
-        const daysCount = new Array(7).fill(0); // 0 = Dimanche, 1 = Lundi, etc.
-
-        data.forEach(event => {
-          const date = new Date(event.created_at);
-          hoursCount[date.getHours()]++;
-          daysCount[date.getDay()]++;
-        });
-
-        // Trouver la meilleure heure
-        let maxViews = 0;
-        let bestHour = 18;
-        hoursCount.forEach((count, hour) => {
-          if (count > maxViews) {
-            maxViews = count;
-            bestHour = hour;
-          }
-        });
-
-        // Trouver le meilleur jour
-        let maxDayViews = 0;
-        let bestDayIndex = 3; // Mercredi par défaut
-        daysCount.forEach((count, dayIndex) => {
-          if (count > maxDayViews) {
-            maxDayViews = count;
-            bestDayIndex = dayIndex;
-          }
-        });
-
-        // Traduction du jour en français
-        const lesJours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-        setBestDay(lesJours[bestDayIndex]);
-
-        // Mise à jour de l'heure et du pourcentage
-        const endHour = (bestHour + 3) % 24;
-        setBestTimeRange(`${bestHour}h00 - ${endHour}h00`);
-        
-        const percentage = Math.round((maxViews / data.length) * 100);
-        setPeakPercentage(percentage);
-      } catch (err) {
-        console.error("Erreur audience:", err);
-      }
-    };
-
-    // Creator-specific timing is calculated in refreshAll from product_views.
-  }, []);
   // Profile form state
   const [pf, setPf] = useState({
     name: "", tagline: "", description: "", creator_story: "",
@@ -177,12 +213,19 @@ export default function CreatorDashboard() {
       supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
     ]);
     const productIds = (prods ?? []).map((product) => product.id);
-    const { data: views } = productIds.length
-      ? await supabase.from("product_views")
-          .select("created_at, product_id")
-          .in("product_id", productIds)
-          .gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())
-      : { data: [] };
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    const [{ data: views }, { data: recentClicks }] = await Promise.all([
+      productIds.length
+        ? supabase.from("product_views")
+            .select("created_at, product_id")
+            .in("product_id", productIds)
+            .gte("created_at", since)
+        : Promise.resolve({ data: [] as { created_at: string; product_id: string }[], error: null }),
+      supabase.from("purchase_clicks")
+        .select("created_at")
+        .eq("startup_id", s.id)
+        .gte("created_at", since),
+    ]);
     setClicks(clicksCount ?? 0);
     setProducts(prods ?? []);
     const { data: aggData } = await supabase.rpc("get_startup_stats", { _startup_id: s.id });
@@ -213,25 +256,10 @@ export default function CreatorDashboard() {
     setViews30d(Object.entries(buckets).map(([date, count]) => ({ date, count })));
     setTopProducts(Object.values(topMap).sort((a, b) => b.views - a.views).slice(0, 5));
 
-    // Creator-specific audience timing, derived from this creator's product views.
-    const hours = new Array(24).fill(0);
-    const days = new Array(7).fill(0);
-    (views ?? []).forEach((view: any) => {
-      const date = new Date(view.created_at);
-      hours[date.getHours()] += 1;
-      days[date.getDay()] += 1;
-    });
-    const totalRecentViews = views?.length ?? 0;
-    if (totalRecentViews > 0) {
-      const bestHour = hours.indexOf(Math.max(...hours));
-      const bestDayIndex = days.indexOf(Math.max(...days));
-      const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-      setBestTimeRange(`${bestHour}h00 - ${(bestHour + 3) % 24}h00`);
-      setBestDay(dayNames[bestDayIndex]);
-      setPeakPercentage(Math.round((hours[bestHour] / totalRecentViews) * 100));
-    } else {
-      setPeakPercentage(0);
-    }
+    setAudienceTiming(analyseAudienceTiming(
+      (views ?? []).map((view) => view.created_at),
+      (recentClicks ?? []).map((click) => click.created_at),
+    ));
   };
 
   useEffect(() => { if (user) refreshAll(user.id); }, [user]);
@@ -486,21 +514,37 @@ export default function CreatorDashboard() {
                   Meilleur moment pour publier
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Les analyses suggèrent les heures de publication optimales basées sur l'activité (vues et clics)
+                  Analyse de vos vues produits et clics d'achat des 30 derniers jours
                 </p>
               </div>
+              <Badge variant="secondary" className="hidden sm:inline-flex">
+                {audienceTiming.totalEvents} interaction{audienceTiming.totalEvents > 1 ? "s" : ""}
+              </Badge>
             </CardHeader>
             <CardContent>
+              {audienceTiming.totalEvents === 0 && (
+                <div className="mt-4 rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                  Aucune activité récente pour le moment. Les recommandations apparaîtront automatiquement dès que vos produits recevront des vues ou des clics.
+                </div>
+              )}
+              {audienceTiming.totalEvents > 0 && audienceTiming.totalEvents < 5 && (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Tendance préliminaire basée sur peu de données. La précision s'améliorera avec davantage d'interactions.
+                </div>
+              )}
               {/* Grille des heures clés */}
               <div className="grid gap-4 md:grid-cols-3 mt-4">
                 {/* Pic Principal */}
                 <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Pic d'audience principal</p>
-                    <p className="text-3xl font-black text-blue-900 mt-1">{bestTimeRange}</p>
+                    <p className="text-3xl font-black text-blue-900 mt-1">{audienceTiming.primaryRange ?? "Collecte en cours"}</p>
                   </div>
                   <p className="text-xs text-blue-700 mt-3 flex items-center gap-1 bg-blue-100/60 p-1.5 rounded">
-                    <TrendingUp className="h-3.5 w-3.5" /> +{peakPercentage}% d'activité globale
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    {audienceTiming.totalEvents > 0
+                      ? `${audienceTiming.primaryShare}% des interactions sur ce créneau`
+                      : "En attente de données réelles"}
                   </p>
                 </div>
 
@@ -508,10 +552,10 @@ export default function CreatorDashboard() {
                 <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 flex flex-col justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase text-orange-600 tracking-wider">Pic secondaire</p>
-                    <p className="text-3xl font-black text-orange-900 mt-1">12h00 - 14h00</p>
+                    <p className="text-3xl font-black text-orange-900 mt-1">{audienceTiming.secondaryRange ?? "—"}</p>
                   </div>
                   <p className="text-xs text-orange-700 mt-3 bg-orange-100/60 p-1.5 rounded">
-                    Idéal pour l'activité de mi-journée
+                    Deuxième créneau réel, sans chevauchement avec le pic principal
                   </p>
                 </div>
 
@@ -519,52 +563,41 @@ export default function CreatorDashboard() {
                 <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 flex flex-col justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase text-purple-600 tracking-wider">Jours optimaux</p>
-                    <p className="text-2xl font-extrabold text-purple-900 mt-1">{bestDay}</p>
+                    <p className="text-2xl font-extrabold text-purple-900 mt-1">{audienceTiming.bestDay ?? "—"}</p>
                   </div>
                   <p className="text-xs text-purple-700 mt-3 bg-purple-100/60 p-1.5 rounded">
-                    Forte interaction communautaire
+                    Jour ayant reçu le plus d'interactions récentes
                   </p>
                 </div>
               </div>
 
               {/* Barres d'activité par tranche horaire */}
               <div className="mt-6 space-y-4 border-t pt-4">
-                <h4 className="text-sm font-bold text-foreground">Intensité de l'activité sur le site :</h4>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-sm font-bold text-foreground">Intensité de votre audience :</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {audienceTiming.viewCount} vue{audienceTiming.viewCount > 1 ? "s" : ""} · {audienceTiming.clickCount} clic{audienceTiming.clickCount > 1 ? "s" : ""}
+                  </p>
+                </div>
                 
                 <div className="space-y-3">
-                  {/* Matin */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1 font-medium">
-                      <span className="text-muted-foreground">Matinée (06h00 - 12h00)</span>
-                      <span className="text-slate-600">Activité modérée (35%)</span>
+                  {audienceTiming.periods.map((period) => (
+                    <div key={period.label}>
+                      <div className="flex flex-wrap justify-between gap-1 text-xs mb-1 font-medium">
+                        <span className="text-muted-foreground">{period.label} ({period.range})</span>
+                        <span className="text-foreground">
+                          {period.count} interaction{period.count > 1 ? "s" : ""} ({period.share}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted h-2 rounded-full overflow-hidden" role="progressbar" aria-label={`Activité ${period.label}`} aria-valuenow={period.intensity} aria-valuemin={0} aria-valuemax={100}>
+                        <div className={cn(period.color, "h-full rounded-full transition-[width] duration-500")} style={{ width: `${period.intensity}%` }} />
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <div className="bg-slate-400 h-full rounded-full" style={{ width: '35%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Après-midi */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1 font-medium">
-                      <span className="text-muted-foreground">Après-midi (12h00 - 18h00)</span>
-                      <span className="text-orange-600 font-semibold">Activité élevée (65%)</span>
-                    </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <div className="bg-orange-500 h-full rounded-full" style={{ width: '65%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Soirée */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1 font-medium">
-                      <span className="text-muted-foreground">Soirée (18h00 - 00h00)</span>
-                      <span className="text-blue-600 font-bold">Pic d'activité maximal (90%)</span>
-                    </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <div className="bg-blue-600 h-full rounded-full" style={{ width: '90%' }}></div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Les barres sont comparées à votre tranche horaire la plus active et se mettent à jour automatiquement.
+                </p>
               </div>
             </CardContent>
           </Card>

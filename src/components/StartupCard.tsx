@@ -88,7 +88,7 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
               src={startup.logo_url}
               alt={startup.name}
               loading="lazy"
-              className="h-full w-full object-contain p-8 transition-transform duration-700 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center gradient-soft">

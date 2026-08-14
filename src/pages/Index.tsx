@@ -174,23 +174,23 @@ const Index = () => {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-soft opacity-60" />
-        <div className="container relative py-20 md:py-28">
+        <div className="container relative px-4 py-14 sm:py-20 md:px-8 md:py-28">
           <div className="mx-auto max-w-3xl text-center animate-fade-in">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-1.5 text-xs font-medium backdrop-blur">
+            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background/60 px-3.5 py-1.5 text-center text-xs font-medium backdrop-blur sm:mb-6 sm:px-4">
               <HandHeart className="h-3 w-3 text-primary" />
               {t("common.tagline")}
             </div>
-            <h1 className="text-balance font-serif text-4xl font-bold leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
+            <h1 className="text-balance font-serif text-[2.5rem] font-bold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               {t("home.heroTitle")}
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground md:text-xl">
+            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg md:text-xl">
               {t("home.heroSubtitle")}
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button size="lg" className="gradient-warm text-primary-foreground shadow-elegant" onClick={() => navigate("/creators")}>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row">
+              <Button size="lg" className="w-full max-w-xs gradient-warm text-primary-foreground shadow-elegant sm:w-auto" onClick={() => navigate("/creators")}>
                 {t("home.heroCta")} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/discover")}>
+              <Button size="lg" variant="outline" className="w-full max-w-xs sm:w-auto" onClick={() => navigate("/discover")}>
                 <Shuffle className="mr-1 h-4 w-4" /> {t("home.heroCtaSecondary")}
               </Button>
             </div>

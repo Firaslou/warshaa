@@ -77,25 +77,26 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-clay-mist bg-clay-shell/90 shadow-[0_8px_30px_-24px_hsl(var(--clay-deep)/0.5)] backdrop-blur-xl md:border-border/60 md:bg-background/85">
-      <div className="container flex h-16 items-center justify-between gap-4 md:h-16">
-        <Link to="/" aria-label={t("common.appName")} className="group flex items-center">
+      <div className="container flex h-16 items-center justify-between gap-2 px-3 sm:px-5 md:h-16 md:gap-4 md:px-8">
+        <Link to="/" aria-label={t("common.appName")} className="group flex min-w-0 items-center">
           <BrandLogo
-            markClassName="h-11 transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105"
-            nameClassName="font-display text-[1.35rem] text-clay-deep md:text-foreground"
+            className="min-w-0 gap-1.5 sm:gap-2.5"
+            markClassName="h-10 transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105 sm:h-11"
+            nameClassName="hidden whitespace-nowrap font-display text-[1.2rem] text-clay-deep min-[430px]:inline md:text-[1.35rem] md:text-foreground"
           />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">{links}</nav>
 
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-2 [&_button]:rounded-2xl [&_button]:bg-clay-mist [&_button]:text-clay-deep md:[&_button]:rounded-md md:[&_button]:bg-transparent md:[&_button]:text-foreground">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <span className="flex items-center gap-1 [&_button]:h-10 [&_button]:w-10 [&_button]:rounded-2xl [&_button]:bg-clay-mist [&_button]:p-0 [&_button]:text-clay-deep sm:gap-2 md:[&_button]:h-9 md:[&_button]:w-auto md:[&_button]:rounded-md md:[&_button]:bg-transparent md:[&_button]:px-3 md:[&_button]:text-foreground">
             <LanguageSwitcher />
             <NotificationBell />
           </span>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 rounded-2xl bg-clay-mist text-clay-deep md:bg-transparent md:text-foreground">
+                <Button variant="ghost" size="sm" className="h-10 w-10 gap-0 rounded-2xl bg-clay-mist p-0 text-clay-deep sm:w-auto sm:gap-2 sm:px-3 md:h-9 md:bg-transparent md:text-foreground">
                   <UserIcon className="h-4 w-4" />
                   <span className="hidden sm:inline">{user.email?.split("@")[0]}</span>
                 </Button>
@@ -142,7 +143,7 @@ export function Header() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-2xl bg-clay-mist text-clay-deep md:hidden">
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl bg-clay-mist text-clay-deep md:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
