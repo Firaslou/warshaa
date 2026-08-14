@@ -86,9 +86,16 @@ export function LiveRoomModal({
   // Creator broadcast hardware controls
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+
+  // WebRTC
+  const viewerIdRef = useRef<string>(Math.random().toString(36).substring(7));
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const viewerPcRef = useRef<RTCPeerConnection | null>(null);
+  const viewerVideoRef = useRef<HTMLVideoElement>(null);
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -122,8 +129,30 @@ export function LiveRoomModal({
         audio: true,
       });
       setMediaStream(stream);
+      mediaStreamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+      }
+
+      // Update tracks on all peer connections
+      peerConnectionsRef.current.forEach((pc) => {
+        const senders = pc.getSenders();
+        stream.getTracks().forEach((track) => {
+          const sender = senders.find((s) => s.track?.kind === track.kind);
+          if (sender) {
+            sender.replaceTrack(track);
+          } else {
+            pc.addTrack(track, stream);
+          }
+        });
+      });
+
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "webrtc_stream_ready",
+          payload: {},
+        });
       }
     } catch (err) {
       console.warn("Camera access not available or denied:", err);
@@ -189,6 +218,103 @@ export function LiveRoomModal({
           toast.success(`Nouveau produit présenté : ${payload.payload.product.name}`);
         }
       })
+      .on("broadcast", { event: "webrtc_stream_ready" }, () => {
+        if (!isCreator && channelRef.current) {
+          channelRef.current.send({
+            type: "broadcast",
+            event: "webrtc_viewer_join",
+            payload: { viewerId: viewerIdRef.current },
+          });
+        }
+      })
+      .on("broadcast", { event: "webrtc_viewer_join" }, async (payload) => {
+        const stream = mediaStreamRef.current;
+        if (!isCreator || !stream) return;
+        const viewerId = payload.payload.viewerId;
+
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        peerConnectionsRef.current.set(viewerId, pc);
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate && channelRef.current) {
+            channelRef.current.send({
+              type: "broadcast",
+              event: "webrtc_ice_candidate",
+              payload: { viewerId, candidate: event.candidate, from: "creator" },
+            });
+          }
+        };
+
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        channelRef.current.send({
+          type: "broadcast",
+          event: "webrtc_offer",
+          payload: { viewerId, offer },
+        });
+      })
+      .on("broadcast", { event: "webrtc_offer" }, async (payload) => {
+        if (isCreator) return;
+        const { viewerId, offer } = payload.payload;
+        if (viewerId !== viewerIdRef.current) return;
+
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        viewerPcRef.current = pc;
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate && channelRef.current) {
+            channelRef.current.send({
+              type: "broadcast",
+              event: "webrtc_ice_candidate",
+              payload: { viewerId: viewerIdRef.current, candidate: event.candidate, from: "viewer" },
+            });
+          }
+        };
+
+        pc.ontrack = (event) => {
+          if (viewerVideoRef.current) {
+            viewerVideoRef.current.srcObject = event.streams[0];
+          }
+        };
+
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        channelRef.current.send({
+          type: "broadcast",
+          event: "webrtc_answer",
+          payload: { viewerId: viewerIdRef.current, answer },
+        });
+      })
+      .on("broadcast", { event: "webrtc_answer" }, async (payload) => {
+        if (!isCreator) return;
+        const { viewerId, answer } = payload.payload;
+        const pc = peerConnectionsRef.current.get(viewerId);
+        if (pc) {
+          await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+      })
+      .on("broadcast", { event: "webrtc_ice_candidate" }, async (payload) => {
+        const { viewerId, candidate, from } = payload.payload;
+        if (isCreator && from === "viewer") {
+          const pc = peerConnectionsRef.current.get(viewerId);
+          if (pc) {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+        } else if (!isCreator && from === "creator" && viewerId === viewerIdRef.current) {
+          if (viewerPcRef.current) {
+            await viewerPcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+        }
+      })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           await channel.track({
@@ -197,12 +323,30 @@ export function LiveRoomModal({
             isCreator,
             joinedAt: new Date().toISOString(),
           });
+
+          if (!isCreator) {
+            channel.send({
+              type: "broadcast",
+              event: "webrtc_viewer_join",
+              payload: { viewerId: viewerIdRef.current },
+            });
+          }
         }
       });
 
     return () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
+
+      if (isCreator) {
+        peerConnectionsRef.current.forEach((pc) => pc.close());
+        peerConnectionsRef.current.clear();
+      } else {
+        if (viewerPcRef.current) {
+          viewerPcRef.current.close();
+          viewerPcRef.current = null;
+        }
+      }
     };
   }, [open, liveEventId, user, isCreator]);
 
@@ -470,24 +614,12 @@ export function LiveRoomModal({
                 allow="autoplay; camera; microphone; fullscreen"
               />
             ) : (
-              // Simulated Interactive Live Canvas for viewers
-              <div className="relative h-full w-full flex flex-col items-center justify-center overflow-hidden gradient-soft">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-zinc-900/60 to-black" />
-                <div className="relative z-10 flex flex-col items-center text-center p-6">
-                  <div className="relative mb-4">
-                    <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-primary to-amber-500 p-1 animate-spin duration-3000">
-                      <div className="h-full w-full rounded-full bg-zinc-900 flex items-center justify-center">
-                        <Store className="h-10 w-10 text-primary" />
-                      </div>
-                    </div>
-                    <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-emerald-500 border-2 border-zinc-900" />
-                  </div>
-                  <h3 className="font-serif text-xl font-bold">{startupName}</h3>
-                  <p className="text-xs text-white/70 mt-1 max-w-xs">
-                    Présentation en direct des créations artisanales et réponses aux questions.
-                  </p>
-                </div>
-              </div>
+              <video
+                ref={viewerVideoRef}
+                autoPlay
+                playsInline
+                className="h-full w-full object-cover bg-black"
+              />
             )}
 
             {/* Paused Overlay */}
