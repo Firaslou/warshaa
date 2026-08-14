@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_audit_logs: {
-        Row: {
-          action: string
-          admin_id: string
-          created_at: string
-          details: Json
-          entity_id: string
-          entity_type: string
-          id: string
-        }
-        Insert: {
-          action: string
-          admin_id: string
-          created_at?: string
-          details?: Json
-          entity_id: string
-          entity_type: string
-          id?: string
-        }
-        Update: {
-          action?: string
-          admin_id?: string
-          created_at?: string
-          details?: Json
-          entity_id?: string
-          entity_type?: string
-          id?: string
-        }
-        Relationships: []
-      }
       chat_conversations: {
         Row: {
           buyer_id: string
@@ -75,7 +45,6 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
-          read_at: string | null
           sender_id: string
         }
         Insert: {
@@ -84,7 +53,6 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: string
-          read_at?: string | null
           sender_id: string
         }
         Update: {
@@ -93,7 +61,6 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
-          read_at?: string | null
           sender_id?: string
         }
         Relationships: [
