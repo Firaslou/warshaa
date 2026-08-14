@@ -143,7 +143,7 @@ export function Header() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-clay-mist text-clay-deep lg:hidden">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-clay-mist text-clay-deep md:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -161,6 +161,9 @@ export function Header() {
           </Sheet>
         </div>
       </div>
+      <nav className="container hidden h-11 items-center gap-4 overflow-x-auto border-t border-clay-mist/70 text-xs [scrollbar-width:none] md:flex lg:hidden [&::-webkit-scrollbar]:hidden">
+        {links}
+      </nav>
     </header>
   );
 }

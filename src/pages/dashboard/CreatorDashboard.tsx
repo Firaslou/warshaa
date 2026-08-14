@@ -408,13 +408,6 @@ export default function CreatorDashboard() {
   useEffect(() => {
     setViewerCount(0);
   }, [startup?.is_live]);
-  const markNewPost = async () => {
-    if (!startup) return;
-    await supabase.from("startups").update({ last_post_at: new Date().toISOString() }).eq("id", startup.id);
-    toast.success(t("dashboard.creator.toastNewPost"));
-    refreshAll(user!.id);
-  };
-
   if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
   if (!user) return <Navigate to="/login" replace />;
 
@@ -847,15 +840,6 @@ export default function CreatorDashboard() {
               />
             )}
             
-            <Card className="mt-6">
-              <CardHeader><CardTitle>{t("dashboard.creator.newPostTitle")}</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {t("dashboard.creator.newPostDesc", { time: startup?.last_post_at ? new Date(startup.last_post_at).toLocaleString() : t("dashboard.creator.never") })}
-                </p>
-                <Button onClick={markNewPost} variant="outline">{t("dashboard.creator.signalNew")}</Button>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* CALENDAR */}
