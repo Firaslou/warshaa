@@ -80,9 +80,9 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between gap-1.5 px-2.5 sm:gap-3 sm:px-5 md:px-8">
         <Link to="/" aria-label={t("common.appName")} className="group flex shrink-0 items-center">
           <BrandLogo
-            className="gap-0 2xl:gap-2.5"
+            className="gap-1.5 2xl:gap-2.5"
             markClassName="h-9 transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105 sm:h-10 2xl:h-11"
-            nameClassName="hidden whitespace-nowrap font-display text-[1.35rem] text-foreground 2xl:inline"
+            nameClassName="inline whitespace-nowrap font-display text-[0.95rem] text-clay-deep sm:text-base 2xl:text-[1.35rem] 2xl:text-foreground"
           />
         </Link>
 

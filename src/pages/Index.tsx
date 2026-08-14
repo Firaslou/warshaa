@@ -174,13 +174,13 @@ const Index = () => {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-soft opacity-60" />
-        <div className="container relative px-4 py-14 sm:py-20 md:px-8 md:py-28">
+        <div className="container relative py-12 sm:py-20 md:py-28">
           <div className="mx-auto max-w-3xl text-center animate-fade-in">
             <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background/60 px-3.5 py-1.5 text-center text-xs font-medium backdrop-blur sm:mb-6 sm:px-4">
               <HandHeart className="h-3 w-3 text-primary" />
               {t("common.tagline")}
             </div>
-            <h1 className="text-balance font-serif text-[2.5rem] font-bold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 className="text-balance font-serif text-[2.25rem] font-bold leading-[1.08] tracking-tight min-[390px]:text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl">
               {t("home.heroTitle")}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg md:text-xl">
@@ -225,7 +225,7 @@ const Index = () => {
 
       {/* COUP DE CŒUR DU JOUR */}
       {coupDeCoeur && (
-        <section className="container py-16 md:py-20">
+        <section className="container py-10 md:py-20">
           <div className="mb-6 text-center">
             <div className="inline-flex items-center gap-2 rounded-full gradient-warm px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-elegant">
               <Heart className="h-3 w-3 fill-current" /> {t("stats.dailyBadge")}
@@ -250,7 +250,7 @@ const Index = () => {
                   </div>
                 )}
               </Link>
-              <div className="flex flex-col justify-center p-8 md:p-12">
+              <div className="flex flex-col justify-center p-5 sm:p-8 md:p-12">
                 <div className="mb-4 flex items-center gap-3">
                   {coupDeCoeur.logo_url ? (
                     <img src={coupDeCoeur.logo_url} alt="" className="h-14 w-14 rounded-full border-2 border-primary/30 object-cover" />
@@ -303,7 +303,7 @@ const Index = () => {
       )}
 
       {/* NOUVEAUTÉS CETTE SEMAINE */}
-      <section className="container py-12 md:py-16">
+      <section className="container py-10 md:py-16">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -335,7 +335,7 @@ const Index = () => {
               style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
             >
               {Array.from({ length: slideCount }).map((_, slideI) => (
-                <div key={slideI} className="grid w-full shrink-0 grid-cols-2 gap-5 md:grid-cols-4">
+                <div key={slideI} className="grid w-full shrink-0 grid-cols-1 gap-4 min-[430px]:grid-cols-2 md:grid-cols-4 md:gap-5">
                   {newThisWeek.slice(slideI * PER_SLIDE, slideI * PER_SLIDE + PER_SLIDE).map((product) => (
                     <Link
                       key={product.id}
@@ -392,7 +392,7 @@ const Index = () => {
       </section>
 
       {/* FEATURED CREATORS — 10 */}
-      <section className="container py-12 md:py-16">
+      <section className="container py-10 md:py-16">
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("home.featuredTitle")}</h2>
@@ -402,13 +402,13 @@ const Index = () => {
             {t("common.viewAll")} <ArrowRight className="ml-1 inline h-3 w-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2 md:grid-cols-3 md:gap-5 lg:grid-cols-5">
           {featured.map((s, i) => <StartupCard key={s.id} startup={s} index={i} />)}
         </div>
       </section>
 
       {/* 16 UNIVERS */}
-      <section className="container py-16">
+      <section className="container py-10 md:py-16">
         <div className="mb-10 text-center">
           <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("home.categoriesTitle")}</h2>
           <p className="mt-2 text-muted-foreground">16 univers à explorer</p>
@@ -437,7 +437,7 @@ const Index = () => {
       <InstallAppButton />
 
       {/* HOW IT WORKS */}
-      <section className="bg-secondary/40 py-20">
+      <section className="bg-secondary/40 py-12 md:py-20">
         <div className="container">
           <h2 className="mb-12 text-center font-serif text-3xl font-bold md:text-4xl">{t("home.stepsTitle")}</h2>
           <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
@@ -459,8 +459,8 @@ const Index = () => {
       </section>
 
       {/* CTA */}
-      <section className="container py-20">
-        <div className="overflow-hidden rounded-3xl gradient-warm p-10 text-center text-primary-foreground shadow-elegant md:p-16">
+      <section className="container py-12 md:py-20">
+        <div className="overflow-hidden rounded-3xl gradient-warm p-6 text-center text-primary-foreground shadow-elegant sm:p-10 md:p-16">
           <h2 className="font-serif text-3xl font-bold md:text-4xl">{t("home.becomeCreator")}</h2>
           <p className="mx-auto mt-4 max-w-xl text-primary-foreground/90">{t("home.becomeCreatorDesc")}</p>
           <Button size="lg" variant="secondary" className="mt-8" onClick={() => navigate("/apply")}>

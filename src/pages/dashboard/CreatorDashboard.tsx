@@ -421,9 +421,9 @@ export default function CreatorDashboard() {
   if (!startup) {
     return (
       <PageLayout>
-        <div className="container py-12">
-          <h1 className="font-serif text-4xl font-bold">{t("dashboard.creator.title")}</h1>
-          <div className="mt-8 rounded-2xl bg-card p-8 text-center shadow-card">
+        <div className="container py-6 sm:py-12">
+          <h1 className="font-serif text-3xl font-bold sm:text-4xl">{t("dashboard.creator.title")}</h1>
+          <div className="mt-6 rounded-2xl bg-card p-5 text-center shadow-card sm:mt-8 sm:p-8">
             {application ? (
               <>
                 <Badge className="mb-3">{application.status}</Badge>
@@ -442,10 +442,10 @@ export default function CreatorDashboard() {
 
   return (
     <PageLayout>
-      <div className="container py-10">
+      <div className="container py-6 sm:py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-serif text-4xl font-bold">{startup.name}</h1>
+            <h1 className="break-words font-serif text-3xl font-bold sm:text-4xl">{startup.name}</h1>
             <p className="text-muted-foreground">{startup.tagline}</p>
           </div>
           <Badge variant={startup.is_live ? "destructive" : "secondary"} className="gap-1">
@@ -453,7 +453,7 @@ export default function CreatorDashboard() {
           </Badge>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard icon={Heart} label={t("dashboard.creator.totalLikes")} value={agg.likes} />
           <StatCard icon={Users} label={t("dashboard.creator.totalSupporters")} value={agg.supporters} />
           <StatCard icon={MessageCircle} label={t("dashboard.creator.purchaseClicks")} value={clicks} />
@@ -463,7 +463,7 @@ export default function CreatorDashboard() {
         </div>
 
         <Tabs defaultValue="stats" className="mt-8">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex w-full flex-nowrap justify-start gap-1">
             <TabsTrigger value="stats">{t("dashboard.creator.tabStats")}</TabsTrigger>
             <TabsTrigger value="profile">{t("dashboard.creator.tabProfile")}</TabsTrigger>
             <TabsTrigger value="products">{t("dashboard.creator.tabProducts")} ({products.length})</TabsTrigger>
@@ -959,10 +959,10 @@ export default function CreatorDashboard() {
 
 function StatCard({ icon: Icon, label, value }: any) {
   return (
-    <div className="rounded-2xl bg-card p-6 shadow-card">
-      <Icon className="h-6 w-6 text-primary" />
-      <div className="mt-3 text-3xl font-bold">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
+    <div className="min-w-0 rounded-2xl bg-card p-3.5 shadow-card sm:p-6">
+      <Icon className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
+      <div className="mt-2 text-2xl font-bold sm:mt-3 sm:text-3xl">{value}</div>
+      <div className="mt-0.5 line-clamp-2 text-xs leading-tight text-muted-foreground sm:text-sm">{label}</div>
     </div>
   );
 }

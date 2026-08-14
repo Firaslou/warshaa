@@ -398,15 +398,15 @@ export default function AdminDashboard() {
 
   return (
     <PageLayout>
-      <div className="container py-10">
-        <div className="mb-8">
-          <h1 className="font-serif text-4xl font-bold">{t("dashboard.admin.headerTitle")}</h1>
+      <div className="container py-6 sm:py-10">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-serif text-3xl font-bold sm:text-4xl">{t("dashboard.admin.headerTitle")}</h1>
           <p className="mt-2 text-muted-foreground">{t("dashboard.admin.headerSubtitle")}</p>
         </div>
 
         {/* STAT CARDS */}
         {stats && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
             <StatCard icon={<Users className="h-5 w-5" />} label={t("dashboard.admin.users")} value={stats.users} sub={t("dashboard.admin.thisWeek", { n: stats.signups7d })} />
             <StatCard icon={<Store className="h-5 w-5" />} label={t("dashboard.admin.activeCreators")} value={stats.startups} sub={t("dashboard.admin.creatorAccounts", { n: stats.creators })} />
             <StatCard icon={<ShoppingBag className="h-5 w-5" />} label={t("dashboard.admin.products")} value={stats.products} sub={t("dashboard.admin.purchaseClicks", { n: stats.purchases })} />
@@ -421,7 +421,7 @@ export default function AdminDashboard() {
         )}
 
         <Tabs defaultValue="applications" className="mt-10">
-          <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto">
+          <TabsList className="flex h-11 w-full flex-nowrap justify-start gap-1">
             <TabsTrigger value="applications">{t("dashboard.admin.tabApps")} ({stats?.pendingApps ?? 0})</TabsTrigger>
             <TabsTrigger value="complaints">{t("dashboard.admin.tabComplaints")} ({stats?.pendingComplaints ?? 0})</TabsTrigger>
             <TabsTrigger value="creators">{t("dashboard.admin.tabCreators")}</TabsTrigger>

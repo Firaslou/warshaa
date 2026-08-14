@@ -164,7 +164,7 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { stopStream(); reset(); } }}>
-      <DialogContent className="max-w-none w-screen h-[100dvh] gap-0 rounded-none border-0 bg-black p-0 sm:rounded-none [&>button]:hidden">
+      <DialogContent className="h-[100dvh] max-h-none w-screen max-w-none gap-0 rounded-none border-0 bg-black p-0 sm:rounded-none [&>button]:hidden">
         <div className="relative flex h-full w-full flex-col">
           {/* Top bar */}
           <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 py-3">

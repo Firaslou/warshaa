@@ -170,8 +170,8 @@ export default function Creators() {
 
   return (
     <PageLayout>
-      <div className="container py-10">
-        <div className="mb-8 text-center">
+      <div className="container py-6 sm:py-10">
+        <div className="mb-6 text-center sm:mb-8">
           <h1 className="font-serif text-3xl font-bold tracking-tight md:text-5xl">{t("nav.creators")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t("home.featuredSubtitle")}</p>
         </div>
@@ -320,7 +320,7 @@ export default function Creators() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map((s, i) => (
               <StartupCard key={s.id} startup={s} index={i} />
             ))}

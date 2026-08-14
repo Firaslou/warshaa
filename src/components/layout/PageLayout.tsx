@@ -8,7 +8,7 @@ export function PageLayout({ children }: { children: ReactNode }) {
   return (
     <div className="site-canvas flex min-h-screen flex-col">
       <Header />
-      <main className="relative z-[1] flex-1 pb-28 md:pb-0">{children}</main>
+      <main className="relative z-[1] flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
       <div className="hidden md:block">
         <Footer />
       </div>

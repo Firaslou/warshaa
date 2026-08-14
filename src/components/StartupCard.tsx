@@ -81,7 +81,7 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
       className="group block animate-slide-up"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      <div className="overflow-hidden rounded-[32px] border border-clay-mist bg-card shadow-card md:rounded-2xl md:border-transparent transition-smooth hover-lift">
+      <div className="overflow-hidden rounded-2xl border border-clay-mist bg-card shadow-card md:border-transparent transition-smooth hover-lift">
         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
           {startup.logo_url ? (
             <img
@@ -95,18 +95,18 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
               <Store className="h-12 w-12 text-primary/40" />
             </div>
           )}
-          <div className="absolute left-3 top-3">
-            <Badge variant="outline" className={cn("border bg-background/90 backdrop-blur", badgeMeta.className)}>
+          <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
+            <Badge variant="outline" className={cn("max-w-[calc(100%-3.25rem)] truncate border bg-background/90 px-2 text-[10px] backdrop-blur sm:text-xs", badgeMeta.className)}>
               <Icon className="mr-1 h-3 w-3" /> {badgeMeta.label}
             </Badge>
           </div>
 
-          <div className="absolute right-3 top-3 flex items-center gap-1.5">
+          <div className="absolute right-2 top-2 flex items-center gap-1.5 sm:right-3 sm:top-3">
             <button
               type="button"
               onClick={handleFavoriteClick}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm backdrop-blur transition hover:scale-110 active:scale-95",
+                "flex h-9 w-9 items-center justify-center rounded-full bg-background/90 shadow-sm backdrop-blur transition hover:scale-110 active:scale-95",
                 isFav ? "text-rose-500" : "text-muted-foreground hover:text-foreground"
               )}
               title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
@@ -121,7 +121,7 @@ export function StartupCard({ startup, index = 0 }: { startup: StartupCardData; 
             )}
           </div>
         </div>
-        <div className="space-y-2 p-4">
+        <div className="space-y-2 p-3.5 sm:p-4">
           <h3 className="font-serif text-lg font-semibold leading-tight group-hover:text-primary transition-colors">
             {startup.name}
           </h3>

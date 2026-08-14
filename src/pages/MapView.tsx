@@ -67,8 +67,8 @@ export default function MapView() {
 
   return (
     <PageLayout>
-      <div className="container py-10">
-        <div className="mb-8 text-center">
+      <div className="container py-6 sm:py-10">
+        <div className="mb-5 text-center sm:mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <MapPin className="h-3 w-3" /> {t("map.badge")}
           </div>
@@ -88,7 +88,7 @@ export default function MapView() {
               maxBounds={TUNISIA_BOUNDS as L.LatLngBoundsExpression}
               maxBoundsViscosity={1}
               scrollWheelZoom
-              style={{ height: "70vh", minHeight: 500, width: "100%" }}
+              className="h-[58dvh] min-h-[360px] w-full md:h-[70vh] md:min-h-[500px]"
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

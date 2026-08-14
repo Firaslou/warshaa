@@ -117,6 +117,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
+    overflow-x: hidden;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-image:
       radial-gradient(circle at 8% 12%, hsl(var(--primary) / 0.075), transparent 24rem),
@@ -139,6 +140,16 @@ All colors MUST be HSL.
   .site-canvas {
     position: relative;
     isolation: isolate;
+  }
+
+  html {
+    scroll-padding-top: 5rem;
+  }
+
+  @media (max-width: 767px) {
+    button, a, input, select, textarea {
+      -webkit-tap-highlight-color: transparent;
+    }
   }
 
   .site-canvas::before {

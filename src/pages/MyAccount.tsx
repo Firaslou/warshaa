@@ -131,21 +131,21 @@ export default function MyAccount() {
 
   return (
     <PageLayout>
-      <section className="container py-12">
-        <div className="mb-8 flex items-center gap-4">
-          <Avatar className="h-20 w-20">
+      <section className="container py-6 sm:py-12">
+        <div className="mb-6 flex min-w-0 items-center gap-3 sm:mb-8 sm:gap-4">
+          <Avatar className="h-16 w-16 shrink-0 sm:h-20 sm:w-20">
             <AvatarImage src={profile?.avatar_url ?? undefined} />
             <AvatarFallback><UserIcon /></AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="font-serif text-3xl font-bold">{profile?.full_name ?? user.email}</h1>
-            <p className="text-muted-foreground">{user.email}</p>
+          <div className="min-w-0">
+            <h1 className="truncate font-serif text-2xl font-bold sm:text-3xl">{profile?.full_name ?? user.email}</h1>
+            <p className="truncate text-sm text-muted-foreground sm:text-base">{user.email}</p>
             {profile?.city && <p className="text-sm text-muted-foreground">{profile.city}</p>}
           </div>
         </div>
 
         <Tabs defaultValue="activity" className="w-full">
-          <TabsList>
+          <TabsList className="flex w-full">
             <TabsTrigger value="activity">{t("myAccount.myActivity")}</TabsTrigger>
             <TabsTrigger value="info">{t("myAccount.personalInfo")}</TabsTrigger>
             <TabsTrigger value="password">{t("myAccount.changePassword")}</TabsTrigger>
