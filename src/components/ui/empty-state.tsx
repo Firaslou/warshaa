@@ -37,6 +37,7 @@ export function EmptyState({
   className,
   children,
 }: EmptyStateProps) {
+  const IconComponent = Icon as LucideIcon | undefined;
   const isLucideIcon = typeof Icon === "function" || (typeof Icon === "object" && Icon !== null && "render" in (Icon as any));
 
   return (
@@ -48,7 +49,7 @@ export function EmptyState({
     >
       {Icon && (
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
-          {isLucideIcon ? <Icon className="h-7 w-7" /> : Icon}
+          {isLucideIcon && IconComponent ? <IconComponent className="h-7 w-7" /> : (Icon as ReactNode)}
         </div>
       )}
 
