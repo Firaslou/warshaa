@@ -63,28 +63,44 @@ export default function Discover() {
 
   const isFav = current ? isStartupFavorite(current.id) : false;
 
-  const { data: products } = useQuery({
+  const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["discover-products", current?.id],
     queryFn: async () => {
       if (!current?.id) return [];
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, images, price, currency")
+        .select("id, name, images, price, currency, created_at")
         .eq("startup_id", current.id)
-        .eq("is_published", true)
-        .limit(6);
+        .eq("is_published", true);
       if (error) throw error;
-      return data || [];
+      const items = data || [];
+      if (!items.length) return [];
+      const ids = items.map((product) => product.id);
+      const [viewsResult, likesResult] = await Promise.all([
+        supabase.from("product_views").select("product_id").in("product_id", ids),
+        supabase.from("product_likes").select("product_id").in("product_id", ids),
+      ]);
+      const tally = (rows: { product_id: string }[] | null) => {
+        const counts: Record<string, number> = {};
+        (rows ?? []).forEach((row) => { counts[row.product_id] = (counts[row.product_id] ?? 0) + 1; });
+        return counts;
+      };
+      const views = tally(viewsResult.data);
+      const likes = tally(likesResult.data);
+      return items
+        .map((product) => ({ ...product, views: views[product.id] ?? 0, likes: likes[product.id] ?? 0 }))
+        .sort((a, b) => (b.likes * 3 + b.views) - (a.likes * 3 + a.views) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3);
     },
     enabled: !!current?.id,
   });
 
   return (
     <PageLayout>
-      <div className="container py-12">
-        <div className="mb-10 text-center">
-          <h1 className="font-serif text-4xl font-bold md:text-5xl">
-            <Heart className="mr-2 inline h-8 w-8 fill-rose-500/20 text-rose-500" />
+      <div className="container py-7 sm:py-10">
+        <div className="mb-6 text-center sm:mb-8">
+          <h1 className="font-serif text-3xl font-bold sm:text-4xl">
+            <Heart className="mr-2 inline h-7 w-7 fill-rose-500/20 text-rose-500" />
             {t("discover.title")}
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">{t("discover.subtitle")}</p>
@@ -110,14 +126,15 @@ export default function Discover() {
             />
           </div>
         ) : (
-          <div key={animKey} className="mx-auto max-w-2xl animate-fade-in">
-            <div className="overflow-hidden rounded-[32px] border border-border/80 bg-card shadow-xl transition">
-              <div className="relative aspect-[4/5] bg-muted overflow-hidden">
+          <div key={animKey} className="mx-auto max-w-5xl animate-fade-in">
+            <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-card transition">
+              <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
+                <div className="relative h-56 overflow-hidden bg-muted sm:h-72 lg:h-full lg:min-h-[410px]">
                 {current.logo_url ? (
                   <img
                     src={current.logo_url}
                     alt={current.name}
-                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                    className="h-full w-full object-contain p-7 transition-transform duration-700 hover:scale-105 sm:p-10"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center gradient-soft">
@@ -138,64 +155,24 @@ export default function Discover() {
                   <Heart className={cn("h-5 w-5 transition-transform", isFav && "fill-rose-500 text-rose-500 scale-110")} />
                 </button>
 
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/70 to-transparent p-6 sm:p-8">
-                  <h2 className="font-serif text-3xl font-bold text-foreground sm:text-4xl">{current.name}</h2>
-                  {current.tagline && <p className="mt-2 text-sm text-foreground/90 leading-relaxed sm:text-base">{current.tagline}</p>}
-
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    {(current.likes_count ?? 0) > 0 && (
-                      <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md rounded-full px-3 py-1.5 text-white shadow-sm border border-white/10 text-xs font-semibold">
-                        <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
-                        {current.likes_count} J'aime
-                      </div>
-                    )}
-                    {(current.supporters_count ?? 0) > 0 && (
-                      <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md rounded-full px-3 py-1.5 text-white shadow-sm border border-white/10 text-xs font-semibold">
-                        <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                        {current.supporters_count} Abonnés
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground sm:text-sm">
-                    {current.city && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" /> {current.city}
-                        {current.delegation && <span>· {current.delegation}</span>}
-                      </span>
-                    )}
-                    {current.category && <span>· {current.category}</span>}
-                  </div>
-                </div>
               </div>
+                <div className="flex min-w-0 flex-col p-5 sm:p-7">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-600"><Heart className="h-3.5 w-3.5 fill-current" />Coup de cœur Warsha</div><h2 className="font-serif text-2xl font-bold sm:text-3xl">{current.name}</h2>{current.tagline && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{current.tagline}</p>}</div>
+                    <div className="flex gap-2 text-xs text-muted-foreground">{(current.likes_count ?? 0) > 0 && <span className="rounded-full bg-muted px-2.5 py-1"><Heart className="mr-1 inline h-3 w-3 text-rose-500" />{current.likes_count}</span>}{(current.supporters_count ?? 0) > 0 && <span className="rounded-full bg-muted px-2.5 py-1"><Sparkles className="mr-1 inline h-3 w-3 text-primary" />{current.supporters_count}</span>}</div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">{current.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{current.city}{current.delegation && ` · ${current.delegation}`}</span>}{current.category && <span className="rounded-full bg-muted px-2 py-0.5">{current.category}</span>}</div>
 
-              {products && products.length > 0 && (
-                <div className="p-4 sm:p-6 bg-card border-t border-border/40">
-                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5 text-foreground/90"><Sparkles className="h-4 w-4 text-primary" /> Top créations</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {products.map(p => (
-                      <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-muted relative group border border-border/50">
-                        {p.images?.[0] ? (
-                          <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
-                        ) : (
-                          <Store className="h-6 w-6 m-auto mt-4 text-muted-foreground/30" />
-                        )}
-                      </div>
-                    ))}
+                  <div className="mt-5 border-t border-border/60 pt-4">
+                    <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" />Ses produits les plus appréciés</h3>
+                    {productsLoading ? <div className="grid grid-cols-3 gap-2">{[0, 1, 2].map((item) => <div key={item} className="aspect-[4/3] animate-pulse rounded-xl bg-muted" />)}</div> : products && products.length > 0 ? <div className="grid grid-cols-3 gap-2 sm:gap-3">{products.map((product) => <button key={product.id} type="button" onClick={() => navigate(`/product/${product.id}`)} className="group min-w-0 overflow-hidden rounded-xl border border-border/60 bg-background text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"><div className="aspect-[4/3] overflow-hidden bg-muted">{product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center"><Store className="h-6 w-6 text-muted-foreground/30" /></div>}</div><div className="p-2"><p className="truncate text-xs font-semibold">{product.name}</p><p className="mt-0.5 text-[11px] font-medium text-primary">{product.price != null ? `${Number(product.price).toFixed(3)} ${product.currency}` : "Voir le produit"}</p></div></button>)}</div> : <p className="rounded-xl bg-muted/40 px-4 py-6 text-center text-xs text-muted-foreground">Ce créateur n’a pas encore publié de produit.</p>}
+                  </div>
+
+                  <div className="mt-auto flex flex-col gap-2 pt-5 sm:flex-row">
+                    <Button className="flex-1 rounded-xl gradient-warm text-primary-foreground" onClick={() => navigate(`/startup/${current.slug}`)}>Voir le profil <ArrowRight className="ml-1.5 h-4 w-4" /></Button>
+                    <Button variant="outline" className="flex-1 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={next}><Shuffle className="mr-2 h-4 w-4" />Trouver un autre coup de cœur</Button>
                   </div>
                 </div>
-              )}
-
-              <div className="flex flex-wrap gap-3 p-4 sm:p-6 bg-card border-t border-border/60">
-                <Button
-                  className="flex-1 gradient-warm text-primary-foreground rounded-2xl h-12 text-sm font-semibold shadow-xs"
-                  onClick={() => navigate(`/startup/${current.slug}`)}
-                >
-                  Visiter la boutique <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Button>
-                <Button variant="secondary" className="flex-1 rounded-2xl h-12 text-sm font-semibold group bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 border-none" onClick={next}>
-                  <Heart className="mr-2 h-5 w-5 fill-rose-500/50 transition-transform group-hover:scale-125 group-active:scale-95" /> Un autre coup de cœur
-                </Button>
               </div>
             </div>
           </div>
