@@ -366,13 +366,25 @@ search_terms must include useful synonyms across the user's language and French 
         ? "Voici les options Warsha qui correspondent le mieux à ta recherche."
         : "Je n'ai pas encore trouvé de correspondance. Peux-tu préciser le produit, le budget ou la ville ?");
 
+    // Le modèle a répondu : on respecte strictement sa sélection (même vide),
+    // pour ne jamais afficher de produits sans lien avec la demande.
+    const hasModelReply = Boolean(composed.reply?.trim());
+
     return jsonResponse({
       reply: composed.reply?.trim() || fallbackReply,
       intent: analysis.intent,
       context,
-      products: selectedProducts.length ? selectedProducts : combinedProducts.slice(0, 6),
-      creators: selectedCreators.length ? selectedCreators : rankedCreators.slice(0, 4),
-      plan,
+      products: selectedProducts.length
+        ? selectedProducts
+        : hasModelReply
+          ? []
+          : combinedProducts.slice(0, 6),
+      creators: selectedCreators.length
+        ? selectedCreators
+        : hasModelReply
+          ? []
+          : rankedCreators.slice(0, 4),
+      plan: selectedProducts.length || !hasModelReply ? plan : [],
     });
   } catch (error) {
     console.error("ai-assistant error", error);
