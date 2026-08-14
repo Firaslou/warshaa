@@ -59,6 +59,12 @@ interface LiveRoomModalProps {
   initialStreamUrl?: string | null;
 }
 
+const WEBRTC_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+];
+
 export function LiveRoomModal({
   open,
   onOpenChange,
@@ -96,6 +102,10 @@ export function LiveRoomModal({
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const viewerPcRef = useRef<RTCPeerConnection | null>(null);
   const viewerVideoRef = useRef<HTMLVideoElement>(null);
+  const pendingCreatorCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const pendingViewerCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "failed">("connecting");
+  const [viewerMuted, setViewerMuted] = useState(true);
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -232,9 +242,8 @@ export function LiveRoomModal({
         if (!isCreator || !stream) return;
         const viewerId = payload.payload.viewerId;
 
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
+        peerConnectionsRef.current.get(viewerId)?.close();
+        const pc = new RTCPeerConnection({ iceServers: WEBRTC_ICE_SERVERS });
         peerConnectionsRef.current.set(viewerId, pc);
 
         pc.onicecandidate = (event) => {
@@ -242,7 +251,7 @@ export function LiveRoomModal({
             channelRef.current.send({
               type: "broadcast",
               event: "webrtc_ice_candidate",
-              payload: { viewerId, candidate: event.candidate, from: "creator" },
+              payload: { viewerId, candidate: event.candidate.toJSON(), from: "creator" },
             });
           }
         };
@@ -252,10 +261,10 @@ export function LiveRoomModal({
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        channelRef.current.send({
+        await channelRef.current.send({
           type: "broadcast",
           event: "webrtc_offer",
-          payload: { viewerId, offer },
+          payload: { viewerId, offer: pc.localDescription?.toJSON() ?? offer },
         });
       })
       .on("broadcast", { event: "webrtc_offer" }, async (payload) => {
@@ -263,17 +272,22 @@ export function LiveRoomModal({
         const { viewerId, offer } = payload.payload;
         if (viewerId !== viewerIdRef.current) return;
 
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
+        viewerPcRef.current?.close();
+        const pc = new RTCPeerConnection({ iceServers: WEBRTC_ICE_SERVERS });
         viewerPcRef.current = pc;
+        setConnectionStatus("connecting");
+
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "connected") setConnectionStatus("connected");
+          if (["failed", "disconnected", "closed"].includes(pc.connectionState)) setConnectionStatus("failed");
+        };
 
         pc.onicecandidate = (event) => {
           if (event.candidate && channelRef.current) {
             channelRef.current.send({
               type: "broadcast",
               event: "webrtc_ice_candidate",
-              payload: { viewerId: viewerIdRef.current, candidate: event.candidate, from: "viewer" },
+              payload: { viewerId: viewerIdRef.current, candidate: event.candidate.toJSON(), from: "viewer" },
             });
           }
         };
@@ -281,17 +295,22 @@ export function LiveRoomModal({
         pc.ontrack = (event) => {
           if (viewerVideoRef.current) {
             viewerVideoRef.current.srcObject = event.streams[0];
+            viewerVideoRef.current.muted = viewerMuted;
+            void viewerVideoRef.current.play().catch(() => setViewerMuted(true));
           }
         };
 
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        for (const candidate of pendingViewerCandidatesRef.current.splice(0)) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
-        channelRef.current.send({
+        await channelRef.current.send({
           type: "broadcast",
           event: "webrtc_answer",
-          payload: { viewerId: viewerIdRef.current, answer },
+          payload: { viewerId: viewerIdRef.current, answer: pc.localDescription?.toJSON() ?? answer },
         });
       })
       .on("broadcast", { event: "webrtc_answer" }, async (payload) => {
@@ -300,18 +319,29 @@ export function LiveRoomModal({
         const pc = peerConnectionsRef.current.get(viewerId);
         if (pc) {
           await pc.setRemoteDescription(new RTCSessionDescription(answer));
+          const queued = pendingCreatorCandidatesRef.current.get(viewerId) ?? [];
+          for (const candidate of queued) {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          pendingCreatorCandidatesRef.current.delete(viewerId);
         }
       })
       .on("broadcast", { event: "webrtc_ice_candidate" }, async (payload) => {
         const { viewerId, candidate, from } = payload.payload;
         if (isCreator && from === "viewer") {
           const pc = peerConnectionsRef.current.get(viewerId);
-          if (pc) {
+          if (pc?.remoteDescription) {
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } else {
+            const queued = pendingCreatorCandidatesRef.current.get(viewerId) ?? [];
+            queued.push(candidate);
+            pendingCreatorCandidatesRef.current.set(viewerId, queued);
           }
         } else if (!isCreator && from === "creator" && viewerId === viewerIdRef.current) {
-          if (viewerPcRef.current) {
+          if (viewerPcRef.current?.remoteDescription) {
             await viewerPcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+          } else {
+            pendingViewerCandidatesRef.current.push(candidate);
           }
         }
       })
@@ -341,14 +371,42 @@ export function LiveRoomModal({
       if (isCreator) {
         peerConnectionsRef.current.forEach((pc) => pc.close());
         peerConnectionsRef.current.clear();
+        pendingCreatorCandidatesRef.current.clear();
       } else {
         if (viewerPcRef.current) {
           viewerPcRef.current.close();
           viewerPcRef.current = null;
         }
+        pendingViewerCandidatesRef.current = [];
       }
     };
   }, [open, liveEventId, user, isCreator]);
+
+  const requestViewerStream = () => {
+    setConnectionStatus("connecting");
+    pendingViewerCandidatesRef.current = [];
+    viewerPcRef.current?.close();
+    viewerPcRef.current = null;
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "webrtc_viewer_join",
+      payload: { viewerId: viewerIdRef.current },
+    });
+  };
+
+  const enableViewerSound = async () => {
+    const video = viewerVideoRef.current;
+    if (!video) return;
+    video.muted = false;
+    try {
+      await video.play();
+      setViewerMuted(false);
+    } catch {
+      video.muted = true;
+      setViewerMuted(true);
+      toast.error("Le navigateur a bloqué le son. Touchez de nouveau le bouton.");
+    }
+  };
 
   // Scroll chat down when new message arrives
   useEffect(() => {
@@ -618,8 +676,25 @@ export function LiveRoomModal({
                 ref={viewerVideoRef}
                 autoPlay
                 playsInline
+                muted={viewerMuted}
                 className="h-full w-full object-cover bg-black"
               />
+            )}
+
+            {!isCreator && !initialStreamUrl && liveStatus !== "ended" && (
+              <div className="absolute bottom-24 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+                {viewerMuted && (
+                  <Button type="button" size="sm" onClick={enableViewerSound} className="rounded-full bg-white text-black hover:bg-white/90">
+                    <Mic className="mr-2 h-4 w-4" /> Activer le son
+                  </Button>
+                )}
+                {connectionStatus !== "connected" && (
+                  <Button type="button" size="sm" variant="secondary" onClick={requestViewerStream} className="rounded-full">
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    {connectionStatus === "failed" ? "Reconnecter" : "Charger le direct"}
+                  </Button>
+                )}
+              </div>
             )}
 
             {/* Paused Overlay */}

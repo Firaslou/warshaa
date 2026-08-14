@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
@@ -72,9 +72,6 @@ export default function CreatorDashboard() {
   const [productEdit, setProductEdit] = useState<any | null>(null);
   const [productOpen, setProductOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [showCreatorLiveModal, setShowCreatorLiveModal] = useState(false);
   const [activeLiveEventId, setActiveLiveEventId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
@@ -315,24 +312,6 @@ export default function CreatorDashboard() {
     if (!startup) return;
     const newLive = !startup.is_live;
 
-    if (newLive) {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: facingMode }, 
-          audio: true 
-        });
-        setStream(mediaStream);
-      } catch (err) {
-        console.error("Accès caméra refusé:", err);
-        return toast.error("Veuillez autoriser l'accès à la caméra et au micro.");
-      }
-    } else {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-      }
-    }
-
     const { error } = await supabase.from("startups").update({
       is_live: newLive,
       live_started_at: newLive ? new Date().toISOString() : null,
@@ -355,9 +334,16 @@ export default function CreatorDashboard() {
       let liveId = scheduledEvent?.id;
 
       if (scheduledEvent) {
-        await supabase.from("live_events").update({ status: "live", scheduled_at: startedAt }).eq("id", scheduledEvent.id);
+        const { error: liveUpdateError } = await supabase
+          .from("live_events")
+          .update({ status: "live", scheduled_at: startedAt })
+          .eq("id", scheduledEvent.id);
+        if (liveUpdateError) {
+          await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", startup.id);
+          return toast.error(liveUpdateError.message);
+        }
       } else {
-        const { data: newEv } = await supabase.from("live_events").insert({
+        const { data: newEv, error: liveInsertError } = await supabase.from("live_events").insert({
           startup_id: startup.id,
           title: `Live de ${startup.name}`,
           description: "Le créateur est en direct sur Warsha.",
@@ -366,6 +352,10 @@ export default function CreatorDashboard() {
           platform: "Warsha",
           status: "live",
         }).select("id").single();
+        if (liveInsertError || !newEv) {
+          await supabase.from("startups").update({ is_live: false, live_started_at: null }).eq("id", startup.id);
+          return toast.error(liveInsertError?.message ?? "Impossible de créer la salle du live.");
+        }
         liveId = newEv?.id;
       }
 
@@ -384,37 +374,6 @@ export default function CreatorDashboard() {
 
     refreshAll(user!.id);
   };
-
-  const switchCamera = async () => {
-    if (!stream) return;
-    const newMode = facingMode === "user" ? "environment" : "user";
-    setFacingMode(newMode);
-    stream.getVideoTracks().forEach(track => track.stop());
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: newMode },
-        audio: true
-      });
-      setStream(newStream);
-    } catch (err) {
-      console.error("Erreur switch caméra:", err);
-      toast.error("Impossible d'accéder à l'autre caméra.");
-    }
-  };
-
-  // Attache la vidéo
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream, startup?.is_live]);
-
-  // Nettoyage de la caméra
-  useEffect(() => {
-    return () => {
-      if (stream) stream.getTracks().forEach(track => track.stop());
-    };
-  }, [stream]);
 
   // Do not invent viewers or comments. Until a real streaming-presence backend is
   // connected, the dashboard displays zero instead of misleading simulated data.

@@ -26,7 +26,7 @@ interface LiveEvent {
   stream_url: string | null;
   cover_url: string | null;
   status: string;
-  startups?: { name: string; slug: string; logo_url: string | null } | null;
+  startups?: { name: string; slug: string; logo_url: string | null; owner_id: string } | null;
 }
 
 export default function LiveCalendar() {
@@ -49,7 +49,7 @@ export default function LiveCalendar() {
     const { data: startups } = startupIds.length
       ? await supabase
           .from("startups")
-          .select("id, name, slug, logo_url, status")
+          .select("id, name, slug, logo_url, owner_id, status")
           .in("id", startupIds)
           .eq("status", "approved")
       : { data: [] };
@@ -351,7 +351,7 @@ export default function LiveCalendar() {
           startupSlug={activeLiveModal.startups?.slug || ""}
           startupLogo={activeLiveModal.startups?.logo_url}
           initialStreamUrl={activeLiveModal.stream_url}
-          isCreator={user?.id === (activeLiveModal.startups as any)?.owner_id}
+          isCreator={user?.id === activeLiveModal.startups?.owner_id}
         />
       )}
     </PageLayout>
