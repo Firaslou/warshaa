@@ -83,6 +83,7 @@ Devise par défaut: TND (accepter "dt", "dinar", "tnd"). Ne renvoie RIEN d'autre
     let q = supabase
       .from("products")
       .select("id,name,description,price,currency,images,category,delegation,delivery_available,delivery_fee,startup_id,startups!inner(slug,name,city,status)")
+      .eq("is_published", true)
       .eq("startups.status", "approved")
       .limit(60);
 

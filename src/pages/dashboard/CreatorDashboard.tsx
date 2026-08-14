@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   Heart, Users, MessageCircle, Eye, Plus, Pencil, Trash2, Radio,
   Image as ImageIcon, Save, Leaf, Loader2, Clock, TrendingUp, ShoppingBag, Star,
+  Instagram, Facebook, ExternalLink,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,6 +72,12 @@ const EMPTY_AUDIENCE_TIMING: AudienceTiming = {
 const formatHourRange = (start: number) => {
   const formatHour = (hour: number) => `${String(hour % 24).padStart(2, "0")}h00`;
   return `${formatHour(start)} - ${formatHour(start + 3)}`;
+};
+
+const normalizeSocialUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, "")}`;
 };
 
 const analyseAudienceTiming = (viewDates: string[], clickDates: string[]): AudienceTiming => {
@@ -306,6 +313,14 @@ export default function CreatorDashboard() {
     if (!startup) return;
     if (!pf.name.trim()) return toast.error(t("dashboard.creator.toastBrandRequired"));
     if (pf.categories.length === 0) return toast.error(t("dashboard.creator.toastCategoryRequired"));
+    const instagramUrl = normalizeSocialUrl(pf.instagram_url);
+    const facebookUrl = normalizeSocialUrl(pf.facebook_url);
+    try {
+      if (instagramUrl) new URL(instagramUrl);
+      if (facebookUrl) new URL(facebookUrl);
+    } catch {
+      return toast.error("Vérifiez les liens Instagram et Facebook de votre boutique.");
+    }
     setSavingProfile(true);
     const { error } = await supabase.from("startups").update({
       name: pf.name.trim(),
@@ -316,8 +331,8 @@ export default function CreatorDashboard() {
       delegation: pf.delegation || null,
       categories: pf.categories,
       category: pf.categories[0] ?? null,
-      instagram_url: pf.instagram_url || null,
-      facebook_url: pf.facebook_url || null,
+      instagram_url: instagramUrl,
+      facebook_url: facebookUrl,
       tiktok_url: pf.tiktok_url || null,
       whatsapp_number: pf.whatsapp_number || null,
       logo_url: pf.logo_url || null,
@@ -656,11 +671,25 @@ export default function CreatorDashboard() {
                     })}
                   </div>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div><Label>{t("dashboard.creator.whatsapp")}</Label><Input value={pf.whatsapp_number} onChange={(e) => setPf({ ...pf, whatsapp_number: e.target.value })} /></div>
-                  <div><Label>{t("dashboard.creator.instagram")}</Label><Input value={pf.instagram_url} onChange={(e) => setPf({ ...pf, instagram_url: e.target.value })} /></div>
-                  <div><Label>{t("dashboard.creator.facebook")}</Label><Input value={pf.facebook_url} onChange={(e) => setPf({ ...pf, facebook_url: e.target.value })} /></div>
-                  <div><Label>{t("dashboard.creator.tiktok")}</Label><Input value={pf.tiktok_url} onChange={(e) => setPf({ ...pf, tiktok_url: e.target.value })} /></div>
+                <div className="rounded-2xl border bg-muted/20 p-4">
+                  <h3 className="font-serif text-lg font-semibold">Réseaux sociaux de votre boutique</h3>
+                  <p className="mb-4 text-sm text-muted-foreground">Ces liens seront visibles sur votre profil public pour permettre aux visiteurs de retrouver votre boutique.</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div><Label>{t("dashboard.creator.whatsapp")}</Label><Input value={pf.whatsapp_number} onChange={(e) => setPf({ ...pf, whatsapp_number: e.target.value })} placeholder="+216 12 345 678" /></div>
+                    <div>
+                      <Label className="flex items-center gap-2"><Instagram className="h-4 w-4" /> Page Instagram</Label>
+                      <div className="flex gap-2"><Input type="url" value={pf.instagram_url} onChange={(e) => setPf({ ...pf, instagram_url: e.target.value })} placeholder="instagram.com/ma-boutique" />
+                        {pf.instagram_url && <Button type="button" variant="outline" size="icon" asChild><a href={normalizeSocialUrl(pf.instagram_url) ?? undefined} target="_blank" rel="noreferrer" aria-label="Ouvrir Instagram"><ExternalLink className="h-4 w-4" /></a></Button>}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Page Facebook</Label>
+                      <div className="flex gap-2"><Input type="url" value={pf.facebook_url} onChange={(e) => setPf({ ...pf, facebook_url: e.target.value })} placeholder="facebook.com/ma-boutique" />
+                        {pf.facebook_url && <Button type="button" variant="outline" size="icon" asChild><a href={normalizeSocialUrl(pf.facebook_url) ?? undefined} target="_blank" rel="noreferrer" aria-label="Ouvrir Facebook"><ExternalLink className="h-4 w-4" /></a></Button>}
+                      </div>
+                    </div>
+                    <div><Label>{t("dashboard.creator.tiktok")}</Label><Input value={pf.tiktok_url} onChange={(e) => setPf({ ...pf, tiktok_url: e.target.value })} placeholder="tiktok.com/@ma-boutique" /></div>
+                  </div>
                 </div>
                 <Button onClick={saveProfile} disabled={savingProfile} className="gradient-warm text-primary-foreground">
                   {savingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -692,14 +721,19 @@ export default function CreatorDashboard() {
                     </div>
                     <CardContent className="space-y-2 p-4">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold leading-tight">{p.name}</h3>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold leading-tight">{p.name}</h3>
+                          <Badge variant={p.is_published ? "default" : "secondary"} className="text-[10px]">
+                            {p.is_published ? "Publié" : "Brouillon"}
+                          </Badge>
+                        </div>
                         {p.is_eco && <Leaf className="h-4 w-4 shrink-0 text-green-600" />}
                       </div>
                       {p.discount_percentage && p.discount_percentage > 0 ? (
                         <div className="flex items-center gap-2">
                           {/* 1. Le nouveau prix calculé et soldé */}
                           <span className="text-sm font-bold text-red-600">
-                            {(p.price * (1 - p.discount_percentage / 100)).toFixed(3)} TND
+                            {(Number(p.price) * (1 - p.discount_percentage / 100)).toFixed(3)} TND
                           </span>
                           {/* 2. L'ancien prix barré */}
                           <span className="text-xs text-muted-foreground line-through">

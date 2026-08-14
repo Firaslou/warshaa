@@ -238,6 +238,7 @@ search_terms must include useful synonyms across the user's language and French 
       shouldSearchProducts
         ? supabase.from("products")
             .select("id,name,description,price,currency,images,category,in_stock,is_eco,delivery_available,delivery_fee,discount_percentage,startups!inner(id,name,slug,tagline,description,logo_url,category,categories,city,delegation,status)")
+            .eq("is_published", true)
             .eq("startups.status", "approved")
             .limit(250)
         : Promise.resolve({ data: [], error: null }),

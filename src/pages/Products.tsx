@@ -103,6 +103,7 @@ export default function Products() {
       .select(
         "id,name,description,price,discount_percentage,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)"
       )
+      .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(150);
 

@@ -30,6 +30,7 @@ export default defineTool({
       .from("products")
       .select("id,name,description,price,image_url")
       .eq("startup_id", startup.id)
+      .eq("is_published", true)
       .limit(50);
     const payload = { ...startup, products: products ?? [] };
     return {

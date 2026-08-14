@@ -408,6 +408,7 @@ export type Database = {
           images: string[]
           in_stock: boolean
           is_eco: boolean
+          is_published: boolean
           last_stock_check: string | null
           name: string
           price: number | null
@@ -431,6 +432,7 @@ export type Database = {
           images?: string[]
           in_stock?: boolean
           is_eco?: boolean
+          is_published?: boolean
           last_stock_check?: string | null
           name: string
           price?: number | null
@@ -454,6 +456,7 @@ export type Database = {
           images?: string[]
           in_stock?: boolean
           is_eco?: boolean
+          is_published?: boolean
           last_stock_check?: string | null
           name?: string
           price?: number | null

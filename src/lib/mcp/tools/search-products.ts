@@ -23,6 +23,7 @@ export default defineTool({
     const { data, error } = await client
       .from("products")
       .select("id,name,description,price,image_url,startup_id")
+      .eq("is_published", true)
       .or(`name.ilike.${q},description.ilike.${q}`)
       .limit(limit ?? 20);
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };

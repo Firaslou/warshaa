@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
     const { data: products } = await supabase
       .from("products")
       .select("id,name,description,category,images,startup_id,startups!inner(status)")
+      .eq("is_published", true)
       .eq("startups.status", "approved")
       .limit(300);
 
@@ -110,6 +111,7 @@ Deno.serve(async (req) => {
         .from("products")
         .select("id,name,description,price,currency,images,category,startup_id,startups!inner(name,slug,status)")
         .in("id", exactMatchIds)
+        .eq("is_published", true)
         .eq("startups.status", "approved");
       const exactById = new Map((exactProducts ?? []).map((product) => [product.id, product]));
       const exactResults = exactMatchIds.map((id) => exactById.get(id)).filter(Boolean);
@@ -185,6 +187,7 @@ Deno.serve(async (req) => {
         .from("products")
         .select("id,name,description,price,currency,images,category,startup_id,startups!inner(name,slug,status)")
         .in("id", ids)
+        .eq("is_published", true)
         .eq("startups.status", "approved");
       const map = new Map((prods ?? []).map((p) => [p.id, p]));
       results = ids.map((id) => map.get(id)).filter(Boolean);

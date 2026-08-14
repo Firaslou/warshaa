@@ -84,6 +84,7 @@ const Index = () => {
       const { data: recentProducts } = await supabase
         .from("products")
         .select("id, name, images, price, currency, category, created_at, startups:startup_id(name, slug, logo_url, city)")
+        .eq("is_published", true)
         .gte("created_at", weekAgo)
         .order("created_at", { ascending: false })
         .limit(24);

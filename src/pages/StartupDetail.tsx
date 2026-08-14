@@ -107,7 +107,7 @@ export default function StartupDetail() {
 
         // 2. On récupère les VRAIS produits de la DB en utilisant startup_id OU startup_slug !
         const [{ data: prods }, { data: revs }] = await Promise.all([
-          supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).order("created_at", { ascending: false }),
+          supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).eq("is_published", true).order("created_at", { ascending: false }),
           supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
         ]);
         

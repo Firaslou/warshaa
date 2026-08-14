@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, Video, X, Leaf, AlertTriangle, Loader2, Bot } from "lucide-react";
+import { Camera, Video, X, Leaf, AlertTriangle, Loader2, Bot, ArrowLeft, ArrowRight, Eye, Save } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,32 @@ interface Props {
 
 const PRICE_REGEX = /^[0-9]+([.,][0-9]{1,3})?$/;
 
+const compressImage = async (file: File): Promise<File> => {
+  if (file.type === "image/svg+xml" || file.type === "image/gif") return file;
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = reject;
+      element.src = imageUrl;
+    });
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.webp`, { type: "image/webp" });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+};
+
 export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, product, onSaved }: Props) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -39,6 +65,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
   const [saving, setSaving] = useState(false);
   const [keywords, setKeywords] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -99,10 +126,22 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       toast({ title: t("productForm.errImage"), variant: "destructive" });
       return;
     }
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Image trop volumineuse", description: "La taille maximale est de 15 Mo.", variant: "destructive" });
+      return;
+    }
     setUploading(true);
-    const ext = file.name.split(".").pop();
+    let optimizedFile = file;
+    try {
+      optimizedFile = await compressImage(file);
+    } catch {
+      // Fall back to the original image if this browser cannot compress it.
+    }
+    const ext = optimizedFile.name.split(".").pop();
     const path = `${ownerId}/${startupId}/img-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    const { error } = await supabase.storage.from("product-images").upload(path, optimizedFile, {
+      contentType: optimizedFile.type,
+    });
     if (error) {
       toast({ title: error.message, variant: "destructive" });
     } else {
@@ -110,6 +149,16 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setImages((p) => [...p, data.publicUrl]);
     }
     setUploading(false);
+  };
+
+  const moveImage = (from: number, to: number) => {
+    if (to < 0 || to >= images.length) return;
+    setImages((current) => {
+      const next = [...current];
+      const [image] = next.splice(from, 1);
+      next.splice(to, 0, image);
+      return next;
+    });
   };
 
   const uploadVideo = async (file: File) => {
@@ -149,17 +198,22 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     setUploading(false);
   };
 
-  const submit = async () => {
+  const missingPublicationFields = [
+    !name.trim() ? "nom" : null,
+    !description.trim() ? "description" : null,
+    !category ? "catégorie" : null,
+    !priceStr.trim() || !PRICE_REGEX.test(priceStr.trim()) || !(parseFloat(priceStr.replace(",", ".")) > 0) ? "prix valide" : null,
+    images.length === 0 ? "photo" : null,
+  ].filter(Boolean) as string[];
+
+  const submit = async (publish: boolean) => {
     if (!name.trim()) return toast({ title: t("productForm.errName"), variant: "destructive" });
-    if (!description.trim()) return toast({ title: t("productForm.errDesc"), variant: "destructive" });
-    if (!category) return toast({ title: t("productForm.errCategory"), variant: "destructive" });
-    if (!priceStr.trim()) return toast({ title: t("productForm.errPriceReq"), variant: "destructive" });
-    if (!PRICE_REGEX.test(priceStr.trim())) {
-      return toast({ title: t("productForm.errPriceInvalid"), description: t("productForm.errPriceInvalidDesc"), variant: "destructive" });
+    if (publish && missingPublicationFields.length > 0) {
+      return toast({ title: "Produit incomplet", description: `Ajoutez : ${missingPublicationFields.join(", ")}.`, variant: "destructive" });
     }
-    const price = parseFloat(priceStr.replace(",", "."));
-    if (!(price > 0)) return toast({ title: t("productForm.errPriceZero"), variant: "destructive" });
-    if (images.length === 0) return toast({ title: t("productForm.errPhotoReq"), variant: "destructive" });
+    const price = priceStr.trim() && PRICE_REGEX.test(priceStr.trim())
+      ? parseFloat(priceStr.replace(",", "."))
+      : null;
     let fee: number | null = null;
     if (deliveryAvailable && deliveryFee.trim()) {
       if (!PRICE_REGEX.test(deliveryFee.trim())) {
@@ -174,14 +228,15 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     const payload = {
       startup_id: startupId,
       name: name.trim(),
-      description: description.trim(),
-      category,
+      description: description.trim() || null,
+      category: category || null,
       price,
       images,
       videos,
       delivery_available: deliveryAvailable,
       delivery_fee: fee,
       is_eco: isEco,
+      is_published: publish,
       discount_percentage: discountPercentage || 0, // <-- LE TUYAU EST BRANCHÉ ICI !
     };
 
@@ -191,11 +246,10 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
 
     setSaving(false);
     if (error) return toast({ title: error.message, variant: "destructive" });
-    toast({ title: product ? t("productForm.okUpdated") : t("productForm.okPublished") });
+    toast({ title: publish ? (product ? t("productForm.okUpdated") : t("productForm.okPublished")) : "Brouillon enregistré" });
     onSaved();
     onOpenChange(false);
     
-    window.location.reload();
   };
 
   return (
@@ -275,6 +329,13 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
             <strong>{t("productForm.priceWarning1")}</strong> {t("productForm.priceWarning2")} <strong>{t("productForm.priceWarning3")}</strong>.
           </div>
 
+          {missingPublicationFields.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-4 w-4" /> Avant de publier</div>
+              <p className="mt-1">Il manque : {missingPublicationFields.join(", ")}. Vous pouvez quand même enregistrer ce produit comme brouillon.</p>
+            </div>
+          )}
+
           <div className="rounded-lg border p-3">
             <label className="flex cursor-pointer items-center gap-2">
               <Checkbox checked={deliveryAvailable} onCheckedChange={(v) => setDeliveryAvailable(!!v)} />
@@ -305,8 +366,9 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
             <p className="mt-1 text-xs text-muted-foreground">{t("productForm.photosHint")}</p>
             <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
               {images.map((url, i) => (
-                <div key={url} className="relative">
+                <div key={url} className="group relative">
                   <img src={url} alt="" className="h-20 w-full rounded-md border object-cover" />
+                  {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">Principale</span>}
                   <button
                     type="button"
                     onClick={() => setImages((p) => p.filter((_, idx) => idx !== i))}
@@ -314,6 +376,10 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
                   >
                     <X className="h-3 w-3" />
                   </button>
+                  <div className="absolute bottom-1 right-1 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    <button type="button" disabled={i === 0} onClick={() => moveImage(i, i - 1)} className="rounded bg-background/90 p-1 disabled:opacity-30" aria-label="Déplacer l’image à gauche"><ArrowLeft className="h-3 w-3" /></button>
+                    <button type="button" disabled={i === images.length - 1} onClick={() => moveImage(i, i + 1)} className="rounded bg-background/90 p-1 disabled:opacity-30" aria-label="Déplacer l’image à droite"><ArrowRight className="h-3 w-3" /></button>
+                  </div>
                 </div>
               ))}
               {images.length < 5 && (
@@ -368,12 +434,43 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("productForm.cancel")}</Button>
-          <Button onClick={submit} disabled={saving || uploading} className="gradient-warm text-primary-foreground">
-            {saving ? t("productForm.saving") : product ? t("productForm.update") : t("productForm.publish")}
+          <Button variant="outline" onClick={() => setPreviewOpen(true)} disabled={uploading}>
+            <Eye className="mr-2 h-4 w-4" /> Aperçu
+          </Button>
+          {!product?.is_published && (
+            <Button variant="outline" onClick={() => submit(false)} disabled={saving || uploading || !name.trim()}>
+              <Save className="mr-2 h-4 w-4" /> {saving ? t("productForm.saving") : "Enregistrer le brouillon"}
+            </Button>
+          )}
+          <Button onClick={() => submit(true)} disabled={saving || uploading} className="gradient-warm text-primary-foreground">
+            {saving ? t("productForm.saving") : product?.is_published ? t("productForm.update") : t("productForm.publish")}
           </Button>
         </DialogFooter>
+
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-md bg-background">
+            <DialogHeader><DialogTitle className="font-serif">Aperçu du produit</DialogTitle></DialogHeader>
+            <div className="overflow-hidden rounded-2xl border bg-card">
+              <div className="aspect-square bg-muted">
+                {images[0] ? <img src={images[0]} alt={name || "Aperçu"} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-muted-foreground"><Camera className="h-10 w-10" /></div>}
+              </div>
+              <div className="space-y-3 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-serif text-2xl font-bold">{name || "Nom du produit"}</h3>
+                  <span className="shrink-0 font-semibold text-primary">{priceStr || "—"} TND</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{description || "La description du produit apparaîtra ici."}</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {category && <span className="rounded-full bg-muted px-2 py-1">{t(`categoriesExt.${category}`)}</span>}
+                  {deliveryAvailable && <span className="rounded-full bg-muted px-2 py-1">Livraison disponible</span>}
+                  {isEco && <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">Écoresponsable</span>}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
