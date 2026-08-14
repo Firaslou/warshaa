@@ -86,7 +86,7 @@ export function Header() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-5 xl:flex">{links}</nav>
+        <nav className="hidden items-center gap-3 lg:flex xl:gap-4 [&_a]:text-xs xl:[&_a]:text-sm">{links}</nav>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <span className="flex items-center gap-1 sm:gap-1.5">
@@ -96,9 +96,9 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 w-9 gap-0 rounded-xl bg-clay-mist p-0 text-clay-deep xl:w-auto xl:gap-2 xl:bg-transparent xl:px-3 xl:text-foreground">
+                <Button variant="ghost" size="sm" className="h-9 w-9 gap-0 rounded-xl bg-clay-mist p-0 text-clay-deep lg:bg-transparent lg:text-foreground 2xl:w-auto 2xl:gap-2 2xl:px-3">
                   <UserIcon className="h-4 w-4" />
-                  <span className="hidden xl:inline">{user.email?.split("@")[0]}</span>
+                  <span className="hidden 2xl:inline">{user.email?.split("@")[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover w-56">
@@ -131,7 +131,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="hidden gap-2 xl:flex">
+            <div className="hidden gap-2 lg:flex">
               <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
                 {t("nav.login")}
               </Button>
@@ -143,7 +143,7 @@ export function Header() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-clay-mist text-clay-deep xl:hidden">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-clay-mist text-clay-deep lg:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

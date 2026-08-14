@@ -26,9 +26,9 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-9 w-9 gap-0 rounded-xl bg-clay-mist p-0 text-clay-deep xl:w-auto xl:gap-2 xl:bg-transparent xl:px-3 xl:text-foreground">
+        <Button variant="ghost" size="sm" className="h-9 w-9 gap-0 rounded-xl bg-clay-mist p-0 text-clay-deep lg:bg-transparent lg:text-foreground 2xl:w-auto 2xl:gap-2 2xl:px-3">
           <Globe className="h-4 w-4" />
-          <span className="hidden xl:inline">{current.flag} {current.name}</span>
+          <span className="hidden 2xl:inline">{current.flag} {current.name}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-popover">
