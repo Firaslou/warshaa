@@ -15,6 +15,7 @@ export interface StartupCardData {
   city?: string | null;
   category?: string | null;
   logo_url?: string | null;
+  cover_url?: string | null;
   badge: "new" | "verified" | "certified";
   likes_count?: number;
   supporters_count?: number;
