@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 interface Startup {
   id: string;
+  owner_id?: string | null;
   slug: string;
   name: string;
   tagline?: string | null;
