@@ -81,13 +81,23 @@ const Index = () => {
 
       // Display the actual products published during the last seven days.
       const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-      const { data: recentProducts } = await supabase
+      let { data: recentProducts, error: recentProductsError } = await supabase
         .from("products")
         .select("id, name, images, price, currency, category, created_at, startups:startup_id(name, slug, logo_url, city)")
         .eq("is_published", true)
         .gte("created_at", weekAgo)
         .order("created_at", { ascending: false })
         .limit(24);
+      if (recentProductsError && /is_published/i.test(recentProductsError.message)) {
+        const legacyResult = await supabase
+          .from("products")
+          .select("id, name, images, price, currency, category, created_at, startups:startup_id(name, slug, logo_url, city)")
+          .gte("created_at", weekAgo)
+          .order("created_at", { ascending: false })
+          .limit(24);
+        recentProducts = legacyResult.data;
+        recentProductsError = legacyResult.error;
+      }
       setNewThisWeek((recentProducts ?? []) as unknown as NewThisWeekProduct[]);
 
       // Prochain live (bannière mobile)

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
 
   const logAdminAction = async (action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) => {
     if (!user) return;
-    await supabase.from("admin_audit_logs").insert({ admin_id: user.id, action, entity_type: entityType, entity_id: entityId, details });
+    await supabase.from("admin_audit_logs").insert({ admin_id: user.id, action, entity_type: entityType, entity_id: entityId, details: details as Json });
   };
 
   const fetchAll = async () => {

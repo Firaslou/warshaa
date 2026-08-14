@@ -31,7 +31,7 @@ export default function LiveCalendar() {
 
   const load = async () => {
     const { data } = await (supabase.from("live_events" as any) as any).select("*").order("scheduled_at", { ascending: true });
-    const rows = data ?? []; const startupIds = [...new Set(rows.map((event: any) => event.startup_id))];
+    const rows = data ?? []; const startupIds = [...new Set<string>(rows.map((event: any) => String(event.startup_id)).filter(Boolean))];
     const { data: startups } = startupIds.length ? await supabase.from("startups").select("id, name, slug, logo_url, owner_id, status").in("id", startupIds).eq("status", "approved") : { data: [] };
     const startupsById = new Map((startups ?? []).map((startup) => [startup.id, startup]));
     setEvents(rows.filter((event: any) => startupsById.has(event.startup_id)).map((event: any) => ({ ...event, startups: startupsById.get(event.startup_id) })) as LiveEvent[]);

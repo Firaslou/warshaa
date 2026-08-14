@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
 import { cn } from "@/lib/utils";
+import { blobToFile, compressImage } from "@/lib/image-utils";
 
 const STEPS = ["step1", "step2", "step3", "step4"] as const;
 
@@ -127,21 +128,30 @@ export default function Apply() {
     }
 
     setUploadingField(field + (field === "proof_photos" ? `-${form.proof_photos.length}` : ""));
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/${field}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("applications").upload(path, file, { upsert: false });
-    if (error) {
+    try {
+      let uploadFile = file;
+      if (!file.type.startsWith("video/")) {
+        const compressedBlob = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
+        if (compressedBlob.size < file.size) uploadFile = blobToFile(compressedBlob, file.name);
+      }
+      const ext = uploadFile.name.split(".").pop() || (uploadFile.type === "image/webp" ? "webp" : "jpg");
+      const path = `${user.id}/${field}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("applications").upload(path, uploadFile, {
+        upsert: false,
+        contentType: uploadFile.type,
+      });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("applications").getPublicUrl(path);
+      if (field === "proof_photos") {
+        setForm((f) => ({ ...f, proof_photos: [...f.proof_photos, data.publicUrl] }));
+      } else {
+        setForm((f) => ({ ...f, [field]: data.publicUrl }));
+      }
+    } catch (error: any) {
+      toast({ title: error.message ?? "Échec de l’envoi du fichier", variant: "destructive" });
+    } finally {
       setUploadingField(null);
-      toast({ title: error.message, variant: "destructive" });
-      return;
     }
-    const { data } = supabase.storage.from("applications").getPublicUrl(path);
-    if (field === "proof_photos") {
-      setForm((f) => ({ ...f, proof_photos: [...f.proof_photos, data.publicUrl] }));
-    } else {
-      setForm((f) => ({ ...f, [field]: data.publicUrl }));
-    }
-    setUploadingField(null);
   };
 
   const delegations = form.city ? TUNISIA_DELEGATIONS[form.city as keyof typeof TUNISIA_DELEGATIONS] ?? [] : [];

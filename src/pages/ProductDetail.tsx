@@ -83,6 +83,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [startup, setStartup] = useState<StartupLite | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
@@ -114,6 +115,7 @@ export default function ProductDetail() {
     if (!id || authLoading) return;
     (async () => {
       setLoading(true);
+      setSimilarProducts([]);
       // Try demo first
       const demo = getDemoProductById(id);
       if (demo) {
@@ -178,6 +180,25 @@ export default function ProductDetail() {
           .eq("id", (prod as any).startup_id)
           .maybeSingle();
         if (s) setStartup(s as StartupLite);
+
+        if ((prod as Product).category) {
+          let similarResult = await supabase
+            .from("products")
+            .select("id,startup_id,name,description,price,currency,images,category,discount_percentage")
+            .eq("category", (prod as Product).category!)
+            .neq("id", id)
+            .eq("is_published", true)
+            .limit(4);
+          if (similarResult.error && /is_published/i.test(similarResult.error.message)) {
+            similarResult = await supabase
+              .from("products")
+              .select("id,startup_id,name,description,price,currency,images,category,discount_percentage")
+              .eq("category", (prod as Product).category!)
+              .neq("id", id)
+              .limit(4);
+          }
+          setSimilarProducts((similarResult.data as Product[]) ?? []);
+        }
 
         // Record a real visit for signed-in and anonymous users. The server
         // deduplicates the same visitor/product for 30 minutes and ignores
@@ -646,6 +667,55 @@ export default function ProductDetail() {
             )}
           </div>
         </section>
+
+        {/* SIMILAR PRODUCTS */}
+        {similarProducts.length > 0 && (
+          <section className="mx-auto mt-16 max-w-5xl">
+            <h2 className="mb-6 font-serif text-2xl font-bold">Vous pourriez aussi aimer</h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {similarProducts.map((p) => {
+                const hasDiscount = p.discount_percentage && p.discount_percentage > 0;
+                const finalPrice = hasDiscount && p.price
+                  ? p.price - (p.price * (p.discount_percentage / 100))
+                  : p.price;
+
+                return (
+                  <Link key={p.id} to={`/product/${p.id}`} className="group block overflow-hidden rounded-xl bg-card shadow-sm hover:shadow-md transition">
+                    <div className="relative aspect-square overflow-hidden bg-muted">
+                      {hasDiscount && (
+                        <div className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white">
+                          -{p.discount_percentage}%
+                        </div>
+                      )}
+                      {p.images?.[0] ? (
+                        <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="truncate font-semibold group-hover:text-primary">{p.name}</h3>
+                      {p.price && (
+                        <div className="mt-1 flex items-baseline gap-1">
+                          <span className="font-bold text-primary">
+                            {finalPrice?.toFixed(3)} {p.currency}
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[10px] text-muted-foreground line-through">
+                              {p.price.toFixed(3)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* COMMENTS */}
         <section id="comments" className="mx-auto mt-12 max-w-3xl scroll-mt-24">

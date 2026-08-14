@@ -11,6 +11,7 @@ import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { blobToFile, compressImage } from "@/lib/image-utils";
 
 interface Props {
   open: boolean;
@@ -22,32 +23,6 @@ interface Props {
 }
 
 const PRICE_REGEX = /^[0-9]+([.,][0-9]{1,3})?$/;
-
-const compressImage = async (file: File): Promise<File> => {
-  if (file.type === "image/svg+xml" || file.type === "image/gif") return file;
-  const imageUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const element = new Image();
-      element.onload = () => resolve(element);
-      element.onerror = reject;
-      element.src = imageUrl;
-    });
-    const maxSide = 1800;
-    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const context = canvas.getContext("2d");
-    if (!context) return file;
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.82));
-    if (!blob || blob.size >= file.size) return file;
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.webp`, { type: "image/webp" });
-  } finally {
-    URL.revokeObjectURL(imageUrl);
-  }
-};
 
 export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, product, onSaved }: Props) {
   const { t } = useTranslation();
@@ -133,7 +108,8 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     setUploading(true);
     let optimizedFile = file;
     try {
-      optimizedFile = await compressImage(file);
+      const compressedBlob = await compressImage(file, { maxWidth: 1800, quality: 0.82 });
+      optimizedFile = compressedBlob.size < file.size ? blobToFile(compressedBlob, file.name) : file;
     } catch {
       // Fall back to the original image if this browser cannot compress it.
     }
@@ -240,9 +216,17 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       discount_percentage: discountPercentage || 0, // <-- LE TUYAU EST BRANCHÉ ICI !
     };
 
-    const { error } = product
+    let { error } = product
       ? await supabase.from("products").update(payload).eq("id", product.id)
       : await supabase.from("products").insert(payload);
+
+    if (error && publish && /is_published/i.test(error.message)) {
+      const { is_published: _isPublished, ...legacyPayload } = payload;
+      const legacyResult = product
+        ? await supabase.from("products").update(legacyPayload).eq("id", product.id)
+        : await supabase.from("products").insert(legacyPayload);
+      error = legacyResult.error;
+    }
 
     setSaving(false);
     if (error) return toast({ title: error.message, variant: "destructive" });

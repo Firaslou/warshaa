@@ -12,6 +12,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { StartupCard, StartupCardData } from "@/components/StartupCard";
 import { SmartSearchInput } from "@/components/search/SmartSearchInput";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CreatorCardSkeleton } from "@/components/skeletons/CreatorCardSkeleton";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS, type Governorate } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
 import { fuzzyMatch } from "@/lib/search-utils";
@@ -291,9 +292,10 @@ export default function Creators() {
         )}
 
         {loading ? (
-          <div className="py-20 text-center text-sm text-muted-foreground">
-            <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
-            {t("common.loading")}
+          <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <CreatorCardSkeleton key={i} />
+            ))}
           </div>
         ) : loadError ? (
           <div className="py-20 text-center">

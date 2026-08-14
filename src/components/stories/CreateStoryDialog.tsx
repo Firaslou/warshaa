@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ImagePlus, X, Send, Camera, Video as VideoIcon, Type, RefreshCw, Circle, Square, SwitchCamera } from "lucide-react";
+import { blobToFile, compressImage } from "@/lib/image-utils";
 
 interface Props {
   open: boolean;
@@ -130,15 +131,20 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
           media_type: "text",
           caption: caption.trim(),
           background: TEXT_BGS[bgIdx],
-        } as any);
+        });
         if (error) throw error;
       } else {
         if (!file) { toast.error("Prends une photo ou une vidéo"); setUploading(false); return; }
         const isVideo = file.type.startsWith("video/");
-        const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+        let uploadFile = file;
+        if (!isVideo) {
+          const compressedBlob = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
+          if (compressedBlob.size < file.size) uploadFile = blobToFile(compressedBlob, file.name);
+        }
+        const ext = uploadFile.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
         const path = `${userId}/stories/${startupId}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("startup-assets").upload(path, file, {
-          cacheControl: "3600", upsert: false, contentType: file.type,
+        const { error: upErr } = await supabase.storage.from("startup-assets").upload(path, uploadFile, {
+          cacheControl: "3600", upsert: false, contentType: uploadFile.type,
         });
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("startup-assets").getPublicUrl(path);

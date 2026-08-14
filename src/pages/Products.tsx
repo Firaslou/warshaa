@@ -16,9 +16,11 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS, type Governorate } from "@/lib/tunisia";
 import { SmartSearchInput } from "@/components/search/SmartSearchInput";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ProductCardSkeleton } from "@/components/skeletons/ProductCardSkeleton";
 import { fuzzyMatch } from "@/lib/search-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface ProductRow {
   id: string;
@@ -37,6 +39,14 @@ interface ProductRow {
   startups: { slug: string; name: string; whatsapp_number: string | null; city: string | null } | null;
   isDemo?: boolean;
 }
+
+const AVAILABILITY_RANK: Record<string, number> = { in_stock: 0, arriving: 1, out_of_stock: 2 };
+
+const effectivePrice = (product: ProductRow) => {
+  if (product.price == null) return null;
+  const discount = product.discount_percentage ?? 0;
+  return discount > 0 ? product.price * (1 - discount / 100) : product.price;
+};
 
 export default function Products() {
   const { t } = useTranslation();
@@ -59,6 +69,8 @@ export default function Products() {
   const delegation = params.get("del") ?? "all";
   const category = params.get("category") ?? "all";
   const sort = params.get("sort") ?? "relevance";
+  const minPrice = params.get("minPrice") ?? "";
+  const maxPrice = params.get("maxPrice") ?? "";
 
   const updateParam = (key: string, value: string) => {
     setParams(
@@ -94,18 +106,41 @@ export default function Products() {
   const setDelegation = (val: string) => updateParam("del", val);
   const setCategory = (val: string) => updateParam("category", val);
   const setSort = (val: string) => updateParam("sort", val);
+  const setPriceRange = (min: string, max: string) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (min) next.set("minPrice", min);
+        else next.delete("minPrice");
+
+        if (max) next.set("maxPrice", max);
+        else next.delete("maxPrice");
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const loadProducts = async () => {
     setLoading(true);
     setLoadError(null);
-    const { data, error } = await supabase
+    const productFields = "id,name,description,price,discount_percentage,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)";
+    let { data, error } = await supabase
       .from("products")
-      .select(
-        "id,name,description,price,discount_percentage,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)"
-      )
+      .select(productFields)
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(150);
+
+    if (error && /is_published/i.test(error.message)) {
+      const legacyResult = await supabase
+        .from("products")
+        .select(productFields)
+        .order("created_at", { ascending: false })
+        .limit(150);
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
 
     if (error) {
       setLoadError(error.message);
@@ -215,16 +250,16 @@ export default function Products() {
         const label = t(`categoriesExt.${category}`);
         if (p.category !== label && p.category !== category) return false;
       }
+
+      const price = effectivePrice(p);
+      if (price !== null) {
+        if (minPrice && price < parseFloat(minPrice)) return false;
+        if (maxPrice && price > parseFloat(maxPrice)) return false;
+      }
+
       return true;
     });
-  }, [products, search, aiFilters, governorate, delegation, category, t]);
-
-  const availabilityRank: Record<string, number> = { in_stock: 0, arriving: 1, out_of_stock: 2 };
-  const effectivePrice = (p: ProductRow) => {
-    if (p.price == null) return null;
-    const d = p.discount_percentage ?? 0;
-    return d > 0 ? p.price * (1 - d / 100) : p.price;
-  };
+  }, [products, search, aiFilters, governorate, delegation, category, minPrice, maxPrice, t]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -240,14 +275,14 @@ export default function Products() {
         case "price_desc":
           return (effectivePrice(b) ?? -Infinity) - (effectivePrice(a) ?? -Infinity);
         case "in_stock":
-          return (availabilityRank[a.availability] ?? 9) - (availabilityRank[b.availability] ?? 9);
+          return (AVAILABILITY_RANK[a.availability] ?? 9) - (AVAILABILITY_RANK[b.availability] ?? 9);
         default:
           return (likes[b.id] ?? 0) + (views[b.id] ?? 0) - ((likes[a.id] ?? 0) + (views[a.id] ?? 0));
       }
     });
   }, [filtered, sort, likes, views]);
 
-  const hasFilters = search || governorate !== "all" || delegation !== "all" || category !== "all" || aiFilters;
+  const hasFilters = search || governorate !== "all" || delegation !== "all" || category !== "all" || minPrice || maxPrice || aiFilters;
   const resetFilters = () => {
     setParams({}, { replace: true });
     setAiFilters(null);
@@ -326,6 +361,27 @@ export default function Products() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Price Range Filter */}
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              placeholder="Min TND"
+              value={minPrice}
+              onChange={(e) => setPriceRange(e.target.value, maxPrice)}
+              className="h-11 rounded-2xl text-sm"
+              min="0"
+            />
+            <span className="text-muted-foreground">-</span>
+            <Input
+              type="number"
+              placeholder="Max TND"
+              value={maxPrice}
+              onChange={(e) => setPriceRange(minPrice, e.target.value)}
+              className="h-11 rounded-2xl text-sm"
+              min="0"
+            />
+          </div>
         </div>
 
         {/* AI Filters pills */}
@@ -404,9 +460,10 @@ export default function Products() {
 
         {/* Products Grid / States */}
         {loading ? (
-          <div className="py-20 text-center text-sm text-muted-foreground">
-            <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
-            {t("common.loading")}
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
           </div>
         ) : loadError ? (
           <div className="py-16 text-center">

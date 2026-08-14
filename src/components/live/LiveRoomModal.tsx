@@ -162,8 +162,16 @@ export function LiveRoomModal({ open, onOpenChange, liveEventId, startupId, star
   useEffect(() => {
     if (!open || !startupId) return;
     void (async () => {
-      const { data } = await supabase.from("products").select("id, name, price, discount_percentage, currency, images, description, startup_id").eq("startup_id", startupId).eq("is_published", true).limit(20);
-      if (data) { setCreatorProducts(data as PinnedProduct[]); if (data.length && !pinnedProduct) setPinnedProduct(data[0] as PinnedProduct); }
+      let { data, error } = await supabase.from("products").select("id, name, price, discount_percentage, currency, images, description, startup_id").eq("startup_id", startupId).eq("is_published", true).limit(20);
+      if (error && /is_published/i.test(error.message)) {
+        const legacyResult = await supabase.from("products").select("id, name, price, discount_percentage, currency, images, description, startup_id").eq("startup_id", startupId).limit(20);
+        data = legacyResult.data;
+        error = legacyResult.error;
+      }
+      if (data) {
+        setCreatorProducts(data as PinnedProduct[]);
+        setPinnedProduct((current) => current ?? (data[0] as PinnedProduct | undefined) ?? null);
+      }
     })();
   }, [open, startupId]);
 

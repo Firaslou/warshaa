@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { blobToFile, generateThumbnail } from "@/lib/image-utils";
 
 interface Message {
   id: string;
@@ -197,11 +198,17 @@ export function PrivateChatDialog({
     const attachmentUrls: string[] = [];
     try {
       for (const file of pendingFiles) {
-        const ext = file.name.split(".").pop() || "jpg";
+        const compressedBlob = await generateThumbnail(file, 1080);
+        if (!compressedBlob) {
+            toast.error(`Erreur de compression pour ${file.name}`);
+            continue;
+        }
+        const compressedFile = compressedBlob.size < file.size ? blobToFile(compressedBlob, file.name) : file;
+        const ext = compressedFile.name.split(".").pop() || "jpg";
         const path = `${conversationId}/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("chat-attachments")
-          .upload(path, file, { contentType: file.type, upsert: false });
+          .upload(path, compressedFile, { contentType: compressedFile.type, upsert: false });
         if (upErr) throw upErr;
         const { data: signed } = await supabase.storage
           .from("chat-attachments")

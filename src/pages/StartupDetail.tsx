@@ -77,6 +77,7 @@ export default function StartupDetail() {
   const { user } = useAuth();
   const [startup, setStartup] = useState<Startup | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [similarCreators, setSimilarCreators] = useState<Startup[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
   const [isSupporter, setIsSupporter] = useState(false);
@@ -96,6 +97,7 @@ export default function StartupDetail() {
   useEffect(() => {
     if (!slug) return;
     (async () => {
+      setSimilarCreators([]);
       // 1. On cherche la boutique dans la vraie base de données
       const { data: s } = await supabase.from("startups").select("*").eq("slug", slug).maybeSingle();
       const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
@@ -106,13 +108,27 @@ export default function StartupDetail() {
         setIsDemo(false);
 
         // 2. On récupère les VRAIS produits de la DB en utilisant startup_id OU startup_slug !
-        const [{ data: prods }, { data: revs }] = await Promise.all([
-          supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).eq("is_published", true).order("created_at", { ascending: false }),
-          supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
-        ]);
+        let productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).eq("is_published", true).order("created_at", { ascending: false });
+        if (productResult.error && /is_published/i.test(productResult.error.message)) {
+          productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).order("created_at", { ascending: false });
+        }
+        const { data: revs } = await supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false });
+        const prods = productResult.data;
         
         setProducts((prods as Product[]) ?? []);
         setReviews((revs as Review[]) ?? []);
+
+        // Similar Creators (same category, excluding current)
+        if (s.category) {
+          const { data: similar } = await supabase
+            .from("startups")
+            .select("*")
+            .eq("status", "approved")
+            .eq("category", s.category)
+            .neq("id", s.id)
+            .limit(4);
+          if (similar) setSimilarCreators(similar as Startup[]);
+        }
         
         const rIds = Array.from(new Set(((revs as Review[]) ?? []).map((r) => r.user_id)));
         if (rIds.length) {
@@ -279,7 +295,16 @@ export default function StartupDetail() {
     if (target) requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "center" }));
   }, [reviews]);
 
-  if (loading) return <PageLayout><div className="container py-20 text-center">{t("common.loading")}</div></PageLayout>;
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="container py-20 text-center">
+          <div className="mx-auto mb-4 h-32 w-full max-w-3xl animate-pulse rounded-2xl bg-muted" />
+          <div className="mx-auto h-8 w-64 animate-pulse rounded bg-muted" />
+        </div>
+      </PageLayout>
+    );
+  }
   if (!startup) return <PageLayout><div className="container py-20 text-center">{t("notFound.title")}</div></PageLayout>;
 
   const badgeMeta = {
@@ -636,6 +661,25 @@ export default function StartupDetail() {
               </div>
             )}
           </section>
+
+          {similarCreators.length > 0 && (
+            <section className="mt-12">
+              <h2 className="mb-6 font-serif text-2xl font-bold">Créateurs similaires</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {similarCreators.map((creator) => (
+                  <Link key={creator.id} to={`/startup/${creator.slug}`} className="flex items-center gap-4 rounded-xl bg-card p-4 shadow-sm hover:shadow-md transition">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-muted">
+                      {creator.logo_url && <img src={creator.logo_url} alt={creator.name} className="h-full w-full object-cover" />}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground hover:text-primary">{creator.name}</h3>
+                      {creator.city && <p className="text-xs text-muted-foreground">{creator.city}</p>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="space-y-4">
