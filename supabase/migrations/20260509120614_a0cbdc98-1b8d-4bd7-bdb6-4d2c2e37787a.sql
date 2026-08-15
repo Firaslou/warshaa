@@ -64,7 +64,9 @@ REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM anon;
 -- 6. Realtime channel access control
 -- Allow authenticated users to receive only broadcasts on their own user-scoped topics
 -- (chat conversation membership and own-user notifications)
-ALTER TABLE IF EXISTS realtime.messages ENABLE ROW LEVEL SECURITY;
+-- Supabase owns this managed table and enables RLS on it by default. Calling
+-- ALTER TABLE here fails for linked projects, while policy management remains
+-- supported through migrations.
 DROP POLICY IF EXISTS "Authenticated can receive own realtime" ON realtime.messages;
 CREATE POLICY "Authenticated can receive own realtime"
   ON realtime.messages FOR SELECT

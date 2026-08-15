@@ -6,6 +6,7 @@ CREATE INDEX IF NOT EXISTS idx_products_publication
 ON public.products (is_published, created_at DESC);
 
 DROP POLICY IF EXISTS "Products of approved startups are public" ON public.products;
+DROP POLICY IF EXISTS "Published products are public and drafts are private" ON public.products;
 CREATE POLICY "Published products are public and drafts are private"
 ON public.products FOR SELECT
 USING (
