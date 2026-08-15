@@ -6,22 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
 function json(data: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed", code: "METHOD_NOT_ALLOWED" }, 405);
-
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -39,7 +33,6 @@ Deno.serve(async (req) => {
 
     let body: { liveEventId?: unknown; channel?: unknown; uid?: unknown; role?: unknown };
     try { body = await req.json(); } catch { return json({ error: "Invalid JSON request body.", code: "INVALID_JSON" }, 400); }
-
     const liveEventId = String(body.liveEventId ?? "").trim();
     const channel = String(body.channel ?? "").trim();
     if (!liveEventId || !/^[0-9a-f-]{36}$/i.test(liveEventId)) return json({ error: "A valid liveEventId is required.", code: "INVALID_LIVE_EVENT" }, 400);
@@ -51,11 +44,10 @@ Deno.serve(async (req) => {
       .select("id, startup_id, agora_channel, agora_uid, live_mode, status, startups!inner(owner_id)")
       .eq("id", liveEventId)
       .maybeSingle();
-
     if (liveError || !liveEvent) return json({ error: "Live event not found.", code: "LIVE_NOT_FOUND" }, 404);
     if (liveEvent.live_mode !== "agora") return json({ error: "This live does not use Agora.", code: "NOT_AGORA_LIVE" }, 409);
-    if (liveEvent.agora_channel && liveEvent.agora_channel !== channel) return json({ error: "Channel does not belong to this live.", code: "CHANNEL_MISMATCH" }, 403);
-    if (["ended", "cancelled"].includes(String(liveEvent.status))) return json({ error: "This live has ended.", code: "LIVE_ENDED" }, 409);
+    if (!liveEvent.agora_channel || liveEvent.agora_channel !== channel) return json({ error: "Channel does not belong to this live.", code: "CHANNEL_MISMATCH" }, 403);
+    if (!["scheduled", "live"].includes(String(liveEvent.status))) return json({ error: "This live is not available.", code: "LIVE_UNAVAILABLE" }, 409);
 
     const ownerId = (liveEvent.startups as any)?.owner_id;
     const requestedRole = body.role === "audience" ? "audience" : "host";
@@ -68,17 +60,7 @@ Deno.serve(async (req) => {
     const role = requestedRole === "audience" ? RtcRole.SUBSCRIBER : RtcRole.PUBLISHER;
     const expiresInSeconds = 2 * 60 * 60;
     const privilegeExpiredTs = Math.floor(Date.now() / 1000) + expiresInSeconds;
-
-    const tokenValue = RtcTokenBuilder.buildTokenWithUid(
-      appId,
-      appCertificate,
-      channel,
-      uid,
-      role,
-      privilegeExpiredTs,
-      privilegeExpiredTs,
-    );
-
+    const tokenValue = RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channel, uid, role, privilegeExpiredTs, privilegeExpiredTs);
     if (!tokenValue) return json({ error: "Agora token generation returned an empty token.", code: "EMPTY_TOKEN" }, 500);
     return json({ appId, channel, uid, token: tokenValue, expiresIn: expiresInSeconds });
   } catch (error) {
