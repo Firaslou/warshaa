@@ -91,35 +91,10 @@ export default function Apply() {
       proof_photos: [...form.proof_photos, form.verification_photo_url].filter(Boolean),
       creator_story: form.creator_story || null,
     };
-    const { data: application, error } = await supabase.from("startup_applications").insert(applicationData as any).select("id").single();
+    const { error } = await supabase.from("startup_applications").insert(applicationData as any);
     if (error) {
       toast({ title: error.message, variant: "destructive" });
       return;
-    }
-
-    try {
-      const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "creator-application",
-          recipientEmail: "warsha.startups@gmail.com",
-          idempotencyKey: `creator-application-${application.id}`,
-          templateData: {
-            "Nom de la marque": form.brand_name,
-            "Email du demandeur": user.email ?? "Non disponible",
-            "Ville": form.city,
-            "Délégation": form.delegation || "Non renseignée",
-            "Catégories": form.categories.join(", "),
-            "WhatsApp": form.whatsapp_number,
-            "Description": form.description,
-            "Instagram": form.instagram_url || "Non renseigné",
-            "Facebook": form.facebook_url || "Non renseigné",
-            "TikTok": form.tiktok_url || "Non renseigné",
-          },
-        },
-      });
-      if (emailError) console.warn("Creator application notification email failed:", emailError);
-    } catch (emailError) {
-      console.warn("Creator application notification email failed:", emailError);
     }
 
     setSubmitted(true);

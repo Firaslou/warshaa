@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 interface LiveEvent {
   id: string; startup_id: string; title: string; description: string | null; scheduled_at: string; duration_minutes: number;
   platform: string | null; stream_url: string | null; recording_url?: string | null; cover_url: string | null; status: string;
-  live_mode?: "agora" | "external"; external_platform?: ExternalPlatform | null; external_url?: string | null; agora_channel?: string | null;
+  live_mode?: "external"; external_platform?: ExternalPlatform | null; external_url?: string | null;
   startups?: { name: string; slug: string; logo_url: string | null; owner_id: string } | null;
 }
 

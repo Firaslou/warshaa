@@ -183,7 +183,6 @@ export type Database = {
       }
       live_events: {
         Row: {
-          agora_channel: string | null
           chat_enabled: boolean | null
           cover_url: string | null
           created_at: string
@@ -203,7 +202,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          agora_channel?: string | null
           chat_enabled?: boolean | null
           cover_url?: string | null
           created_at?: string
@@ -223,7 +221,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          agora_channel?: string | null
           chat_enabled?: boolean | null
           cover_url?: string | null
           created_at?: string
@@ -389,22 +386,19 @@ export type Database = {
           created_at: string
           id: string
           product_id: string
-          user_id: string | null
-          visitor_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           product_id: string
-          user_id?: string | null
-          visitor_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           product_id?: string
-          user_id?: string | null
-          visitor_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -986,10 +980,6 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
-        Returns: boolean
-      }
-      record_product_view: {
-        Args: { _product_id: string; _visitor_id: string }
         Returns: boolean
       }
     }

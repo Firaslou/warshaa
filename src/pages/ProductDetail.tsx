@@ -65,17 +65,6 @@ interface StartupLite {
   logo_url?: string | null;
 }
 
-const getVisitorId = () => {
-  const storageKey = "warsha.visitor.id";
-  const existing = localStorage.getItem(storageKey);
-  if (existing) return existing;
-  const created = typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  localStorage.setItem(storageKey, created);
-  return created;
-};
-
 export default function ProductDetail() {
   const { id } = useParams();
   const { t } = useTranslation();
@@ -200,13 +189,15 @@ export default function ProductDetail() {
           setSimilarProducts((similarResult.data as Product[]) ?? []);
         }
 
-        // Record a real visit for signed-in and anonymous users. The server
-        // deduplicates the same visitor/product for 30 minutes and ignores
-        // creator self-views.
-        await (supabase as any).rpc("record_product_view", {
-          _product_id: id,
-          _visitor_id: getVisitorId(),
-        });
+        // View ownership comes from the authenticated session. Anonymous
+        // browser identifiers are intentionally not accepted because callers
+        // can forge or rotate them.
+        if (user) {
+          await supabase.from("product_views").upsert(
+            { product_id: id, user_id: user.id },
+            { onConflict: "user_id,product_id", ignoreDuplicates: true },
+          );
+        }
 
         // Likes
         const { count } = await supabase

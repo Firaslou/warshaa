@@ -90,7 +90,6 @@ export function LiveScheduleManager({ startupId }: { startupId: string }) {
       external_url: externalUrl,
       external_platform: detectedPlatform,
       live_mode: "external",
-      agora_channel: null,
       chat_enabled: false,
       cover_url: form.cover_url.trim() || null,
     };

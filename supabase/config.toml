@@ -1,10 +1,4 @@
 project_id = "pbvmowpynpvikhofforo"
 
-[functions.agora-token]
-verify_jwt = true
-
 [functions.send-transactional-email]
-verify_jwt = true
-
-[functions.notify-admin]
 verify_jwt = true

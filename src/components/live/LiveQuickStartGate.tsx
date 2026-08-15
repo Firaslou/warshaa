@@ -83,7 +83,6 @@ export function LiveQuickStartGate() {
       platform: selectedPlatform,
       status: "live",
       live_mode: "external",
-      agora_channel: null,
       stream_url: url,
       external_url: url,
       external_platform: selectedPlatform,

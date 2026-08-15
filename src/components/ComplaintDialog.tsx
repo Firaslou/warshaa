@@ -33,36 +33,17 @@ export function ComplaintDialog({
     const cleanSubject = subject.trim().slice(0, 200);
     const cleanMessage = message.trim().slice(0, 2000);
 
-    const { data: complaint, error } = await supabase.from("complaints").insert({
+    const { error } = await supabase.from("complaints").insert({
       reporter_id: user.id,
       startup_id: startupId,
       subject: cleanSubject,
       message: cleanMessage,
-    }).select("id").single();
+    });
 
     if (error) {
       setLoading(false);
       toast.error(error.message);
       return;
-    }
-
-    try {
-      const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "complaint",
-          recipientEmail: "warsha.startups@gmail.com",
-          idempotencyKey: `complaint-${complaint.id}`,
-          templateData: {
-            "Créateur concerné": startupName,
-            "Sujet": cleanSubject,
-            "Réclamation": cleanMessage,
-            "Email du demandeur": user.email ?? "Non disponible",
-          },
-        },
-      });
-      if (emailError) console.warn("Admin notification email failed:", emailError);
-    } catch (emailError) {
-      console.warn("Admin notification email failed:", emailError);
     }
 
     setLoading(false);
