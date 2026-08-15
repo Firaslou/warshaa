@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
 import { cn } from "@/lib/utils";
 import { blobToFile, compressImage } from "@/lib/image-utils";
+import { LocationPicker } from "@/components/LocationPicker";
 
 const STEPS = ["step1", "step2", "step3", "step4"] as const;
 
@@ -33,6 +34,8 @@ export default function Apply() {
     description: "",
     city: "",
     delegation: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
     categories: [] as string[],
     whatsapp_number: "",
     instagram_url: "",
@@ -70,11 +73,14 @@ export default function Apply() {
       });
       return;
     }
-    const { error } = await supabase.from("startup_applications").insert({
+    const applicationData = {
       applicant_id: user.id,
       brand_name: form.brand_name,
       description: form.description,
       city: form.city,
+      delegation: form.delegation || null,
+      latitude: form.latitude,
+      longitude: form.longitude,
       category: form.categories[0],
       categories: form.categories,
       whatsapp_number: form.whatsapp_number,
@@ -84,7 +90,8 @@ export default function Apply() {
       proof_video_url: form.proof_video_url || null,
       proof_photos: [...form.proof_photos, form.verification_photo_url].filter(Boolean),
       creator_story: form.creator_story || null,
-    });
+    };
+    const { error } = await supabase.from("startup_applications").insert(applicationData as any);
     if (error) {
       toast({ title: error.message, variant: "destructive" });
       return;
@@ -101,7 +108,6 @@ export default function Apply() {
       toast({ title: t("apply.needAccount"), variant: "destructive" });
       return;
     }
-    // Validate video duration (max 10s)
     if (field === "proof_video_url") {
       if (!file.type.startsWith("video/")) {
         toast({ title: "Fichier vidéo requis", variant: "destructive" });
@@ -159,7 +165,6 @@ export default function Apply() {
   return (
     <PageLayout>
       <section className="container max-w-4xl py-12">
-        {/* Stepper */}
         <div className="mb-10 flex items-center justify-between gap-2">
           {STEPS.map((s, i) => (
             <div key={s} className="flex flex-1 items-center gap-2">
@@ -176,262 +181,71 @@ export default function Apply() {
           ))}
         </div>
 
-        {/* Step 1 — Documents */}
         {stepIdx === 0 && (
           <div className="animate-fade-in">
             <h1 className="font-serif text-3xl font-bold">{t("applyWizard.prepareTitle")}</h1>
-            <p className="mt-2 text-muted-foreground">
-              {t("applyWizard.prepareIntro")}
-            </p>
+            <p className="mt-2 text-muted-foreground">{t("applyWizard.prepareIntro")}</p>
             <div className="mt-6 space-y-3">
               {docs.map((d, i) => (
                 <Card key={i}>
                   <CardContent className="flex items-center justify-between gap-4 p-4">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <d.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{d.title}</p>
-                        <p className="text-sm text-muted-foreground">{d.desc}</p>
-                      </div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"><d.icon className="h-5 w-5 text-primary" /></div>
+                      <div><p className="font-semibold">{d.title}</p><p className="text-sm text-muted-foreground">{d.desc}</p></div>
                     </div>
-                    <Badge variant={d.required ? "destructive" : "secondary"}>
-                      {d.required ? t("applyWizard.obligatory") : t("applyWizard.recommended")}
-                    </Badge>
+                    <Badge variant={d.required ? "destructive" : "secondary"}>{d.required ? t("applyWizard.obligatory") : t("applyWizard.recommended")}</Badge>
                   </CardContent>
                 </Card>
               ))}
             </div>
-            <div className="mt-8 flex justify-end">
-              <Button onClick={() => setStepIdx(1)} className="gradient-warm text-primary-foreground">
-                {t("applyWizard.ready")} <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </div>
+            <div className="mt-8 flex justify-end"><Button onClick={() => setStepIdx(1)} className="gradient-warm text-primary-foreground">{t("applyWizard.ready")} <ChevronRight className="ml-1 h-4 w-4" /></Button></div>
           </div>
         )}
 
-        {/* Step 2 — Rules */}
         {stepIdx === 1 && (
           <div className="animate-fade-in">
             <h1 className="font-serif text-3xl font-bold">{t("applyWizard.rulesTitle")}</h1>
             <p className="mt-2 text-muted-foreground">{t("applyWizard.rulesIntro")}</p>
-            <ul className="mt-6 space-y-3">
-              {[1,2,3,4,5].map((n) => (
-                <li key={n} className="flex items-start gap-3 rounded-lg border bg-card p-4">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <span>{t(`applyWizard.rule${n}`)}</span>
-                </li>
-              ))}
-            </ul>
-            <label className="mt-6 flex cursor-pointer items-center gap-3">
-              <Checkbox checked={acceptedRules} onCheckedChange={(v) => setAcceptedRules(!!v)} />
-              <span className="text-sm">{t("applyWizard.iAccept")}</span>
-            </label>
-            <div className="mt-8 flex justify-between">
-              <Button variant="ghost" onClick={() => setStepIdx(0)}><ChevronLeft className="mr-1 h-4 w-4"/>{t("applyWizard.back")}</Button>
-              <Button disabled={!acceptedRules} onClick={() => setStepIdx(2)} className="gradient-warm text-primary-foreground">
-                {t("applyWizard.next")} <ChevronRight className="ml-1 h-4 w-4"/>
-              </Button>
-            </div>
+            <ul className="mt-6 space-y-3">{[1,2,3,4,5].map((n) => <li key={n} className="flex items-start gap-3 rounded-lg border bg-card p-4"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><span>{t(`applyWizard.rule${n}`)}</span></li>)}</ul>
+            <label className="mt-6 flex cursor-pointer items-center gap-3"><Checkbox checked={acceptedRules} onCheckedChange={(v) => setAcceptedRules(!!v)} /><span className="text-sm">{t("applyWizard.iAccept")}</span></label>
+            <div className="mt-8 flex justify-between"><Button variant="ghost" onClick={() => setStepIdx(0)}><ChevronLeft className="mr-1 h-4 w-4"/>{t("applyWizard.back")}</Button><Button disabled={!acceptedRules} onClick={() => setStepIdx(2)} className="gradient-warm text-primary-foreground">{t("applyWizard.next")} <ChevronRight className="ml-1 h-4 w-4"/></Button></div>
           </div>
         )}
 
-        {/* Step 3 — Form */}
         {stepIdx === 2 && (
           <div className="animate-fade-in">
             <h1 className="font-serif text-3xl font-bold">{t("apply.title")}</h1>
             <p className="mt-2 text-muted-foreground">{t("applyWizard.validatedIn48h")}</p>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <Label>{t("apply.brandName")} *</Label>
-                <Input value={form.brand_name} onChange={(e)=>setForm({...form, brand_name:e.target.value})} />
-              </div>
-              <div className="md:col-span-2">
-                <Label>{t("apply.description")} *</Label>
-                <Textarea rows={4} value={form.description} onChange={(e)=>setForm({...form, description:e.target.value})} />
-              </div>
-              <div>
-                <Label>{t("apply.city")} *</Label>
-                <Select value={form.city} onValueChange={(v)=>setForm({...form, city:v, delegation:""})}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>{t("applyExtra.delegation")}</Label>
-                <Select value={form.delegation} onValueChange={(v)=>setForm({...form, delegation:v})} disabled={!form.city}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {delegations.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Label>{t("apply.category")} * <span className="text-xs text-muted-foreground">{t("applyExtra.multipleAllowed")}</span></Label>
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {CATEGORIES_KEYS.map((c) => {
-                    const checked = form.categories.includes(c);
-                    return (
-                      <label key={c} className="flex cursor-pointer items-center gap-2 rounded-md border border-border p-2 text-xs hover:bg-accent">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() =>
-                            setForm((f) => ({
-                              ...f,
-                              categories: checked
-                                ? f.categories.filter((k) => k !== c)
-                                : [...f.categories, c],
-                            }))
-                          }
-                        />
-                        {t(`categoriesExt.${c}`)}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
-                <Label>{t("apply.whatsapp")} *</Label>
-                <Input placeholder="+216..." value={form.whatsapp_number} onChange={(e)=>setForm({...form, whatsapp_number:e.target.value})} />
-              </div>
-              <div>
-                <Label>{t("apply.instagram")}</Label>
-                <Input value={form.instagram_url} onChange={(e)=>setForm({...form, instagram_url:e.target.value})} />
-              </div>
-              <div>
-                <Label>{t("apply.facebook")}</Label>
-                <Input value={form.facebook_url} onChange={(e)=>setForm({...form, facebook_url:e.target.value})} />
-              </div>
-              <div className="md:col-span-2">
-                <Label>TikTok <span className="text-xs text-muted-foreground">{t("applyExtra.optional")}</span></Label>
-                <Input placeholder="https://tiktok.com/@..." value={form.tiktok_url} onChange={(e)=>setForm({...form, tiktok_url:e.target.value})} />
-              </div>
+              <div className="md:col-span-2"><Label>{t("apply.brandName")} *</Label><Input value={form.brand_name} onChange={(e)=>setForm({...form, brand_name:e.target.value})} /></div>
+              <div className="md:col-span-2"><Label>{t("apply.description")} *</Label><Textarea rows={4} value={form.description} onChange={(e)=>setForm({...form, description:e.target.value})} /></div>
+              <div><Label>{t("apply.city")} *</Label><Select value={form.city} onValueChange={(v)=>setForm({...form, city:v, delegation:""})}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger><SelectContent className="bg-popover">{TUNISIA_GOVERNORATES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>{t("applyExtra.delegation")}</Label><Select value={form.delegation} onValueChange={(v)=>setForm({...form, delegation:v})} disabled={!form.city}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger><SelectContent className="bg-popover">{delegations.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div>
 
-              {/* Histoire du créateur — optionnelle */}
-              <div className="md:col-span-2 mt-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-primary" />
-                  <h3 className="font-serif text-lg font-bold">{t("applyExtra.storyTitle")}</h3>
-                  <Badge variant="secondary">{t("applyExtra.storyOptional")}</Badge>
-                </div>
-                <p className="mb-3 text-sm text-muted-foreground">{t("applyExtra.storyDesc")}</p>
-                <Textarea
-                  rows={5}
-                  placeholder={t("applyExtra.storyPlaceholder")}
-                  value={form.creator_story}
-                  onChange={(e)=>setForm({...form, creator_story:e.target.value})}
-                />
-              </div>
+              <LocationPicker latitude={form.latitude} longitude={form.longitude} onChange={(latitude, longitude) => setForm((f) => ({ ...f, latitude, longitude }))} />
 
-              {/* Sécurité — obligatoire */}
+              <div className="md:col-span-2"><Label>{t("apply.category")} * <span className="text-xs text-muted-foreground">{t("applyExtra.multipleAllowed")}</span></Label><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{CATEGORIES_KEYS.map((c) => { const checked = form.categories.includes(c); return <label key={c} className="flex cursor-pointer items-center gap-2 rounded-md border border-border p-2 text-xs hover:bg-accent"><Checkbox checked={checked} onCheckedChange={() => setForm((f) => ({ ...f, categories: checked ? f.categories.filter((k) => k !== c) : [...f.categories, c] }))} />{t(`categoriesExt.${c}`)}</label>; })}</div></div>
+              <div><Label>{t("apply.whatsapp")} *</Label><Input placeholder="+216..." value={form.whatsapp_number} onChange={(e)=>setForm({...form, whatsapp_number:e.target.value})} /></div>
+              <div><Label>{t("apply.instagram")}</Label><Input value={form.instagram_url} onChange={(e)=>setForm({...form, instagram_url:e.target.value})} /></div>
+              <div><Label>{t("apply.facebook")}</Label><Input value={form.facebook_url} onChange={(e)=>setForm({...form, facebook_url:e.target.value})} /></div>
+              <div className="md:col-span-2"><Label>TikTok <span className="text-xs text-muted-foreground">{t("applyExtra.optional")}</span></Label><Input placeholder="https://tiktok.com/@..." value={form.tiktok_url} onChange={(e)=>setForm({...form, tiktok_url:e.target.value})} /></div>
+
+              <div className="md:col-span-2 mt-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5"><div className="mb-3 flex items-center gap-2"><Heart className="h-5 w-5 text-primary" /><h3 className="font-serif text-lg font-bold">{t("applyExtra.storyTitle")}</h3><Badge variant="secondary">{t("applyExtra.storyOptional")}</Badge></div><p className="mb-3 text-sm text-muted-foreground">{t("applyExtra.storyDesc")}</p><Textarea rows={5} placeholder={t("applyExtra.storyPlaceholder")} value={form.creator_story} onChange={(e)=>setForm({...form, creator_story:e.target.value})} /></div>
+
               <div className="md:col-span-2 mt-4 rounded-xl border-2 border-destructive/40 bg-destructive/5 p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <ShieldAlert className="h-5 w-5 text-destructive" />
-                  <h3 className="font-serif text-lg font-bold">{t("applyExtra.securityTitle")}</h3>
-                  <Badge variant="destructive">{t("applyExtra.obligatory")}</Badge>
-                </div>
-                <div className="mb-4 rounded-lg border border-destructive/30 bg-background p-3 text-sm">
-                  ⚠️ <strong>{t("applyExtra.warning")}</strong> {t("applyExtra.warningDesc")}
-                </div>
-
-                {/* Vidéo 10s */}
-                <div className="mb-5">
-                  <Label className="flex items-center gap-2">
-                    <Video className="h-4 w-4" /> {t("applyExtra.videoLabel")} *
-                  </Label>
-                  <p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.videoHint")}</p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <Input
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_video_url")}
-                      disabled={uploadingField === "proof_video_url"}
-                    />
-                    {form.proof_video_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
-                  </div>
-                  {form.proof_video_url && (
-                    <video src={form.proof_video_url} controls className="mt-2 h-32 rounded-md border" />
-                  )}
-                </div>
-
-                {/* 3 photos réelles */}
-                <div className="mb-5">
-                  <Label className="flex items-center gap-2">
-                    <Camera className="h-4 w-4" /> {t("applyExtra.photosLabel")} * ({form.proof_photos.length}/3)
-                  </Label>
-                  <p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.photosHint")}</p>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {form.proof_photos.map((url, i) => (
-                      <div key={i} className="relative">
-                        <img src={url} alt={`Preuve ${i+1}`} className="h-24 w-full rounded-md border object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setForm((f) => ({ ...f, proof_photos: f.proof_photos.filter((_, idx) => idx !== i) }))}
-                          className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {form.proof_photos.length < 3 && (
-                      <label className="flex h-24 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border hover:border-primary">
-                        <Upload className="h-5 w-5 text-muted-foreground" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_photos")}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-
-                {/* Photo de vérification */}
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Hand className="h-4 w-4" /> {t("applyExtra.verifLabel")} *
-                  </Label>
-                  <p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.verifHint")}</p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "verification_photo_url")}
-                      disabled={uploadingField === "verification_photo_url"}
-                    />
-                    {form.verification_photo_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
-                  </div>
-                  {form.verification_photo_url && (
-                    <img src={form.verification_photo_url} alt="Vérification" className="mt-2 h-32 rounded-md border object-cover" />
-                  )}
-                </div>
+                <div className="mb-3 flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><h3 className="font-serif text-lg font-bold">{t("applyExtra.securityTitle")}</h3><Badge variant="destructive">{t("applyExtra.obligatory")}</Badge></div>
+                <div className="mb-4 rounded-lg border border-destructive/30 bg-background p-3 text-sm">⚠️ <strong>{t("applyExtra.warning")}</strong> {t("applyExtra.warningDesc")}</div>
+                <div className="mb-5"><Label className="flex items-center gap-2"><Video className="h-4 w-4" /> {t("applyExtra.videoLabel")} *</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.videoHint")}</p><div className="mt-2 flex items-center gap-3"><Input type="file" accept="video/*" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_video_url")} disabled={uploadingField === "proof_video_url"} />{form.proof_video_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}</div>{form.proof_video_url && <video src={form.proof_video_url} controls className="mt-2 h-32 rounded-md border" />}</div>
+                <div className="mb-5"><Label className="flex items-center gap-2"><Camera className="h-4 w-4" /> {t("applyExtra.photosLabel")} * ({form.proof_photos.length}/3)</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.photosHint")}</p><div className="mt-2 grid grid-cols-3 gap-2">{form.proof_photos.map((url, i) => <div key={i} className="relative"><img src={url} alt={`Preuve ${i+1}`} className="h-24 w-full rounded-md border object-cover" /><button type="button" onClick={() => setForm((f) => ({ ...f, proof_photos: f.proof_photos.filter((_, idx) => idx !== i) }))} className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"><X className="h-3 w-3" /></button></div>)}{form.proof_photos.length < 3 && <label className="flex h-24 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border hover:border-primary"><Upload className="h-5 w-5 text-muted-foreground" /><input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_photos")} /></label>}</div></div>
+                <div><Label className="flex items-center gap-2"><Hand className="h-4 w-4" /> {t("applyExtra.verifLabel")} *</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.verifHint")}</p><div className="mt-2 flex items-center gap-3"><Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "verification_photo_url")} disabled={uploadingField === "verification_photo_url"} />{form.verification_photo_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}</div>{form.verification_photo_url && <img src={form.verification_photo_url} alt="Vérification" className="mt-2 h-32 rounded-md border object-cover" />}</div>
               </div>
             </div>
-            <div className="mt-8 flex justify-between">
-              <Button variant="ghost" onClick={() => setStepIdx(1)}><ChevronLeft className="mr-1 h-4 w-4"/>{t("applyWizard.back")}</Button>
-              <Button onClick={submit} className="gradient-warm text-primary-foreground">
-                {t("applyWizard.submitApplication")} <ChevronRight className="ml-1 h-4 w-4"/>
-              </Button>
-            </div>
+            <div className="mt-8 flex justify-between"><Button variant="ghost" onClick={() => setStepIdx(1)}><ChevronLeft className="mr-1 h-4 w-4"/>{t("applyWizard.back")}</Button><Button onClick={submit} className="gradient-warm text-primary-foreground">{t("applyWizard.submitApplication")} <ChevronRight className="ml-1 h-4 w-4"/></Button></div>
           </div>
         )}
 
-        {/* Step 4 — Confirmation */}
         {stepIdx === 3 && (
-          <div className="animate-fade-in py-10 text-center">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-              <Clock className="h-10 w-10 text-primary" />
-            </div>
-            <h1 className="font-serif text-3xl font-bold">{t("applyWizard.pendingTitle")}</h1>
-            <p className="mx-auto mt-3 max-w-md text-muted-foreground">{t("applyWizard.pendingDesc")}</p>
-            <Button className="mt-8 gradient-warm text-primary-foreground" onClick={() => navigate("/")}>
-              {t("applyWizard.backHome")}
-            </Button>
-          </div>
+          <div className="animate-fade-in py-10 text-center"><div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"><Clock className="h-10 w-10 text-primary" /></div><h1 className="font-serif text-3xl font-bold">{t("applyWizard.pendingTitle")}</h1><p className="mx-auto mt-3 max-w-md text-muted-foreground">{t("applyWizard.pendingDesc")}</p><Button className="mt-8 gradient-warm text-primary-foreground" onClick={() => navigate("/")}>{t("applyWizard.backHome")}</Button></div>
         )}
       </section>
     </PageLayout>
