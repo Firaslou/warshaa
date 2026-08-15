@@ -54,6 +54,12 @@ export function LocationPicker({ latitude, longitude, onChange }: LocationPicker
     );
   };
 
+  const handleMarkerDrag = (event: L.LeafletEvent) => {
+    const marker = event.target as L.Marker;
+    const next = marker.getLatLng();
+    onChange(next.lat, next.lng);
+  };
+
   return (
     <div className="md:col-span-2 rounded-xl border bg-card p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -61,7 +67,7 @@ export function LocationPicker({ latitude, longitude, onChange }: LocationPicker
           <div className="flex items-center gap-2 font-semibold">
             <MapPin className="h-4 w-4 text-primary" /> Localisation <span className="text-xs font-normal text-muted-foreground">(optionnel)</span>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Utilisez votre position pour placer précisément votre activité sur la carte.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Utilisez votre position pour placer précisément votre activité sur la carte. Vous pourrez ensuite déplacer le marqueur si nécessaire.</p>
         </div>
         <Button type="button" variant="outline" onClick={useMyLocation} disabled={loading} className="shrink-0">
           <LocateFixed className="mr-2 h-4 w-4" />
@@ -81,12 +87,19 @@ export function LocationPicker({ latitude, longitude, onChange }: LocationPicker
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <Recenter position={position} />
-          {position && <Marker position={position} icon={markerIcon} />}
+          {position && (
+            <Marker
+              position={position}
+              icon={markerIcon}
+              draggable
+              eventHandlers={{ dragend: handleMarkerDrag }}
+            />
+          )}
         </MapContainer>
       </div>
       {position && (
         <p className="mt-2 text-xs text-muted-foreground">
-          Position enregistrée : {latitude!.toFixed(6)}, {longitude!.toFixed(6)}. Vous pouvez réutiliser le bouton pour actualiser la position.
+          Position enregistrée : {latitude!.toFixed(6)}, {longitude!.toFixed(6)}. Faites glisser le marqueur pour corriger la position ou utilisez le bouton pour actualiser le GPS.
         </p>
       )}
     </div>
