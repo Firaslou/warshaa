@@ -21,17 +21,17 @@ Deno.serve(async (req) => {
     if (!query) return new Response(JSON.stringify({ error: "query required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (query.length > 500) return new Response(JSON.stringify({ error: "query too long" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const system = `Tu es un parseur de recherche e-commerce en français/arabe/anglais. À partir d'une requête utilisateur libre, retourne UNIQUEMENT un JSON strict avec ces champs:
 {"keywords":string[],"color":string|null,"max_price":number|null,"min_price":number|null,"category":string|null,"city":string|null,"delivery_required":boolean}
 Devise par défaut: TND (accepter dt, dinar, tnd). Ne renvoie RIEN d'autre que le JSON.`;
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "system", content: system }, { role: "user", content: query }], response_format: { type: "json_object" } }),
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GEMINI_API_KEY}` },
+      body: JSON.stringify({ model: "gemini-2.5-flash", messages: [{ role: "system", content: system }, { role: "user", content: query }], response_format: { type: "json_object" } }),
     });
     if (!aiRes.ok) return new Response(JSON.stringify({ error: "AI search failed" }), { status: aiRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const aiData = await aiRes.json();

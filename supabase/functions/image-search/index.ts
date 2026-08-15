@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
     if (!ALLOWED_IMAGE_TYPES.has(mimeType)) return new Response(JSON.stringify({ error: "Only JPEG, PNG and WebP images are supported" }), { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (imageBase64.length > 14_000_000) return new Response(JSON.stringify({ error: "Image too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: products } = await supabase.from("products")
       .select("id,name,description,category,images,startup_id,startups!inner(status)")
@@ -83,9 +83,9 @@ Deno.serve(async (req) => {
     });
 
     const system = `Tu es un assistant de recherche visuelle pour Warsha, plateforme de créateurs tunisiens. Analyse l'image envoyée par l'utilisateur et trouve les produits du catalogue qui ressemblent le plus. Réponds en JSON strict: {"description":"<max 2 phrases>","matches":["<product_id>", ...]}. Utilise uniquement des ids du catalogue, jusqu'à 8.`;
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST", headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "system", content: system }, { role: "user", content: visualContent }], response_format: { type: "json_object" } }),
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GEMINI_API_KEY}` },
+      body: JSON.stringify({ model: "gemini-2.5-flash", messages: [{ role: "system", content: system }, { role: "user", content: visualContent }], response_format: { type: "json_object" } }),
     });
     if (!res.ok) return new Response(JSON.stringify({ error: "Image search provider failed" }), { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const data = await res.json();

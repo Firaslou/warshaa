@@ -79,11 +79,11 @@ const callGateway = async (
   apiKey: string,
   messages: Array<{ role: string; content: string }>,
 ) => {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "gemini-2.5-flash",
       messages,
       response_format: { type: "json_object" },
       temperature: 0.25,
@@ -202,8 +202,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "A user message is required" }, 400);
     }
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY missing");
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) throw new Error("GEMINI_API_KEY missing");
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -223,7 +223,7 @@ search_terms must include useful synonyms across the user's language and French 
       user_profile: profile ?? {},
       conversation: messages,
     });
-    const rawAnalysis = await callGateway(lovableApiKey, [
+    const rawAnalysis = await callGateway(geminiApiKey, [
       { role: "system", content: classifierSystem },
       { role: "user", content: classifierInput },
     ]);
@@ -338,7 +338,7 @@ search_terms must include useful synonyms across the user's language and French 
       creators: compactCreators,
       checklist: plan.map((item) => ({ label: item.label, product_ids: item.products.map((product) => product.id) })),
     });
-    const rawResponse = await callGateway(lovableApiKey, [
+    const rawResponse = await callGateway(geminiApiKey, [
       { role: "system", content: responseSystem },
       { role: "user", content: responseInput },
     ]);

@@ -60,21 +60,21 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
 
     const system = `Tu écris des descriptions produits pour Warsha, marketplace de créateurs tunisiens. Style: chaleureux, sincère, sensoriel, vendeur sans exagération. Français naturel. 2 à 4 phrases, max 400 caractères. Pas d'emoji, pas de hashtag, pas de prix. Mets en avant matière, fabrication artisanale, usage, et ce qui rend le produit spécial. Réponds UNIQUEMENT avec la description finale, rien d'autre.`;
 
     const userPrompt = `Nom: ${name || "(non précisé)"}\nCatégorie: ${category || "(non précisée)"}\nMots-clés / notes du créateur: ${keywords}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Lovable-API-Key": LOVABLE_API_KEY,
+        "Authorization": `Bearer ${GEMINI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: userPrompt },
