@@ -2,7 +2,116 @@
 // To take ownership, delete this banner line; the plugin then leaves the file alone.
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
+// src/lib/mcp/index.ts
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.2";
+
+// src/lib/mcp/tools/list-creators.ts
+import { createClient } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z } from "npm:zod@^3.25.76";
+function sb() {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var list_creators_default = defineTool({
+  name: "list_creators",
+  title: "List creators",
+  description: "List approved Tunisian creators on Warsha. Optionally filter by category or city.",
+  inputSchema: {
+    category: z.string().optional().describe("Category filter, e.g. 'bijoux', 'cosm\xE9tiques'."),
+    city: z.string().optional().describe("City filter, e.g. 'Tunis'."),
+    limit: z.number().int().min(1).max(50).optional().describe("Max results (default 20).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ category, city, limit }) => {
+    let q = sb().from("startups").select("name,slug,tagline,category,city,delegation").eq("status", "approved").limit(limit ?? 20);
+    if (category) q = q.ilike("category", `%${category}%`);
+    if (city) q = q.ilike("city", `%${city}%`);
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    return {
+      content: [{ type: "text", text: JSON.stringify(data) }],
+      structuredContent: { creators: data ?? [] }
+    };
+  }
+});
+
+// src/lib/mcp/tools/get-creator.ts
+import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z2 } from "npm:zod@^3.25.76";
+function sb2() {
+  return createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var get_creator_default = defineTool2({
+  name: "get_creator",
+  title: "Get creator details",
+  description: "Fetch full details for one approved creator by slug, including their products.",
+  inputSchema: {
+    slug: z2.string().min(1).describe("The creator's slug (URL identifier).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ slug }) => {
+    const client = sb2();
+    const { data: startup, error } = await client.from("startups").select("id,name,slug,tagline,description,category,categories,city,delegation,logo_url").eq("slug", slug).eq("status", "approved").maybeSingle();
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (!startup) return { content: [{ type: "text", text: "Creator not found" }], isError: true };
+    const { data: products } = await client.from("products").select("id,name,description,price,image_url").eq("startup_id", startup.id).eq("is_published", true).limit(50);
+    const payload = { ...startup, products: products ?? [] };
+    return {
+      content: [{ type: "text", text: JSON.stringify(payload) }],
+      structuredContent: payload
+    };
+  }
+});
+
+// src/lib/mcp/tools/search-products.ts
+import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z3 } from "npm:zod@^3.25.76";
+function sb3() {
+  return createClient3(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var search_products_default = defineTool3({
+  name: "search_products",
+  title: "Search products",
+  description: "Search products across all approved Warsha creators by keyword in name or description.",
+  inputSchema: {
+    query: z3.string().min(1).describe("Free-text search query."),
+    limit: z3.number().int().min(1).max(50).optional().describe("Max results (default 20).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ query, limit }) => {
+    const client = sb3();
+    const q = `%${query}%`;
+    const { data, error } = await client.from("products").select("id,name,description,price,image_url,startup_id").eq("is_published", true).or(`name.ilike.${q},description.ilike.${q}`).limit(limit ?? 20);
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    return {
+      content: [{ type: "text", text: JSON.stringify(data) }],
+      structuredContent: { products: data ?? [] }
+    };
+  }
+});
+
+// src/lib/mcp/index.ts
+var projectRef = "pbvmowpynpvikhofforo";
+var mcp_default = defineMcp({
+  name: "warsha-mcp",
+  title: "Warsha MCP",
+  version: "0.1.0",
+  instructions: "Tools for Warsha, a marketplace of Tunisian creators. Use list_creators to browse approved creators, get_creator for full details of one creator and their products, and search_products for keyword search across products.",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
+  tools: [list_creators_default, get_creator_default, search_products_default]
+});
+
 // lovable-mcp-supabase-entry.ts
-import mcp from "npm:C:\\Users\\firas\\Documents\\Codex\\2026-08-12\\https-github-com-mayssaderbeel-png-warsha\\work\\warsha\\src\\lib\\mcp\\index.ts";
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.2/stacks/supabase";
-Deno.serve(createSupabaseHandler(mcp, { functionName: "mcp" }));
+Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
