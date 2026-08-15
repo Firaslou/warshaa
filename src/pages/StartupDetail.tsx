@@ -322,14 +322,14 @@ export default function StartupDetail() {
   return (
     <PageLayout>
       <section className="relative">
-        <div className="aspect-[21/9] w-full overflow-hidden bg-muted md:aspect-[3/1]">
+        <div className="aspect-[4/3] w-full overflow-hidden bg-muted sm:aspect-[21/9] md:aspect-[3/1]">
           {startup.cover_url && (
             <img src={startup.cover_url} alt={startup.name} className="h-full w-full object-cover" />
           )}
         </div>
-        <div className="container -mt-16 pb-8 md:-mt-24">
-          <div className="rounded-2xl bg-card p-6 shadow-elegant md:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="container -mt-10 pb-6 sm:-mt-16 sm:pb-8 md:-mt-24">
+          <div className="rounded-2xl bg-card p-4 shadow-elegant sm:p-6 md:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4">
               <div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className={cn("border", badgeMeta.className)}>
@@ -341,9 +341,9 @@ export default function StartupDetail() {
                     </Badge>
                   )}
                 </div>
-                <h1 className="font-serif text-4xl font-bold md:text-5xl">{startup.name}</h1>
-                {startup.tagline && <p className="mt-2 text-lg text-muted-foreground">{startup.tagline}</p>}
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <h1 className="break-words font-serif text-2xl font-bold leading-tight sm:text-4xl md:text-5xl">{startup.name}</h1>
+                {startup.tagline && <p className="mt-2 text-base leading-relaxed text-muted-foreground sm:text-lg">{startup.tagline}</p>}
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground sm:gap-4 sm:text-sm">
                   {startup.city && (
                     <span className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" /> {startup.city}
@@ -355,7 +355,7 @@ export default function StartupDetail() {
                   <span>· {t("startup.supporters", { count: startup.supporters_count })}</span>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                 <Button
                   variant={isFavorite ? "secondary" : "outline"}
                   size="icon"
@@ -367,7 +367,7 @@ export default function StartupDetail() {
                 <Button
                   variant={isSupporter ? "default" : "outline"}
                   onClick={toggleSupport}
-                  className={cn(isSupporter && "gradient-warm text-primary-foreground")}
+                  className={cn("w-full sm:w-auto", isSupporter && "gradient-warm text-primary-foreground")}
                 >
                   <HandHeart className={cn("mr-1 h-4 w-4", isSupporter && "fill-current")} />
                   {isSupporter ? "Soutenu" : "Soutenir"}
@@ -378,7 +378,7 @@ export default function StartupDetail() {
                 {startup.facebook_url && (
                   <Button variant="outline" size="icon" asChild><a href={startup.facebook_url} target="_blank" rel="noreferrer"><Facebook className="h-4 w-4" /></a></Button>
                 )}
-                <Button variant="outline" onClick={openChat}>
+                <Button variant="outline" onClick={openChat} className="w-full sm:w-auto">
                   <Lock className="mr-1 h-4 w-4" /> Chat privé
                 </Button>
                 <Button
@@ -388,12 +388,12 @@ export default function StartupDetail() {
                     if (!user) { toast.error("Connecte-toi pour envoyer une réclamation"); return; }
                     setComplaintOpen(true);
                   }}
-                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                  className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 sm:w-auto"
                 >
                   <Flag className="mr-1 h-4 w-4" /> Réclamer
                 </Button>
                 {startup.whatsapp_number && (
-                  <Button className="gradient-warm text-primary-foreground" onClick={() => buy(startup.name)}>
+                  <Button className="gradient-warm text-primary-foreground col-span-2 w-full sm:col-span-1 sm:w-auto" onClick={() => buy(startup.name)}>
                     <MessageCircle className="mr-1 h-4 w-4" /> {t("startup.buyOnWhatsapp")}
                   </Button>
                 )}
@@ -404,18 +404,18 @@ export default function StartupDetail() {
               <StoriesBar startupId={startup.id} startupSlug={startup.slug} />
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 border-t pt-5 sm:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-2 border-t pt-4 sm:mt-6 sm:gap-3 sm:pt-5 sm:grid-cols-4">
               {[
                 { icon: Eye, label: "Vues produits", value: stats.views },
                 { icon: MessageCircle, label: "Clics WhatsApp", value: stats.clicks },
                 { icon: ShoppingBag, label: "Achats confirmés", value: stats.purchases },
                 { icon: TrendingUp, label: "Taux de conversion", value: `${conversionRate}%` },
               ].map((s, i) => (
-                <div key={i} className="rounded-xl bg-secondary/40 p-3">
-                  <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <div key={i} className="min-w-0 rounded-xl bg-secondary/40 p-2.5 sm:p-3">
+                  <div className="mb-1 flex items-center gap-1 text-[11px] leading-tight text-muted-foreground sm:text-xs">
                     <s.icon className="h-3 w-3" /> {s.label}
                   </div>
-                  <div className="font-serif text-xl font-bold">{s.value}</div>
+                  <div className="truncate font-serif text-lg font-bold sm:text-xl">{s.value}</div>
                 </div>
               ))}
             </div>
@@ -425,7 +425,7 @@ export default function StartupDetail() {
 
       <div className="container grid gap-12 pb-16 md:grid-cols-3">
         <div className="space-y-12 md:col-span-2">
-          <section className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-xs">
+          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs sm:rounded-3xl">
             <div className={cn(
               "relative flex aspect-video items-center justify-center p-6 text-center transition",
               startup.is_live
@@ -469,46 +469,28 @@ export default function StartupDetail() {
 
           {recentPosts.length > 0 && (
             <section>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold">Posts récents</h2>
-                <span className="text-xs text-muted-foreground">{recentPosts.length} publication{recentPosts.length > 1 ? "s" : ""}</span>
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <h2 className="mb-4 font-serif text-2xl font-bold">Publications récentes</h2>
+              <div className="grid gap-5 sm:grid-cols-2">
                 {recentPosts.map((p) => {
                   const hasDiscount = p.discount_percentage && p.discount_percentage > 0;
                   const finalPrice = hasDiscount && p.price 
                     ? p.price - (p.price * (p.discount_percentage / 100)) 
                     : p.price;
-
                   return (
-                    <div key={p.id} className="relative w-40 shrink-0 overflow-hidden rounded-xl bg-card shadow-card">
-                      {hasDiscount && (
-                        <div className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white">
-                          -{p.discount_percentage}%
+                    <div key={p.id} className="group relative overflow-hidden rounded-xl border bg-card shadow-sm">
+                      <Link to={`/product/${p.id}`}>
+                        {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-video w-full object-cover transition group-hover:scale-[1.02]" />}
+                      </Link>
+                      <div className="p-4">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <Link to={`/product/${p.id}`}><h3 className="font-semibold">{p.name}</h3></Link>
+                          {hasDiscount && <Badge className="bg-red-600 text-white">-{p.discount_percentage}%</Badge>}
                         </div>
-                      )}
-                      
-                      {p.images?.[0] ? (
-                        <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />
-                      ) : (
-                        <div className="flex aspect-square items-center justify-center gradient-soft">
-                          <PackageOpen className="h-6 w-6 text-primary/40" />
+                        {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className="text-sm font-bold text-primary">{finalPrice?.toFixed(3)} {p.currency}</span>
+                          <Button size="sm" variant="outline" asChild><Link to={`/product/${p.id}`}>Voir</Link></Button>
                         </div>
-                      )}
-                      <div className="p-2">
-                        <p className="truncate text-xs font-medium">{p.name}</p>
-                        {p.price && (
-                          <div className="flex items-baseline gap-1">
-                            <p className="text-xs font-bold text-primary">
-                              {finalPrice?.toFixed(3)} {p.currency}
-                            </p>
-                            {hasDiscount && (
-                              <p className="text-[10px] text-muted-foreground line-through">
-                                {p.price.toFixed(3)}
-                              </p>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
@@ -522,7 +504,7 @@ export default function StartupDetail() {
             {products.length === 0 ? (
               <p className="text-muted-foreground">{t("startup.noProducts")}</p>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3 sm:gap-5">
                 {products.map((p) => {
                   const hasDiscount = p.discount_percentage && p.discount_percentage > 0;
                   const finalPrice = hasDiscount && p.price 
@@ -540,11 +522,11 @@ export default function StartupDetail() {
                       <Link to={`/product/${p.id}`} className="block">
                         {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-square w-full object-cover" />}
                       </Link>
-                      <div className="space-y-2 p-4">
+                      <div className="space-y-2 p-3 sm:p-4">
                         <Link to={`/product/${p.id}`}>
-                          <h3 className="font-semibold hover:text-primary">{p.name}</h3>
+                          <h3 className="line-clamp-2 text-sm font-semibold hover:text-primary sm:text-base">{p.name}</h3>
                         </Link>
-                        {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                        {p.description && <p className="hidden line-clamp-2 text-sm text-muted-foreground sm:block">{p.description}</p>}
                         
                         <div className="flex flex-wrap gap-1.5">
                           {p.category && (
@@ -572,10 +554,10 @@ export default function StartupDetail() {
                           </Badge>
                         )}
                         
-                        <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center justify-between gap-2 pt-2">
                           {p.price && (
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-primary">
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate font-semibold text-primary">
                                 {finalPrice?.toFixed(3)} {p.currency}
                               </span>
                               {hasDiscount && (
@@ -585,8 +567,8 @@ export default function StartupDetail() {
                               )}
                             </div>
                           )}
-                          <Link to={`/product/${p.id}`}>
-                            <Button size="sm" className="gradient-warm text-primary-foreground">
+                          <Link to={`/product/${p.id}`} className="shrink-0">
+                            <Button size="sm" className="gradient-warm px-2 text-xs text-primary-foreground sm:px-3 sm:text-sm">
                               Voir le produit
                             </Button>
                           </Link>
@@ -600,7 +582,7 @@ export default function StartupDetail() {
           </section>
 
           <section id="reviews" className="scroll-mt-24">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="font-serif text-2xl font-bold">
                 {t("startup.reviews")}
                 {reviews.length > 0 && <span className="ml-3 text-sm font-normal text-muted-foreground">★ {avgRating.toFixed(1)} ({reviews.length})</span>}
@@ -642,7 +624,7 @@ export default function StartupDetail() {
               <div className="space-y-4">
                 {reviews.map((r) => (
                   <div id={`review-${r.id}`} key={r.id} className="scroll-mt-24 rounded-xl bg-card p-4 shadow-card target:ring-2 target:ring-primary/50">
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{reviewAuthors[r.user_id] ?? "Utilisateur"}</span>
                         <span className="flex">
@@ -708,55 +690,69 @@ export default function StartupDetail() {
               ✨ Aperçu de démonstration. Les produits affichés sont des exemples.
             </div>
           )}
-          {startup.description && (
-            <div className="rounded-xl bg-secondary/40 p-5">
-              <h3 className="mb-2 font-semibold">{t("apply.description")}</h3>
-              <p className="text-sm text-muted-foreground">{startup.description}</p>
+          <section className="rounded-2xl bg-card p-5 shadow-card">
+            <h3 className="mb-3 font-serif text-xl font-bold">À propos</h3>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{startup.description || "Aucune description disponible."}</p>
+          </section>
+          {startup.logo_url && (
+            <div className="flex justify-center py-4">
+              <img src={startup.logo_url} alt={startup.name} className="h-28 w-28 rounded-full object-cover shadow-lg" />
             </div>
           )}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-            <div className="mb-2 flex items-center gap-2 text-primary">
-              <Lock className="h-4 w-4" />
-              <h3 className="font-semibold">Chat privé</h3>
+          <section className="rounded-2xl bg-card p-5 shadow-card">
+            <h3 className="mb-3 font-serif text-xl font-bold">Informations</h3>
+            <div className="space-y-3 text-sm">
+              {startup.city && <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{startup.city}{startup.delegation ? ` · ${startup.delegation}` : ""}</span></div>}
+              {startup.category && <div className="flex items-start gap-2"><PackageOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{startup.category}</span></div>}
+              {startup.whatsapp_number && <div className="flex items-start gap-2"><MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{startup.whatsapp_number}</span></div>}
+              {(startup.instagram_url || startup.facebook_url) && (
+                <div className="flex items-center gap-2 pt-2">
+                  {startup.instagram_url && <a href={startup.instagram_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="h-5 w-5" /></a>}
+                  {startup.facebook_url && <a href={startup.facebook_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-5 w-5" /></a>}
+                </div>
+              )}
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Discutez directement avec {startup.name} sans passer par WhatsApp.
-            </p>
-            <Button onClick={openChat} className="w-full gradient-warm text-primary-foreground">
-              Démarrer une conversation
-            </Button>
-          </div>
+          </section>
         </aside>
       </div>
 
-      <PrivateChatDialog
-        open={chatOpen}
-        onOpenChange={setChatOpen}
-        startupId={startup.id}
-        startupName={startup.name}
-      />
+      {startup.owner_id && !isDemo && (
+        <PrivateChatDialog
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+          startupId={startup.id}
+          startupName={startup.name}
+          ownerId={startup.owner_id}
+        />
+      )}
 
-      <ComplaintDialog
-        open={complaintOpen}
-        onOpenChange={setComplaintOpen}
-        startupId={startup.id}
-        startupName={startup.name}
-      />
+      {startup.owner_id && !isDemo && (
+        <ComplaintDialog
+          open={complaintOpen}
+          onOpenChange={setComplaintOpen}
+          startupId={startup.id}
+          startupName={startup.name}
+        />
+      )}
 
       <Dialog open={liveRoomOpen} onOpenChange={setLiveRoomOpen}>
-        <DialogContent className="max-w-5xl p-3 sm:p-5">
-          <DialogHeader><DialogTitle>{activeLiveEvent?.title || `Live de ${startup.name}`}</DialogTitle></DialogHeader>
-          {activeLiveEvent?.external_url || activeLiveEvent?.stream_url ? (
-            <ExternalLiveEmbed
-              url={activeLiveEvent.external_url || activeLiveEvent.stream_url}
-              platform={activeLiveEvent.external_platform ?? detectExternalPlatform(activeLiveEvent.external_url || activeLiveEvent.stream_url)}
-            />
-          ) : (
-            <div className="rounded-2xl border border-dashed p-10 text-center">
-              <p className="font-semibold">Le lien externe de ce Live n’est pas encore disponible.</p>
-              <p className="mt-2 text-sm text-muted-foreground">Le créateur doit ajouter son lien YouTube, Facebook, Instagram ou TikTok.</p>
-            </div>
-          )}
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4">
+            <DialogTitle>{startup.name} — Live</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            {activeLiveEvent ? (
+              <ExternalLiveEmbed
+                platform={detectExternalPlatform(activeLiveEvent.stream_url)}
+                url={activeLiveEvent.stream_url}
+                title={`${startup.name} — Live`}
+              />
+            ) : (
+              <div className="rounded-xl bg-muted p-10 text-center text-sm text-muted-foreground">
+                Le live n’est plus disponible.
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </PageLayout>
