@@ -30,15 +30,42 @@ export function ComplaintDialog({
     if (message.trim().length < 10) { toast.error("Message trop court (10 caractères min)"); return; }
 
     setLoading(true);
-    const { error } = await supabase.from("complaints").insert({
+    const cleanSubject = subject.trim().slice(0, 200);
+    const cleanMessage = message.trim().slice(0, 2000);
+
+    const { data: complaint, error } = await supabase.from("complaints").insert({
       reporter_id: user.id,
       startup_id: startupId,
-      subject: subject.trim().slice(0, 200),
-      message: message.trim().slice(0, 2000),
-    });
-    setLoading(false);
-    if (error) { toast.error(error.message); return; }
+      subject: cleanSubject,
+      message: cleanMessage,
+    }).select("id").single();
 
+    if (error) {
+      setLoading(false);
+      toast.error(error.message);
+      return;
+    }
+
+    try {
+      const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "complaint",
+          recipientEmail: "warsha.startups@gmail.com",
+          idempotencyKey: `complaint-${complaint.id}`,
+          templateData: {
+            "Créateur concerné": startupName,
+            "Sujet": cleanSubject,
+            "Réclamation": cleanMessage,
+            "Email du demandeur": user.email ?? "Non disponible",
+          },
+        },
+      });
+      if (emailError) console.warn("Admin notification email failed:", emailError);
+    } catch (emailError) {
+      console.warn("Admin notification email failed:", emailError);
+    }
+
+    setLoading(false);
     toast.success("Réclamation envoyée — nous la prenons au sérieux", {
       description: "Notre équipe va l'étudier et te répondra rapidement.",
       duration: 6000,
