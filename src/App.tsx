@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PageSkeleton } from "@/components/skeletons/PageSkeleton";
+import { CreatorLocationAutoUpdate } from "@/components/creator/CreatorLocationAutoUpdate";
 
 // Lazy-loaded page components — heavy deps (leaflet, recharts, WebRTC) are
 // only fetched when the user navigates to the corresponding route.
@@ -45,6 +46,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FavoritesProvider>
+            <CreatorLocationAutoUpdate />
             <Suspense fallback={<PageSkeleton />}>
               <Routes>
                 <Route path="/" element={<Index />} />
