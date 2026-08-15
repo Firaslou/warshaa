@@ -20,7 +20,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.protect_chat_message_updates() FROM PUBLIC, anon, authenticated;
 
 -- 2) Trigger-only functions must not be callable through the Data API.
@@ -39,23 +38,59 @@ REVOKE ALL ON FUNCTION public.prevent_owner_status_badge_change() FROM PUBLIC, a
 REVOKE ALL ON FUNCTION public.sync_approved_creator_location() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sync_supporters_count() FROM PUBLIC, anon, authenticated;
 
--- 3) Restrict Realtime private topics to namespaces actually used by Warsha.
--- No catch-all TRUE: unknown private topics are denied by default.
+-- 3) Realtime private topics are scoped to the actual user/resource.
 DROP POLICY IF EXISTS "Authenticated scoped realtime" ON realtime.messages;
-
 CREATE POLICY "Authenticated scoped realtime"
 ON realtime.messages
 FOR ALL
 TO authenticated
 USING (
-  realtime.topic() LIKE 'chat:%'
-  OR realtime.topic() LIKE 'notifications:%'
-  OR realtime.topic() LIKE 'live_room:%'
-  OR realtime.topic() LIKE 'live-comments:%'
+  (
+    realtime.topic() LIKE 'chat:%'
+    AND EXISTS (
+      SELECT 1
+      FROM public.chat_conversations c
+      JOIN public.startups s ON s.id = c.startup_id
+      WHERE c.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+        AND (c.buyer_id = auth.uid() OR s.owner_id = auth.uid())
+    )
+  )
+  OR (
+    realtime.topic() LIKE 'notifications:%'
+    AND NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid = auth.uid()
+  )
+  OR (
+    realtime.topic() LIKE 'live_room:%'
+    AND EXISTS (
+      SELECT 1
+      FROM public.live_events e
+      WHERE e.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+        AND e.status IN ('scheduled', 'live')
+    )
+  )
 )
 WITH CHECK (
-  realtime.topic() LIKE 'chat:%'
-  OR realtime.topic() LIKE 'notifications:%'
-  OR realtime.topic() LIKE 'live_room:%'
-  OR realtime.topic() LIKE 'live-comments:%'
+  (
+    realtime.topic() LIKE 'chat:%'
+    AND EXISTS (
+      SELECT 1
+      FROM public.chat_conversations c
+      JOIN public.startups s ON s.id = c.startup_id
+      WHERE c.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+        AND (c.buyer_id = auth.uid() OR s.owner_id = auth.uid())
+    )
+  )
+  OR (
+    realtime.topic() LIKE 'notifications:%'
+    AND NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid = auth.uid()
+  )
+  OR (
+    realtime.topic() LIKE 'live_room:%'
+    AND EXISTS (
+      SELECT 1
+      FROM public.live_events e
+      WHERE e.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+        AND e.status IN ('scheduled', 'live')
+    )
+  )
 );
