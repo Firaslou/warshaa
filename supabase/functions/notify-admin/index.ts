@@ -1,3 +1,4 @@
+import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2.95.0/cors";
 
 const ADMIN_EMAIL = "warsha.startups@gmail.com";
@@ -35,8 +36,8 @@ Deno.serve(async (req) => {
     }
 
     const url = Deno.env.get("SUPABASE_URL");
-    if (!url || !serviceRoleKey) throw new Error("Supabase configuration is incomplete");
-    const supabase = (await import("npm:@supabase/supabase-js@2.95.0")).createClient(url, serviceRoleKey);
+    if (!url) throw new Error("SUPABASE_URL is missing");
+    const supabase = createClient(url, serviceRoleKey);
 
     const { error } = await supabase.functions.invoke("send-transactional-email", {
       body: {
