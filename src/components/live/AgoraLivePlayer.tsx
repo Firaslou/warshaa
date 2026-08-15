@@ -29,7 +29,13 @@ export function AgoraLivePlayer({ liveEventId, channel, startupId: _startupId, i
   const tracksRef = useRef<any[]>([]); const uidRef = useRef<number>(uidFromString(`${liveEventId}:${isHost ? "host" : Math.random()}`));
   const [status, setStatus] = useState<"loading" | "connected" | "failed">("loading"); const [micMuted, setMicMuted] = useState(false); const [cameraMuted, setCameraMuted] = useState(false);
   const [comments, setComments] = useState<LiveComment[]>([]); const [message, setMessage] = useState("");
-  const getToken = useCallback(async () => { const { data, error } = await supabase.functions.invoke("agora-token", { body: { channel, uid: uidRef.current, role: isHost ? "host" : "audience" } }); if (error) throw error; return data as { appId: string; token: string; uid: number }; }, [channel, isHost]);
+  const getToken = useCallback(async () => {
+    const { data, error } = await supabase.functions.invoke("agora-token", {
+      body: { liveEventId, channel, uid: uidRef.current, role: isHost ? "host" : "audience" },
+    });
+    if (error) throw error;
+    return data as { appId: string; token: string; uid: number };
+  }, [liveEventId, channel, isHost]);
 
   useEffect(() => {
     let cancelled = false; let client: any;
