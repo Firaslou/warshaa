@@ -217,14 +217,14 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     };
 
     let { error } = product
-      ? await supabase.from("products").update(payload).eq("id", product.id)
-      : await supabase.from("products").insert(payload);
+      ? await supabase.from("products").update(payload as never).eq("id", product.id)
+      : await supabase.from("products").insert(payload as never);
 
     if (error && publish && /is_published/i.test(error.message)) {
       const { is_published: _isPublished, ...legacyPayload } = payload;
       const legacyResult = product
-        ? await supabase.from("products").update(legacyPayload).eq("id", product.id)
-        : await supabase.from("products").insert(legacyPayload);
+        ? await supabase.from("products").update(legacyPayload as never).eq("id", product.id)
+        : await supabase.from("products").insert(legacyPayload as never);
       error = legacyResult.error;
     }
 
