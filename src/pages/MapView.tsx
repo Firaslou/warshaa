@@ -46,15 +46,57 @@ export default function MapView() {
   const [selectedCreator, setSelectedCreator] = useState<CreatorPin | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
+      setLoading(true);
+
+      // First load the same columns used by the working Creators page.
+      // This guarantees that old creators still appear on the map even if
+      // the new location columns have not yet propagated through PostgREST.
+      const { data: baseData, error: baseError } = await supabase
         .from("startups")
-        .select("id, name, slug, city, delegation, category, logo_url, latitude, longitude")
+        .select("id, slug, name, city, category, logo_url, delegation")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+      if (baseError) {
+        console.error("Failed to load creators for map", baseError);
+        setCreators([]);
+        setLoading(false);
+        return;
+      }
+
+      const base = (baseData ?? []) as Array<Omit<CreatorPin, "latitude" | "longitude">>;
+      let locations: Record<string, { latitude: number | null; longitude: number | null }> = {};
+
+      // Load GPS separately so a schema-cache/RLS problem with the new fields
+      // cannot make the whole map empty.
+      const { data: locationData, error: locationError } = await supabase
+        .from("startups")
+        .select("id, latitude, longitude")
         .eq("status", "approved");
-      if (error) console.error("Failed to load creator locations", error);
-      setCreators((data ?? []) as CreatorPin[]);
+
+      if (!locationError) {
+        locations = Object.fromEntries(
+          (locationData ?? []).map((row: any) => [row.id, {
+            latitude: typeof row.latitude === "number" ? row.latitude : null,
+            longitude: typeof row.longitude === "number" ? row.longitude : null,
+          }]),
+        );
+      } else {
+        console.warn("Exact creator GPS locations are not available yet; showing governorate fallback", locationError);
+      }
+
+      setCreators(base.map((creator) => ({
+        ...creator,
+        latitude: locations[creator.id]?.latitude ?? null,
+        longitude: locations[creator.id]?.longitude ?? null,
+      })));
       setLoading(false);
     })();
+
+    return () => { cancelled = true; };
   }, []);
 
   const locatedCreators = useMemo(
@@ -72,7 +114,7 @@ export default function MapView() {
     return map;
   }, [creators]);
 
-  const totalLocated = creators.length;
+  const totalCreators = creators.length;
   const flyPos = activeGov ? GOVERNORATE_COORDS[activeGov] ?? null : null;
   const activeList = activeGov ? grouped.get(activeGov) ?? [] : [];
 
@@ -85,7 +127,7 @@ export default function MapView() {
           </div>
           <h1 className="font-serif text-3xl font-bold md:text-4xl">{t("map.title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("map.subtitle", { count: totalLocated, govs: TUNISIA_GOVERNORATES.length })}
+            {t("map.subtitle", { count: totalCreators, govs: TUNISIA_GOVERNORATES.length })}
           </p>
         </div>
 
@@ -104,9 +146,8 @@ export default function MapView() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <FlyTo position={selectedCreator && selectedCreator.latitude != null && selectedCreator.longitude != null ? [selectedCreator.latitude, selectedCreator.longitude] : flyPos} />
+              <FlyTo position={selectedCreator?.latitude != null && selectedCreator?.longitude != null ? [selectedCreator.latitude, selectedCreator.longitude] : flyPos} />
 
-              {/* Exact GPS locations supplied by creators */}
               {locatedCreators.map((creator) => (
                 <Marker
                   key={`gps-${creator.id}`}
@@ -121,27 +162,22 @@ export default function MapView() {
                   <Popup>
                     <div className="min-w-[190px]">
                       <p className="font-serif text-base font-bold">{creator.name}</p>
-                      <p className="mb-2 text-xs text-muted-foreground">
-                        {creator.delegation || creator.city || "Localisation précise"}
-                      </p>
-                      <Link to={`/startup/${creator.slug}`} className="text-xs font-medium text-primary hover:underline">
-                        Voir le créateur →
-                      </Link>
+                      <p className="mb-2 text-xs text-muted-foreground">{creator.delegation || creator.city || "Localisation précise"}</p>
+                      <Link to={`/startup/${creator.slug}`} className="text-xs font-medium text-primary hover:underline">Voir le créateur →</Link>
                     </div>
                   </Popup>
                 </Marker>
               ))}
 
-              {/* Governorate fallback markers for creators without GPS coordinates */}
               {TUNISIA_GOVERNORATES.map((gov) => {
                 const coord = GOVERNORATE_COORDS[gov];
                 if (!coord) return null;
                 const list = grouped.get(gov) ?? [];
                 const fallbackList = list.filter((c) => c.latitude == null || c.longitude == null);
                 const count = fallbackList.length;
+                if (count === 0) return null;
                 const radius = Math.max(8, Math.min(28, 8 + count * 3));
                 const isActive = activeGov === gov;
-                if (count === 0) return null;
                 return (
                   <CircleMarker
                     key={gov}
@@ -157,15 +193,13 @@ export default function MapView() {
                   >
                     <Tooltip direction="top" offset={[0, -radius]} opacity={1}>
                       <div className="text-xs font-semibold">{gov}</div>
-                      <div className="text-[10px] text-muted-foreground">{count} créateur{count > 1 ? "s" : ""} sans GPS précis</div>
+                      <div className="text-[10px] text-muted-foreground">{count} créateur{count > 1 ? "s" : ""}</div>
                     </Tooltip>
                     <Popup>
                       <div className="min-w-[180px]">
                         <p className="font-serif text-base font-bold">{gov}</p>
                         <p className="mb-2 text-xs text-muted-foreground">{count} créateur{count > 1 ? "s" : ""}</p>
-                        <button onClick={() => setActiveGov(gov)} className="text-xs font-medium text-primary hover:underline">
-                          Voir la liste →
-                        </button>
+                        <button onClick={() => setActiveGov(gov)} className="text-xs font-medium text-primary hover:underline">Voir la liste →</button>
                       </div>
                     </Popup>
                   </CircleMarker>
@@ -189,17 +223,14 @@ export default function MapView() {
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
                     {selectedCreator.logo_url ? <img src={selectedCreator.logo_url} alt={selectedCreator.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-sm font-bold">{selectedCreator.name.charAt(0).toUpperCase()}</div>}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">Voir le profil</p>
-                    <p className="text-xs text-muted-foreground">{selectedCreator.category || "Créateur"}</p>
-                  </div>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">Voir le profil</p><p className="text-xs text-muted-foreground">{selectedCreator.category || "Créateur"}</p></div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </Link>
               </div>
             ) : !activeGov ? (
               <div className="py-12 text-center">
                 <MousePointerClick className="mx-auto mb-3 h-8 w-8 text-primary/60" />
-                <p className="text-sm text-muted-foreground">{t("map.selectHint")}</p>
+                <p className="text-sm text-muted-foreground">{loading ? t("common.loading") : t("map.selectHint")}</p>
                 <div className="mt-6 grid gap-1 text-left">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("map.topRegions")}</p>
                   {Array.from(grouped.entries()).filter(([, list]) => list.length > 0).sort((a, b) => b[1].length - a[1].length).slice(0, 6).map(([gov, list]) => (
