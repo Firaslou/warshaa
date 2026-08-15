@@ -22,50 +22,78 @@ function loadAgora() {
   });
   return agoraPromise;
 }
-function uidFromString(value: string) { let hash = 2166136261; for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619); return Math.abs(hash >>> 0) || 1; }
 
 export function AgoraLivePlayer({ liveEventId, channel, startupId: _startupId, isHost, className }: Props) {
   const localVideoRef = useRef<HTMLDivElement>(null); const remoteVideoRef = useRef<HTMLDivElement>(null);
-  const tracksRef = useRef<any[]>([]); const uidRef = useRef<number>(uidFromString(`${liveEventId}:${isHost ? "host" : Math.random()}`));
+  const tracksRef = useRef<any[]>([]);
   const [status, setStatus] = useState<"loading" | "connected" | "failed">("loading"); const [micMuted, setMicMuted] = useState(false); const [cameraMuted, setCameraMuted] = useState(false);
   const [comments, setComments] = useState<LiveComment[]>([]); const [message, setMessage] = useState("");
+
   const getToken = useCallback(async () => {
     const { data, error } = await supabase.functions.invoke("agora-token", {
-      body: { liveEventId, channel, uid: uidRef.current, role: isHost ? "host" : "audience" },
+      body: { liveEventId, channel, role: isHost ? "host" : "audience" },
     });
     if (error) throw error;
-    return data as { appId: string; token: string; uid: number };
+    return data as { appId: string; token: string; uid: number; role: "host" | "audience" };
   }, [liveEventId, channel, isHost]);
 
   useEffect(() => {
     let cancelled = false; let client: any;
     const connect = async () => {
       try {
-        const AgoraRTC = await loadAgora(); if (cancelled) return; const credentials = await getToken();
-        client = AgoraRTC.createClient({ mode: "live", codec: "vp8" }); await client.setClientRole(isHost ? "host" : "audience");
-        client.on("user-published", async (user: any, mediaType: "audio" | "video") => { await client.subscribe(user, mediaType); if (mediaType === "video" && remoteVideoRef.current) user.videoTrack?.play(remoteVideoRef.current); if (mediaType === "audio") user.audioTrack?.play(); });
+        const AgoraRTC = await loadAgora(); if (cancelled) return;
+        const credentials = await getToken();
+        if (credentials.role !== (isHost ? "host" : "audience")) throw new Error("Agora role mismatch");
+        client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+        await client.setClientRole(isHost ? "host" : "audience");
+        client.on("user-published", async (user: any, mediaType: "audio" | "video") => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === "video" && remoteVideoRef.current) user.videoTrack?.play(remoteVideoRef.current);
+          if (mediaType === "audio") user.audioTrack?.play();
+        });
         client.on("user-unpublished", () => { if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = ""; });
         await client.join(credentials.appId, channel, credentials.token || null, credentials.uid);
-        if (isHost) { const tracks = await AgoraRTC.createMicrophoneAndCameraTracks({ encoderConfig: "music_standard" }, { encoderConfig: "720p_2" }); tracksRef.current = tracks; tracks[1].play(localVideoRef.current!); await client.publish(tracks); }
+        if (isHost) {
+          const tracks = await AgoraRTC.createMicrophoneAndCameraTracks({ encoderConfig: "music_standard" }, { encoderConfig: "720p_2" });
+          tracksRef.current = tracks;
+          tracks[1].play(localVideoRef.current!);
+          await client.publish(tracks);
+        }
         if (!cancelled) setStatus("connected");
-      } catch (error) { console.error("Agora live error", error); if (!cancelled) { setStatus("failed"); toast.error("Impossible de rejoindre le live Agora. Vérifiez la configuration Agora."); } }
+      } catch (error) {
+        console.error("Agora live error", error);
+        if (!cancelled) { setStatus("failed"); toast.error("Impossible de rejoindre le live Agora. Vérifiez la configuration Agora."); }
+      }
     };
     void connect();
-    return () => { cancelled = true; tracksRef.current.forEach((track) => { try { track.stop(); track.close(); } catch { /* noop */ } }); tracksRef.current = []; if (client) void client.leave().catch(() => undefined); };
+    return () => {
+      cancelled = true;
+      tracksRef.current.forEach((track) => { try { track.stop(); track.close(); } catch { /* noop */ } });
+      tracksRef.current = [];
+      if (client) void client.leave().catch(() => undefined);
+    };
   }, [channel, getToken, isHost]);
 
   useEffect(() => {
     const db = supabase as any;
-    const loadComments = async () => { const { data } = await db.from("live_comments").select("id,user_id,user_name,content,like_count,created_at").eq("live_event_id", liveEventId).order("created_at", { ascending: true }).limit(200); if (data) setComments(data as LiveComment[]); };
+    const loadComments = async () => {
+      const { data } = await db.from("live_comments").select("id,user_id,user_name,content,like_count,created_at").eq("live_event_id", liveEventId).order("created_at", { ascending: true }).limit(200);
+      if (data) setComments(data as LiveComment[]);
+    };
     void loadComments();
-    const channelRef = supabase.channel(`live-comments:${liveEventId}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "live_comments", filter: `live_event_id=eq.${liveEventId}` }, ({ new: row }) => setComments((prev) => [...prev, row as LiveComment])).on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_comments", filter: `live_event_id=eq.${liveEventId}` }, ({ new: row }) => setComments((prev) => prev.map((comment) => comment.id === row.id ? row as LiveComment : comment))).subscribe();
+    const channelRef = supabase.channel(`live-comments:${liveEventId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_comments", filter: `live_event_id=eq.${liveEventId}` }, ({ new: row }) => setComments((prev) => [...prev, row as LiveComment]))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_comments", filter: `live_event_id=eq.${liveEventId}` }, ({ new: row }) => setComments((prev) => prev.map((comment) => comment.id === row.id ? row as LiveComment : comment)))
+      .subscribe();
     return () => { void supabase.removeChannel(channelRef); };
   }, [liveEventId]);
 
   const toggleMic = async () => { const track = tracksRef.current[0]; if (!track) return; const next = !micMuted; await track.setEnabled(!next); setMicMuted(next); };
   const toggleCamera = async () => { const track = tracksRef.current[1]; if (!track) return; const next = !cameraMuted; await track.setEnabled(!next); setCameraMuted(next); };
   const sendComment = async () => {
-    const content = message.trim(); if (!content) return; const { data: userData } = await supabase.auth.getUser(); if (!userData.user) return toast.error("Connectez-vous pour commenter.");
+    const content = message.trim(); if (!content) return;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return toast.error("Connectez-vous pour commenter.");
     const { error } = await (supabase as any).from("live_comments").insert({ live_event_id: liveEventId, user_id: userData.user.id, user_name: userData.user.email?.split("@")[0] || "Visiteur", content });
     if (error) return toast.error(error.message); setMessage("");
   };
