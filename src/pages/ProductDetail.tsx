@@ -187,7 +187,7 @@ export default function ProductDetail() {
             .select("id,startup_id,name,description,price,currency,images,category,discount_percentage")
             .eq("category", (prod as Product).category!)
             .neq("id", id)
-            .eq("is_published" as never, true)
+            .eq("is_published", true)
             .limit(4);
           if (similarResult.error && /is_published/i.test(similarResult.error.message)) {
             similarResult = await supabase

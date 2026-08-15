@@ -82,7 +82,7 @@ export default function Creators() {
       const { data: prods } = await supabase
         .from("products")
         .select("startup_id")
-        .eq("is_published" as never, true)
+        .eq("is_published", true)
         .in("id", productIds);
       setMatchedByComment(new Set((prods ?? []).map((p: any) => p.startup_id)));
       setSearchingComments(false);
