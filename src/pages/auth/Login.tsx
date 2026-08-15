@@ -8,7 +8,6 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { BrandLogo } from "@/components/BrandLogo";
 import { MathCaptcha } from "@/components/MathCaptcha";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -23,11 +22,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const signInWithGoogle = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: next ? window.location.origin + next : window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: next ? window.location.origin + next : window.location.origin,
+      },
     });
-    if (result.error) {
-      toast.error(result.error.message ?? "Erreur Google");
+    if (error) {
+      toast.error(error.message ?? "Erreur Google");
     }
   };
 
