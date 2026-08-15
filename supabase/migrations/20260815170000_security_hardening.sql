@@ -39,6 +39,7 @@ REVOKE ALL ON FUNCTION public.sync_approved_creator_location() FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.sync_supporters_count() FROM PUBLIC, anon, authenticated;
 
 -- 3) Realtime private topics are scoped to the actual user/resource.
+-- UUID-format checks prevent malformed topics from causing cast errors.
 DROP POLICY IF EXISTS "Authenticated scoped realtime" ON realtime.messages;
 CREATE POLICY "Authenticated scoped realtime"
 ON realtime.messages
@@ -47,24 +48,27 @@ TO authenticated
 USING (
   (
     realtime.topic() LIKE 'chat:%'
+    AND split_part(realtime.topic(), ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
     AND EXISTS (
       SELECT 1
       FROM public.chat_conversations c
       JOIN public.startups s ON s.id = c.startup_id
-      WHERE c.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+      WHERE c.id = split_part(realtime.topic(), ':', 2)::uuid
         AND (c.buyer_id = auth.uid() OR s.owner_id = auth.uid())
     )
   )
   OR (
     realtime.topic() LIKE 'notifications:%'
-    AND NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid = auth.uid()
+    AND split_part(realtime.topic(), ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    AND split_part(realtime.topic(), ':', 2)::uuid = auth.uid()
   )
   OR (
     realtime.topic() LIKE 'live_room:%'
+    AND split_part(realtime.topic(), ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
     AND EXISTS (
       SELECT 1
       FROM public.live_events e
-      WHERE e.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+      WHERE e.id = split_part(realtime.topic(), ':', 2)::uuid
         AND e.status IN ('scheduled', 'live')
     )
   )
@@ -72,24 +76,27 @@ USING (
 WITH CHECK (
   (
     realtime.topic() LIKE 'chat:%'
+    AND split_part(realtime.topic(), ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
     AND EXISTS (
       SELECT 1
       FROM public.chat_conversations c
       JOIN public.startups s ON s.id = c.startup_id
-      WHERE c.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+      WHERE c.id = split_part(realtime.topic(), ':', 2)::uuid
         AND (c.buyer_id = auth.uid() OR s.owner_id = auth.uid())
     )
   )
   OR (
     realtime.topic() LIKE 'notifications:%'
-    AND NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid = auth.uid()
+    AND split_part(realtime.topic(), ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    AND split_part(realtime.topic(), ':', 2)::uuid = auth.uid()
   )
   OR (
     realtime.topic() LIKE 'live_room:%'
+    AND split_part(realtime.topic(), ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
     AND EXISTS (
       SELECT 1
       FROM public.live_events e
-      WHERE e.id = NULLIF(split_part(realtime.topic(), ':', 2), '')::uuid
+      WHERE e.id = split_part(realtime.topic(), ':', 2)::uuid
         AND e.status IN ('scheduled', 'live')
     )
   )
