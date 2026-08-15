@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Marker, Tooltip, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPin, Users, ArrowRight, MousePointerClick } from "lucide-react";
@@ -11,6 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { GOVERNORATE_COORDS, TUNISIA_CENTER, TUNISIA_BOUNDS } from "@/lib/tunisia-coords";
 import { TUNISIA_GOVERNORATES } from "@/lib/tunisia";
 
+const creatorIcon = L.divIcon({
+  className: "warsha-creator-marker",
+  html: '<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:hsl(var(--primary));transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.28)"><span style="display:block;width:8px;height:8px;border-radius:50%;background:white;margin:8px"></span></div>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 30],
+});
+
 interface CreatorPin {
   id: string;
   name: string;
@@ -19,12 +26,14 @@ interface CreatorPin {
   delegation: string | null;
   category: string | null;
   logo_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 function FlyTo({ position }: { position: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
-    if (position) map.flyTo(position, 10, { duration: 0.8 });
+    if (position) map.flyTo(position, 12, { duration: 0.8 });
   }, [position, map]);
   return null;
 }
@@ -34,19 +43,25 @@ export default function MapView() {
   const [creators, setCreators] = useState<CreatorPin[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGov, setActiveGov] = useState<string | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<CreatorPin | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("startups")
-        .select("id, name, slug, city, delegation, category, logo_url")
+        .select("id, name, slug, city, delegation, category, logo_url, latitude, longitude")
         .eq("status", "approved");
+      if (error) console.error("Failed to load creator locations", error);
       setCreators((data ?? []) as CreatorPin[]);
       setLoading(false);
     })();
   }, []);
 
-  // Group by governorate
+  const locatedCreators = useMemo(
+    () => creators.filter((c) => c.latitude != null && c.longitude != null),
+    [creators],
+  );
+
   const grouped = useMemo(() => {
     const map = new Map<string, CreatorPin[]>();
     for (const gov of TUNISIA_GOVERNORATES) map.set(gov, []);
@@ -57,11 +72,7 @@ export default function MapView() {
     return map;
   }, [creators]);
 
-  const totalLocated = useMemo(
-    () => Array.from(grouped.values()).reduce((acc, list) => acc + list.length, 0),
-    [grouped],
-  );
-
+  const totalLocated = creators.length;
   const flyPos = activeGov ? GOVERNORATE_COORDS[activeGov] ?? null : null;
   const activeList = activeGov ? grouped.get(activeGov) ?? [] : [];
 
@@ -79,7 +90,6 @@ export default function MapView() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* MAP */}
           <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
             <MapContainer
               center={TUNISIA_CENTER}
@@ -94,132 +104,128 @@ export default function MapView() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <FlyTo position={flyPos} />
+              <FlyTo position={selectedCreator && selectedCreator.latitude != null && selectedCreator.longitude != null ? [selectedCreator.latitude, selectedCreator.longitude] : flyPos} />
 
+              {/* Exact GPS locations supplied by creators */}
+              {locatedCreators.map((creator) => (
+                <Marker
+                  key={`gps-${creator.id}`}
+                  position={[creator.latitude!, creator.longitude!]}
+                  icon={creatorIcon}
+                  eventHandlers={{ click: () => setSelectedCreator(creator) }}
+                >
+                  <Tooltip direction="top" offset={[0, -25]} opacity={1}>
+                    <div className="text-xs font-semibold">{creator.name}</div>
+                    <div className="text-[10px] text-muted-foreground">{creator.delegation || creator.city || ""}</div>
+                  </Tooltip>
+                  <Popup>
+                    <div className="min-w-[190px]">
+                      <p className="font-serif text-base font-bold">{creator.name}</p>
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        {creator.delegation || creator.city || "Localisation précise"}
+                      </p>
+                      <Link to={`/startup/${creator.slug}`} className="text-xs font-medium text-primary hover:underline">
+                        Voir le créateur →
+                      </Link>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+
+              {/* Governorate fallback markers for creators without GPS coordinates */}
               {TUNISIA_GOVERNORATES.map((gov) => {
                 const coord = GOVERNORATE_COORDS[gov];
                 if (!coord) return null;
                 const list = grouped.get(gov) ?? [];
-                const count = list.length;
+                const fallbackList = list.filter((c) => c.latitude == null || c.longitude == null);
+                const count = fallbackList.length;
                 const radius = Math.max(8, Math.min(28, 8 + count * 3));
                 const isActive = activeGov === gov;
+                if (count === 0) return null;
                 return (
                   <CircleMarker
                     key={gov}
                     center={coord}
                     radius={radius}
                     pathOptions={{
-                      color: count > 0 ? "hsl(16, 55%, 45%)" : "hsl(220, 9%, 55%)",
-                      fillColor: count > 0 ? "hsl(22, 70%, 60%)" : "hsl(220, 14%, 90%)",
-                      fillOpacity: count > 0 ? (isActive ? 0.85 : 0.55) : 0.25,
+                      color: "hsl(16, 55%, 45%)",
+                      fillColor: "hsl(22, 70%, 60%)",
+                      fillOpacity: isActive ? 0.85 : 0.55,
                       weight: isActive ? 3 : 1.5,
                     }}
-                    eventHandlers={{ click: () => setActiveGov(gov) }}
+                    eventHandlers={{ click: () => { setActiveGov(gov); setSelectedCreator(null); } }}
                   >
                     <Tooltip direction="top" offset={[0, -radius]} opacity={1}>
                       <div className="text-xs font-semibold">{gov}</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {count} {count > 1 ? t("map.creators") : t("map.creator")}
-                      </div>
+                      <div className="text-[10px] text-muted-foreground">{count} créateur{count > 1 ? "s" : ""} sans GPS précis</div>
                     </Tooltip>
-                    {count > 0 && (
-                      <Popup>
-                        <div className="min-w-[180px]">
-                          <p className="font-serif text-base font-bold">{gov}</p>
-                          <p className="mb-2 text-xs text-muted-foreground">
-                            {count} {count > 1 ? t("map.creators") : t("map.creator")}
-                          </p>
-                          <button
-                            onClick={() => setActiveGov(gov)}
-                            className="text-xs font-medium text-primary hover:underline"
-                          >
-                            {t("map.viewList")} →
-                          </button>
-                        </div>
-                      </Popup>
-                    )}
+                    <Popup>
+                      <div className="min-w-[180px]">
+                        <p className="font-serif text-base font-bold">{gov}</p>
+                        <p className="mb-2 text-xs text-muted-foreground">{count} créateur{count > 1 ? "s" : ""}</p>
+                        <button onClick={() => setActiveGov(gov)} className="text-xs font-medium text-primary hover:underline">
+                          Voir la liste →
+                        </button>
+                      </div>
+                    </Popup>
                   </CircleMarker>
                 );
               })}
             </MapContainer>
           </div>
 
-          {/* SIDEBAR */}
           <aside className="rounded-3xl border border-border bg-card p-5 shadow-card">
-            {!activeGov ? (
+            {selectedCreator ? (
+              <div>
+                <div className="mb-4 flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Localisation précise</p>
+                    <h2 className="font-serif text-xl font-bold">{selectedCreator.name}</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">{selectedCreator.delegation || selectedCreator.city}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedCreator(null)}>✕</Button>
+                </div>
+                <Link to={`/startup/${selectedCreator.slug}`} className="flex items-center gap-3 rounded-xl border border-border bg-background p-2.5 transition hover:border-primary hover:shadow-card">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
+                    {selectedCreator.logo_url ? <img src={selectedCreator.logo_url} alt={selectedCreator.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-sm font-bold">{selectedCreator.name.charAt(0).toUpperCase()}</div>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">Voir le profil</p>
+                    <p className="text-xs text-muted-foreground">{selectedCreator.category || "Créateur"}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </div>
+            ) : !activeGov ? (
               <div className="py-12 text-center">
                 <MousePointerClick className="mx-auto mb-3 h-8 w-8 text-primary/60" />
                 <p className="text-sm text-muted-foreground">{t("map.selectHint")}</p>
                 <div className="mt-6 grid gap-1 text-left">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("map.topRegions")}
-                  </p>
-                  {Array.from(grouped.entries())
-                    .filter(([, list]) => list.length > 0)
-                    .sort((a, b) => b[1].length - a[1].length)
-                    .slice(0, 6)
-                    .map(([gov, list]) => (
-                      <button
-                        key={gov}
-                        onClick={() => setActiveGov(gov)}
-                        className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition hover:bg-accent"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-primary" /> {gov}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{list.length}</span>
-                      </button>
-                    ))}
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("map.topRegions")}</p>
+                  {Array.from(grouped.entries()).filter(([, list]) => list.length > 0).sort((a, b) => b[1].length - a[1].length).slice(0, 6).map(([gov, list]) => (
+                    <button key={gov} onClick={() => setActiveGov(gov)} className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition hover:bg-accent">
+                      <span className="inline-flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary" /> {gov}</span>
+                      <span className="text-xs text-muted-foreground">{list.length}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             ) : (
               <>
                 <div className="mb-4 flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {t("map.region")}
-                    </p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("map.region")}</p>
                     <h2 className="font-serif text-xl font-bold">{activeGov}</h2>
-                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-                      <Users className="h-3 w-3" /> {activeList.length}{" "}
-                      {activeList.length > 1 ? t("map.creators") : t("map.creator")}
-                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><Users className="h-3 w-3" /> {activeList.length} {activeList.length > 1 ? t("map.creators") : t("map.creator")}</p>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => setActiveGov(null)}>
-                    ✕
-                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setActiveGov(null)}>✕</Button>
                 </div>
-
-                {loading ? (
-                  <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-                ) : activeList.length === 0 ? (
-                  <p className="rounded-lg border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">
-                    {t("map.empty")}
-                  </p>
-                ) : (
+                {loading ? <p className="text-sm text-muted-foreground">{t("common.loading")}</p> : activeList.length === 0 ? <p className="rounded-lg border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">{t("map.empty")}</p> : (
                   <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
                     {activeList.map((c) => (
-                      <Link
-                        key={c.id}
-                        to={`/startup/${c.slug}`}
-                        className="flex items-center gap-3 rounded-xl border border-border bg-background p-2.5 transition hover:border-primary hover:shadow-card"
-                      >
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
-                          {c.logo_url ? (
-                            <img src={c.logo_url} alt={c.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-sm font-bold">
-                              {c.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold">{c.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {c.delegation || c.city}
-                            {c.category ? ` · ${c.category}` : ""}
-                          </p>
-                        </div>
+                      <Link key={c.id} to={`/startup/${c.slug}`} className="flex items-center gap-3 rounded-xl border border-border bg-background p-2.5 transition hover:border-primary hover:shadow-card">
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">{c.logo_url ? <img src={c.logo_url} alt={c.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-sm font-bold">{c.name.charAt(0).toUpperCase()}</div>}</div>
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{c.name}</p><p className="truncate text-xs text-muted-foreground">{c.delegation || c.city}{c.category ? ` · ${c.category}` : ""}</p></div>
                         <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                       </Link>
                     ))}
