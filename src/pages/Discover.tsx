@@ -72,7 +72,7 @@ export default function Discover() {
         .from("products")
         .select(fields)
         .eq("startup_id", current.id)
-        .eq("is_published", true);
+        .eq("is_published" as never, true);
       if (error && /is_published/i.test(error.message)) {
         const legacyResult = await supabase
           .from("products")
