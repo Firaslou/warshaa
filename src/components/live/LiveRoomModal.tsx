@@ -162,7 +162,7 @@ export function LiveRoomModal({ open, onOpenChange, liveEventId, startupId, star
   useEffect(() => {
     if (!open || !startupId) return;
     void (async () => {
-      let { data, error } = await supabase.from("products").select("id, name, price, discount_percentage, currency, images, description, startup_id").eq("startup_id", startupId).eq("is_published" as never, true).limit(20);
+      let { data, error } = await supabase.from("products").select("id, name, price, discount_percentage, currency, images, description, startup_id").eq("startup_id", startupId).eq("is_published", true).limit(20);
       if (error && /is_published/i.test(error.message)) {
         const legacyResult = await supabase.from("products").select("id, name, price, discount_percentage, currency, images, description, startup_id").eq("startup_id", startupId).limit(20);
         data = legacyResult.data;

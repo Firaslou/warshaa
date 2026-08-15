@@ -128,7 +128,7 @@ export default function Products() {
     let { data, error } = await supabase
       .from("products")
       .select(productFields)
-      .eq("is_published" as never, true)
+      .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(150);
 
