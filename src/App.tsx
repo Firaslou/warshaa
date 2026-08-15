@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PageSkeleton } from "@/components/skeletons/PageSkeleton";
 import { CreatorLocationAutoUpdate } from "@/components/creator/CreatorLocationAutoUpdate";
+import { CreatorProfileLink } from "@/components/creator/CreatorProfileLink";
 
 // Lazy-loaded page components — heavy deps (leaflet, recharts, WebRTC) are
 // only fetched when the user navigates to the corresponding route.
@@ -37,6 +38,13 @@ const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const AIAssistant = lazy(() => import("./components/AIAssistant").then(m => ({ default: m.AIAssistant })));
 
 const queryClient = new QueryClient();
+
+const CreatorArea = () => (
+  <>
+    <CreatorProfileLink />
+    <CreatorDashboard />
+  </>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -68,7 +76,7 @@ const App = () => (
                 <Route path="/dashboard" element={<ClientDashboard />} />
                 <Route path="/dashboard/favorites" element={<ClientDashboard />} />
                 <Route path="/favorites" element={<ClientDashboard />} />
-                <Route path="/creator" element={<CreatorDashboard />} />
+                <Route path="/creator" element={<CreatorArea />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/app-preview" element={<AppPreview />} />
                 <Route path="/notifications" element={<Notifications />} />
