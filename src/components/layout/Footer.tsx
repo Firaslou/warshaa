@@ -10,9 +10,12 @@ export function Footer() {
           <BrandLogo markClassName="h-12" nameClassName="text-lg" />
           <span className="text-sm text-muted-foreground">{t("common.tagline")}</span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} {t("common.appName")}. {t("footer.rights")} {t("footer.made")}
-        </p>
+        <div className="flex flex-col items-center gap-1 text-sm text-muted-foreground sm:items-end">
+          <p>
+            © {new Date().getFullYear()} {t("common.appName")}. {t("footer.rights")} {t("footer.made")}
+          </p>
+          <p>Pour plus d'information : email : warsha.startups@gmail.com</p>
+        </div>
       </div>
     </footer>
   );
