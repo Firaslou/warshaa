@@ -109,7 +109,7 @@ export default function StartupDetail() {
         setIsDemo(false);
 
         // 2. On récupère les VRAIS produits de la DB en utilisant startup_id OU startup_slug !
-        let productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).eq("is_published", true).order("created_at", { ascending: false });
+        let productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).eq("is_published" as never, true).order("created_at", { ascending: false });
         if (productResult.error && /is_published/i.test(productResult.error.message)) {
           productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).order("created_at", { ascending: false });
         }
