@@ -1,70 +1,150 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+const CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+const CODE_LENGTH = 5;
+
+function createCode() {
+  let result = "";
+  for (let i = 0; i < CODE_LENGTH; i += 1) {
+    result += CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+  }
+  return result;
+}
+
+function randomBetween(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 /**
- * Captcha mathématique simple — empêche les bots basiques sans clé tierce.
- * Utilise `onValidChange` pour notifier le parent.
+ * Visual CAPTCHA: distorted letters/numbers that the visitor must copy.
+ * Keeps the existing MathCaptcha API so login/register forms do not need changes.
+ * Note: this is a client-side CAPTCHA and is intended as a lightweight bot barrier.
+ * For high-volume/public production protection, use a server-verified CAPTCHA such as Turnstile.
  */
 export function MathCaptcha({ onValidChange }: { onValidChange: (valid: boolean) => void }) {
-  const [a, setA] = useState(0);
-  const [b, setB] = useState(0);
-  const [operator, setOperator] = useState<"+" | "−" | "×">("+");
-  const [expected, setExpected] = useState(0);
+  const [code, setCode] = useState("");
   const [answer, setAnswer] = useState("");
 
   const regenerate = () => {
-    const operation = (["+", "−", "×"] as const)[Math.floor(Math.random() * 3)];
-    let first = Math.floor(Math.random() * 12) + 2;
-    let second = Math.floor(Math.random() * 9) + 1;
-    if (operation === "−" && second > first) [first, second] = [second, first];
-    if (operation === "×") {
-      first = Math.floor(Math.random() * 8) + 2;
-      second = Math.floor(Math.random() * 8) + 2;
-    }
-    setA(first);
-    setB(second);
-    setOperator(operation);
-    setExpected(operation === "+" ? first + second : operation === "−" ? first - second : first * second);
+    setCode(createCode());
     setAnswer("");
     onValidChange(false);
   };
 
-  useEffect(() => { regenerate(); }, []);
+  useEffect(() => {
+    regenerate();
+  }, []);
+
+  const normalizedAnswer = answer.trim().toLowerCase();
+  const isAnswered = normalizedAnswer !== "";
+  const isCorrect = isAnswered && normalizedAnswer === code.toLowerCase();
 
   useEffect(() => {
-    onValidChange(answer.trim() !== "" && parseInt(answer, 10) === expected);
-  }, [answer, expected, onValidChange]);
+    onValidChange(isCorrect);
+  }, [isCorrect, onValidChange]);
 
-  const isAnswered = answer.trim() !== "";
-  const isCorrect = isAnswered && parseInt(answer, 10) === expected;
+  const characters = useMemo(
+    () =>
+      code.split("").map((character, index) => ({
+        character,
+        x: 22 + index * 25,
+        y: randomBetween(34, 45),
+        rotate: randomBetween(-22, 22),
+        size: randomBetween(25, 31),
+      })),
+    [code],
+  );
+
+  const noiseLines = useMemo(
+    () =>
+      Array.from({ length: 5 }, (_, index) => ({
+        x1: randomBetween(0, 20),
+        y1: randomBetween(10, 50),
+        x2: randomBetween(105, 125),
+        y2: randomBetween(10, 50),
+        rotate: index * 7 - 14,
+      })),
+    [code],
+  );
 
   return (
     <div>
       <Label htmlFor="captcha">Vérification anti-robot</Label>
       <div className="mt-1 flex items-center gap-2">
-        <div className="flex h-10 select-none items-center justify-center rounded-md border border-input bg-muted px-4 font-mono text-sm font-semibold">
-          {a} {operator} {b} = ?
+        <div
+          className="relative h-12 w-[145px] shrink-0 overflow-hidden rounded-md border border-input bg-muted select-none"
+          aria-label="Code CAPTCHA visuel"
+        >
+          <svg
+            viewBox="0 0 125 55"
+            className="h-full w-full"
+            role="img"
+            aria-hidden="true"
+          >
+            <rect width="125" height="55" fill="transparent" />
+            {noiseLines.map((line, index) => (
+              <line
+                key={`line-${index}`}
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke="currentColor"
+                strokeWidth="1.2"
+                opacity="0.25"
+                transform={`rotate(${line.rotate} 62.5 27.5)`}
+              />
+            ))}
+            {characters.map((item, index) => (
+              <text
+                key={`${item.character}-${index}`}
+                x={item.x}
+                y={item.y}
+                fontSize={item.size}
+                fontWeight="700"
+                fontFamily="Arial, sans-serif"
+                fill="currentColor"
+                transform={`rotate(${item.rotate} ${item.x} ${item.y})`}
+              >
+                {item.character}
+              </text>
+            ))}
+          </svg>
         </div>
+
         <Input
           id="captcha"
-          type="number"
+          type="text"
           required
-          inputMode="numeric"
+          autoComplete="off"
+          inputMode="text"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          placeholder="Réponse"
+          placeholder="Recopier le code"
           className={`flex-1 ${isAnswered ? (isCorrect ? "border-green-500" : "border-destructive") : ""}`}
           aria-invalid={isAnswered && !isCorrect}
         />
-        <Button type="button" variant="outline" size="icon" onClick={regenerate} aria-label="Nouveau captcha">
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={regenerate}
+          aria-label="Nouveau code CAPTCHA"
+          title="Nouveau code"
+        >
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
+
       <p className={`mt-1 text-xs ${isCorrect ? "text-green-600" : "text-muted-foreground"}`}>
-        {isCorrect ? "Vérification réussie." : "Résous le calcul pour confirmer que tu n'es pas un robot."}
+        {isCorrect
+          ? "Vérification réussie."
+          : "Recopie les lettres et chiffres affichés."}
       </p>
     </div>
   );
