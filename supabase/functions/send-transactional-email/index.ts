@@ -27,27 +27,43 @@ function htmlTemplate(templateName: string, data: Record<string, unknown>) {
     ? "Votre demande de créateur Warsha a été approuvée"
     : templateName === "complaint"
       ? "Nouvelle réclamation sur Warsha"
-      : templateName === "creator-application"
-        ? "Nouvelle demande de créateur sur Warsha"
-        : "Notification Warsha";
-
+      : "Nouvelle demande de créateur sur Warsha";
   const title = templateName === "creator-approved"
     ? "Demande de créateur approuvée"
     : templateName === "complaint"
       ? "Nouvelle réclamation"
-      : templateName === "creator-application"
-        ? "Nouvelle demande de créateur"
-        : "Notification";
-
+      : "Nouvelle demande de créateur";
   const rows = Object.entries(data)
     .filter(([key]) => key !== "brandName" && key !== "startupSlug")
     .map(([key, value]) => `<p><strong>${escapeHtml(key)} :</strong> ${escapeHtml(value)}</p>`)
     .join("");
-
   return {
     subject,
     html: `<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:680px;margin:auto"><h2>${title}</h2>${brandName ? `<p><strong>Warsha</strong> — ${brandName}</p>` : ""}${rows}<hr><p style="color:#777">Email automatique de Warsha.</p></div>`,
   };
+}
+
+async function sendEmail(apiKey: string, recipientEmail: string, templateName: string, templateData: Record<string, unknown>, idempotencyKey?: string) {
+  const template = htmlTemplate(templateName, templateData);
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+
+  const response = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      from: "Warsha <onboarding@resend.dev>",
+      to: [recipientEmail],
+      subject: template.subject,
+      html: template.html,
+    }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error("Email provider error");
+  return result;
 }
 
 Deno.serve(async (req) => {
@@ -73,51 +89,22 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const templateName = String(body.templateName ?? "").trim();
-    const templateData = (body.templateData && typeof body.templateData === "object") ? body.templateData : {};
+    const templateData = (body.templateData && typeof body.templateData === "object") ? body.templateData as Record<string, unknown> : {};
     const idempotencyKey = body.idempotencyKey ? String(body.idempotencyKey).slice(0, 200) : undefined;
 
     if (templateName === "creator-approved") {
-      // This template is only invoked internally by approve-creator-application
-      // using the service-role client. It may send to the applicant's email.
       if (!isServiceRole) return json({ error: "Forbidden" }, 403);
       const recipientEmail = String(body.recipientEmail ?? "").trim().toLowerCase();
-      if (!recipientEmail || recipientEmail.length > 320) return json({ error: "Invalid recipient" }, 400);
-      const template = htmlTemplate(templateName, templateData);
-      const response = await fetch(RESEND_API_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: "Warsha <onboarding@resend.dev>",
-          to: [recipientEmail],
-          subject: template.subject,
-          html: template.html,
-          ...(idempotencyKey ? { headers: { "X-Entity-Ref-ID": idempotencyKey } } : {}),
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) return json({ error: "Email provider error" }, 502);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail) || recipientEmail.length > 320) return json({ error: "Invalid recipient" }, 400);
+      const result = await sendEmail(apiKey, recipientEmail, templateName, templateData, idempotencyKey);
       return json({ success: true, id: result.id });
     }
 
-    // Publicly callable admin notifications must always go to the Warsha admin mailbox.
     if (!ALLOWED_ADMIN_TEMPLATES.has(templateName)) return json({ error: "Forbidden template" }, 403);
-    const template = htmlTemplate(templateName, templateData);
-    const response = await fetch(RESEND_API_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Warsha <onboarding@resend.dev>",
-        to: [ADMIN_EMAIL],
-        subject: template.subject,
-        html: template.html,
-        ...(idempotencyKey ? { headers: { "X-Entity-Ref-ID": idempotencyKey } } : {}),
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok) return json({ error: "Email provider error" }, 502);
+    const result = await sendEmail(apiKey, ADMIN_EMAIL, templateName, templateData, idempotencyKey);
     return json({ success: true, id: result.id, recipient: ADMIN_EMAIL });
   } catch (error) {
-    console.error(error);
+    console.error("send-transactional-email error", error);
     return json({ error: "Unexpected email error" }, 500);
   }
 });
