@@ -1,5 +1,9 @@
 export const SERVICE_CATEGORIES = [
   "Jardinage",
+  "Auto-école",
+  "Charpentier",
+  "Menuisier",
+  "Mécanicien",
   "Coiffure femme",
   "Coiffure homme",
   "Barbier à domicile",

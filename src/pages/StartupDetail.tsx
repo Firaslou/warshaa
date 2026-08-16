@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { safeExternalUrl } from "@/lib/url-security";
 import { RatingBadge } from "@/components/RatingBadge";
+import { ServicePhoneButton } from "@/components/ServicePhoneButton";
 import { aggregateRatings, type RatingSummary } from "@/lib/ratings";
 import { formatServicePrice, SERVICE_LOCATIONS, type ServiceLocationType, type ServicePricingType } from "@/lib/service-categories";
 
@@ -80,6 +81,7 @@ interface Service {
   name: string;
   description?: string | null;
   category: string;
+  custom_category?: string | null;
   pricing_type: ServicePricingType;
   price: number | null;
   currency: string;
@@ -519,7 +521,7 @@ export default function StartupDetail() {
               <div className="grid gap-5 sm:grid-cols-2">
                 {services.map((service) => <div key={service.id} className="group overflow-hidden rounded-xl border bg-card shadow-sm">
                   <Link to={`/service/${service.id}`}>{service.images?.[0] && <img src={service.images[0]} alt={service.name} className="aspect-video w-full object-cover transition group-hover:scale-[1.02]" />}</Link>
-                  <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><Link to={`/service/${service.id}`}><h3 className="font-semibold hover:text-primary">{service.name}</h3></Link><span className="shrink-0 text-sm font-bold text-primary">{formatServicePrice(service)}</span></div><RatingBadge rating={serviceRatings[service.id]} />{service.description && <p className="line-clamp-2 text-sm text-muted-foreground">{service.description}</p>}<div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{service.category}</Badge><Badge variant="outline"><MapPin className="mr-1 h-3 w-3" />{SERVICE_LOCATIONS[service.location_type]}</Badge>{service.duration_minutes && <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />{service.duration_minutes} min</Badge>}</div><Button size="sm" variant="outline" asChild><Link to={`/service/${service.id}`}>Voir le service</Link></Button></div>
+                  <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><Link to={`/service/${service.id}`}><h3 className="font-semibold hover:text-primary">{service.name}</h3></Link><span className="shrink-0 text-sm font-bold text-primary">{formatServicePrice(service)}</span></div><RatingBadge rating={serviceRatings[service.id]} />{service.description && <p className="line-clamp-2 text-sm text-muted-foreground">{service.description}</p>}<div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{service.category}</Badge><Badge variant="outline"><MapPin className="mr-1 h-3 w-3" />{SERVICE_LOCATIONS[service.location_type]}</Badge>{service.duration_minutes && <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />{service.duration_minutes} min</Badge>}</div><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" asChild><Link to={`/service/${service.id}`}>Voir le service</Link></Button><ServicePhoneButton phone={startup.whatsapp_number} compact /></div></div>
                 </div>)}
               </div>
             )}

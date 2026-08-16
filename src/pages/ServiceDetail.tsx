@@ -4,6 +4,7 @@ import { Clock, Lock, MapPin, MessageCircle, Star } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PrivateChatDialog } from "@/components/PrivateChatDialog";
 import { RatingBadge } from "@/components/RatingBadge";
+import { ServicePhoneButton } from "@/components/ServicePhoneButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,7 +89,7 @@ export default function ServiceDetail() {
           {service.service_area && <p className="text-sm"><strong>Zone :</strong> {service.service_area}</p>}
           {service.availability_text && <p className="text-sm"><strong>Disponibilités :</strong> {service.availability_text}</p>}
           {service.description && <p className="whitespace-pre-line leading-relaxed text-foreground/80">{service.description}</p>}
-          <div className="flex flex-wrap gap-2"><Button onClick={contactWhatsApp}><MessageCircle className="mr-2 h-4 w-4" />Contacter sur WhatsApp</Button><Button variant="outline" onClick={() => user ? setChatOpen(true) : toast.info("Connectez-vous pour ouvrir le chat privé.")}><Lock className="mr-2 h-4 w-4" />Chat privé</Button></div>
+          <div className="flex flex-wrap gap-2"><Button onClick={contactWhatsApp}><MessageCircle className="mr-2 h-4 w-4" />Contacter sur WhatsApp</Button><ServicePhoneButton phone={service.startups.whatsapp_number} /><Button variant="outline" onClick={() => user ? setChatOpen(true) : toast.info("Connectez-vous pour ouvrir le chat privé.")}><Lock className="mr-2 h-4 w-4" />Chat privé</Button></div>
         </div>
       </div>
 

@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RatingBadge } from "@/components/RatingBadge";
+import { ServicePhoneButton } from "@/components/ServicePhoneButton";
 import { supabase } from "@/integrations/supabase/client";
 import { aggregateRatings, type RatingSummary } from "@/lib/ratings";
 import { formatServicePrice, SERVICE_CATEGORIES, SERVICE_LOCATIONS, type ServiceLocationType, type ServicePricingType } from "@/lib/service-categories";
+import { fuzzyMatch } from "@/lib/search-utils";
 
 export type ServiceRow = {
   id: string;
@@ -17,6 +19,7 @@ export type ServiceRow = {
   name: string;
   description: string | null;
   category: string;
+  custom_category: string | null;
   pricing_type: ServicePricingType;
   price: number | null;
   currency: string;
@@ -25,7 +28,7 @@ export type ServiceRow = {
   service_area: string | null;
   duration_minutes: number | null;
   availability_text: string | null;
-  startups: { name: string; slug: string; city: string | null; logo_url: string | null } | null;
+  startups: { name: string; slug: string; city: string | null; logo_url: string | null; whatsapp_number: string | null } | null;
 };
 
 const db = supabase as any;
@@ -43,7 +46,7 @@ export default function Services() {
     (async () => {
       setLoading(true);
       const result = await db.from("services")
-        .select("*, startups(name,slug,city,logo_url)")
+        .select("*, startups(name,slug,city,logo_url,whatsapp_number)")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(150);
@@ -60,8 +63,8 @@ export default function Services() {
   }, []);
 
   const filtered = useMemo(() => services.filter((service) => {
-    const haystack = `${service.name} ${service.description ?? ""} ${service.category} ${service.service_area ?? ""} ${service.startups?.name ?? ""}`.toLowerCase();
-    return (!search || haystack.includes(search.toLowerCase())) && (category === "all" || service.category === category);
+    const haystack = `${service.name} ${service.description ?? ""} ${service.category} ${service.custom_category ?? ""} ${service.service_area ?? ""} ${service.startups?.name ?? ""}`;
+    return fuzzyMatch(search, haystack) && (category === "all" || service.category === category);
   }), [services, search, category]);
 
   const setParam = (key: string, value: string) => {
@@ -92,7 +95,7 @@ export default function Services() {
                 <RatingBadge rating={ratings[service.id]} />
                 {service.description && <p className="line-clamp-2 text-sm text-muted-foreground">{service.description}</p>}
                 <div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{service.category}</Badge><Badge variant="outline"><MapPin className="mr-1 h-3 w-3" />{SERVICE_LOCATIONS[service.location_type]}</Badge>{service.duration_minutes && <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />{service.duration_minutes} min</Badge>}</div>
-                {service.startups && <Link to={`/startup/${service.startups.slug}`} className="block border-t pt-3 text-xs text-primary hover:underline">Par {service.startups.name}{service.startups.city ? ` · ${service.startups.city}` : ""}</Link>}
+                {service.startups && <div className="flex items-center justify-between gap-2 border-t pt-3"><Link to={`/startup/${service.startups.slug}`} className="min-w-0 truncate text-xs text-primary hover:underline">Par {service.startups.name}{service.startups.city ? ` · ${service.startups.city}` : ""}</Link><ServicePhoneButton phone={service.startups.whatsapp_number} compact /></div>}
               </CardContent>
             </Card>)}
           </div>

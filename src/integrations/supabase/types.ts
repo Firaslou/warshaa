@@ -677,6 +677,7 @@ export type Database = {
         Row: {
           availability_text: string | null
           category: string
+          custom_category: string | null
           created_at: string
           currency: string
           description: string | null
@@ -695,6 +696,7 @@ export type Database = {
         Insert: {
           availability_text?: string | null
           category: string
+          custom_category?: string | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -713,6 +715,7 @@ export type Database = {
         Update: {
           availability_text?: string | null
           category?: string
+          custom_category?: string | null
           created_at?: string
           currency?: string
           description?: string | null

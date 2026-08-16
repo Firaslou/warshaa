@@ -36,6 +36,7 @@ describe("search-utils", () => {
     it("matches exact substrings regardless of casing/accents", () => {
       expect(fuzzyMatch("ceramique", "Vase en Céramique Bleue")).toBe(true);
       expect(fuzzyMatch("poterie", "Atelier de poterie")).toBe(true);
+      expect(fuzzyMatch("autoecole", "Auto-école à Tunis")).toBe(true);
     });
 
     it("tolerates typos with levenshtein tolerance", () => {
