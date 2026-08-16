@@ -91,10 +91,24 @@ export default function Apply() {
       proof_photos: [...form.proof_photos, form.verification_photo_url].filter(Boolean),
       creator_story: form.creator_story || null,
     };
-    const { error } = await supabase.from("startup_applications").insert(applicationData as any);
+    const { data: application, error } = await supabase
+      .from("startup_applications")
+      .insert(applicationData as any)
+      .select("id")
+      .single();
     if (error) {
       toast({ title: error.message, variant: "destructive" });
       return;
+    }
+
+    const { error: notificationError } = await supabase.functions.invoke("notify-admin", {
+      body: { type: "new-creator-application", applicationId: application.id },
+    });
+    if (notificationError) {
+      toast({
+        title: "Demande enregistrée",
+        description: "La notification email n’a pas pu être envoyée. La candidature reste bien enregistrée.",
+      });
     }
 
     setSubmitted(true);

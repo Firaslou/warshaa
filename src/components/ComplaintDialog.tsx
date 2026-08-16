@@ -33,12 +33,16 @@ export function ComplaintDialog({
     const cleanSubject = subject.trim().slice(0, 200);
     const cleanMessage = message.trim().slice(0, 2000);
 
-    const { error } = await supabase.from("complaints").insert({
-      reporter_id: user.id,
-      startup_id: startupId,
-      subject: cleanSubject,
-      message: cleanMessage,
-    });
+    const { data: complaint, error } = await supabase
+      .from("complaints")
+      .insert({
+        reporter_id: user.id,
+        startup_id: startupId,
+        subject: cleanSubject,
+        message: cleanMessage,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       setLoading(false);
@@ -46,7 +50,14 @@ export function ComplaintDialog({
       return;
     }
 
+    const { error: notificationError } = await supabase.functions.invoke("notify-admin", {
+      body: { type: "new-reclamation", complaintId: complaint.id },
+    });
+
     setLoading(false);
+    if (notificationError) {
+      toast.warning("Réclamation enregistrée, mais l’email administrateur n’a pas pu être envoyé.");
+    }
     toast.success("Réclamation envoyée — nous la prenons au sérieux", {
       description: "Notre équipe va l'étudier et te répondra rapidement.",
       duration: 6000,
