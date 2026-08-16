@@ -21,6 +21,8 @@ import { fuzzyMatch } from "@/lib/search-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { RatingBadge } from "@/components/RatingBadge";
+import { aggregateRatings, type RatingSummary } from "@/lib/ratings";
 
 interface ProductRow {
   id: string;
@@ -60,6 +62,7 @@ export default function Products() {
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [views, setViews] = useState<Record<string, number>>({});
   const [purchases, setPurchases] = useState<Record<string, number>>({});
+  const [ratings, setRatings] = useState<Record<string, RatingSummary>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -159,10 +162,11 @@ export default function Products() {
     // Counts
     const ids = real.map((p) => p.id);
     if (ids.length) {
-      const [lk, vw, pc] = await Promise.all([
+      const [lk, vw, pc, rv] = await Promise.all([
         supabase.from("product_likes").select("product_id").in("product_id", ids),
         supabase.from("product_views").select("product_id").in("product_id", ids),
         supabase.from("purchase_confirmations").select("product_id").in("product_id", ids),
+        supabase.from("reviews").select("product_id,rating").in("product_id", ids),
       ]);
       const tally = (rows: any[] | null) => {
         const m: Record<string, number> = {};
@@ -172,6 +176,7 @@ export default function Products() {
       setLikes(tally(lk.data));
       setViews(tally(vw.data));
       setPurchases(tally(pc.data));
+      setRatings(aggregateRatings((rv.data ?? []) as any[], "product_id"));
     }
     setLoading(false);
   };
@@ -560,6 +565,8 @@ export default function Products() {
                     </div>
 
                     {p.description && <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">{p.description}</p>}
+
+                    <RatingBadge rating={ratings[p.id]} />
 
                     <div className="flex flex-wrap gap-1.5 text-xs">
                       {p.category && <Badge variant="secondary" className="rounded-full text-[11px]">{p.category}</Badge>}

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, BadgePlus, Award, Heart, MessageCircle, Star,
   Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart, Flag,
-  Send, Camera, PackageOpen,
+  Send, Camera, PackageOpen, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,9 @@ import { openWhatsApp } from "@/lib/whatsapp";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { safeExternalUrl } from "@/lib/url-security";
+import { RatingBadge } from "@/components/RatingBadge";
+import { aggregateRatings, type RatingSummary } from "@/lib/ratings";
+import { formatServicePrice, SERVICE_LOCATIONS, type ServiceLocationType, type ServicePricingType } from "@/lib/service-categories";
 
 interface Startup {
   id: string;
@@ -72,12 +75,29 @@ interface Review {
   user_id: string;
 }
 
+interface Service {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  pricing_type: ServicePricingType;
+  price: number | null;
+  currency: string;
+  images: string[];
+  location_type: ServiceLocationType;
+  service_area?: string | null;
+  duration_minutes?: number | null;
+}
+
 export default function StartupDetail() {
   const { slug } = useParams();
   const { t } = useTranslation();
   const { user } = useAuth();
   const [startup, setStartup] = useState<Startup | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [productRatings, setProductRatings] = useState<Record<string, RatingSummary>>({});
+  const [serviceRatings, setServiceRatings] = useState<Record<string, RatingSummary>>({});
   const [similarCreators, setSimilarCreators] = useState<Startup[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
@@ -99,6 +119,9 @@ export default function StartupDetail() {
     if (!slug) return;
     (async () => {
       setSimilarCreators([]);
+      setServices([]);
+      setProductRatings({});
+      setServiceRatings({});
       // 1. On cherche la boutique dans la vraie base de données
       const { data: s } = await supabase.from("startups").select("*").eq("slug", slug).maybeSingle();
       const demo = DEMO_STARTUPS.find((d) => d.slug === slug);
@@ -124,11 +147,22 @@ export default function StartupDetail() {
             .eq("startup_id", s.id)
             .order("created_at", { ascending: false });
         }
-        const { data: revs } = await supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false });
+        const { data: revs } = await supabase.from("reviews").select("*").eq("startup_id", s.id).is("product_id", null).order("created_at", { ascending: false });
         const prods = productResult.data;
+        const serviceResult = await (supabase as any).from("services").select("*").eq("startup_id", s.id).eq("is_published", true).order("created_at", { ascending: false });
         
         setProducts((prods as Product[]) ?? []);
+        setServices((serviceResult.data as Service[]) ?? []);
         setReviews((revs as Review[]) ?? []);
+
+        const productIds = (prods ?? []).map((product: any) => product.id);
+        const serviceIds = (serviceResult.data ?? []).map((service: any) => service.id);
+        const [productReviewResult, serviceReviewResult] = await Promise.all([
+          productIds.length ? supabase.from("reviews").select("product_id,rating").in("product_id", productIds) : Promise.resolve({ data: [] }),
+          serviceIds.length ? (supabase as any).from("service_reviews").select("service_id,rating").in("service_id", serviceIds) : Promise.resolve({ data: [] }),
+        ]);
+        setProductRatings(aggregateRatings((productReviewResult.data ?? []) as any[], "product_id"));
+        setServiceRatings(aggregateRatings((serviceReviewResult.data ?? []) as any[], "service_id"));
 
         // Similar Creators (same category, excluding current)
         if (s.category) {
@@ -328,7 +362,6 @@ export default function StartupDetail() {
 
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const conversionRate = stats.clicks > 0 ? Math.round((stats.purchases / stats.clicks) * 100) : 0;
-  const recentPosts = products.slice(0, 6);
   const instagramUrl = safeExternalUrl(startup.instagram_url);
   const facebookUrl = safeExternalUrl(startup.facebook_url);
 
@@ -480,37 +513,17 @@ export default function StartupDetail() {
             </section>
           )}
 
-          {recentPosts.length > 0 && (
-            <section>
-              <h2 className="mb-4 font-serif text-2xl font-bold">Publications récentes</h2>
+          <section>
+            <div className="mb-4 flex items-center justify-between gap-3"><h2 className="font-serif text-2xl font-bold">Services proposés</h2><Button variant="ghost" size="sm" asChild><Link to="/services">Tous les services</Link></Button></div>
+            {services.length === 0 ? <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">Ce créateur n’a pas encore publié de service.</p> : (
               <div className="grid gap-5 sm:grid-cols-2">
-                {recentPosts.map((p) => {
-                  const hasDiscount = p.discount_percentage && p.discount_percentage > 0;
-                  const finalPrice = hasDiscount && p.price 
-                    ? p.price - (p.price * (p.discount_percentage / 100)) 
-                    : p.price;
-                  return (
-                    <div key={p.id} className="group relative overflow-hidden rounded-xl border bg-card shadow-sm">
-                      <Link to={`/product/${p.id}`}>
-                        {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="aspect-video w-full object-cover transition group-hover:scale-[1.02]" />}
-                      </Link>
-                      <div className="p-4">
-                        <div className="mb-1 flex items-start justify-between gap-2">
-                          <Link to={`/product/${p.id}`}><h3 className="font-semibold">{p.name}</h3></Link>
-                          {hasDiscount && <Badge className="bg-red-600 text-white">-{p.discount_percentage}%</Badge>}
-                        </div>
-                        {p.description && <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <span className="text-sm font-bold text-primary">{finalPrice?.toFixed(3)} {p.currency}</span>
-                          <Button size="sm" variant="outline" asChild><Link to={`/product/${p.id}`}>Voir</Link></Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {services.map((service) => <div key={service.id} className="group overflow-hidden rounded-xl border bg-card shadow-sm">
+                  <Link to={`/service/${service.id}`}>{service.images?.[0] && <img src={service.images[0]} alt={service.name} className="aspect-video w-full object-cover transition group-hover:scale-[1.02]" />}</Link>
+                  <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><Link to={`/service/${service.id}`}><h3 className="font-semibold hover:text-primary">{service.name}</h3></Link><span className="shrink-0 text-sm font-bold text-primary">{formatServicePrice(service)}</span></div><RatingBadge rating={serviceRatings[service.id]} />{service.description && <p className="line-clamp-2 text-sm text-muted-foreground">{service.description}</p>}<div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{service.category}</Badge><Badge variant="outline"><MapPin className="mr-1 h-3 w-3" />{SERVICE_LOCATIONS[service.location_type]}</Badge>{service.duration_minutes && <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />{service.duration_minutes} min</Badge>}</div><Button size="sm" variant="outline" asChild><Link to={`/service/${service.id}`}>Voir le service</Link></Button></div>
+                </div>)}
               </div>
-            </section>
-          )}
+            )}
+          </section>
 
           <section>
             <h2 className="mb-6 font-serif text-2xl font-bold">{t("startup.products")}</h2>
@@ -540,6 +553,7 @@ export default function StartupDetail() {
                           <h3 className="line-clamp-2 text-sm font-semibold hover:text-primary sm:text-base">{p.name}</h3>
                         </Link>
                         {p.description && <p className="hidden line-clamp-2 text-sm text-muted-foreground sm:block">{p.description}</p>}
+                        <RatingBadge rating={productRatings[p.id]} />
                         
                         <div className="flex flex-wrap gap-1.5">
                           {p.category && (

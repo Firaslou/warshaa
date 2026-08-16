@@ -21,6 +21,8 @@ const LiveCalendar = lazy(() => import("./pages/LiveCalendar"));
 const ImageSearch = lazy(() => import("./pages/ImageSearch"));
 const StartupDetail = lazy(() => import("./pages/StartupDetail"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Services = lazy(() => import("./pages/Services"));
+const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
 const Apply = lazy(() => import("./pages/Apply"));
 const Products = lazy(() => import("./pages/Products"));
 const MyAccount = lazy(() => import("./pages/MyAccount"));
@@ -67,6 +69,8 @@ const App = () => (
                 <Route path="/image-search" element={<ImageSearch />} />
                 <Route path="/startup/:slug" element={<StartupDetail />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/service/:id" element={<ServiceDetail />} />
                 <Route path="/apply" element={<Apply />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/my-account" element={<MyAccount />} />

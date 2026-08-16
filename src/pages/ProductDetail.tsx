@@ -20,6 +20,7 @@ import { getDemoProductById } from "@/lib/demo";
 import { DEMO_STARTUPS } from "@/lib/demo";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { RatingBadge } from "@/components/RatingBadge";
 
 interface Product {
   id: string;
@@ -482,6 +483,7 @@ export default function ProductDetail() {
             )}
 
             <h1 className="font-serif text-3xl font-bold md:text-4xl">{product.name}</h1>
+            <RatingBadge rating={reviews.length ? { average: avgRating, count: reviews.length } : undefined} className="text-sm" />
 
             <div className="flex flex-wrap items-center gap-2">
               {product.category && (

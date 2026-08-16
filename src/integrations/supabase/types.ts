@@ -635,6 +635,109 @@ export type Database = {
           },
         ]
       }
+      service_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          service_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          service_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          service_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          availability_text: string | null
+          category: string
+          created_at: string
+          currency: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          images: string[]
+          is_published: boolean
+          location_type: string
+          name: string
+          price: number | null
+          pricing_type: string
+          service_area: string | null
+          startup_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_text?: string | null
+          category: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          images?: string[]
+          is_published?: boolean
+          location_type?: string
+          name: string
+          price?: number | null
+          pricing_type?: string
+          service_area?: string | null
+          startup_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_text?: string | null
+          category?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          images?: string[]
+          is_published?: boolean
+          location_type?: string
+          name?: string
+          price?: number | null
+          pricing_type?: string
+          service_area?: string | null
+          startup_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       startup_applications: {
         Row: {
           admin_notes: string | null

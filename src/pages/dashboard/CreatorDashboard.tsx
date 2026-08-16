@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   Heart, Users, MessageCircle, Eye, Plus, Pencil, Trash2, Radio,
   Image as ImageIcon, Save, Leaf, Loader2, Clock, TrendingUp, ShoppingBag, Star,
-  Instagram, Facebook, ExternalLink,
+  Instagram, Facebook, ExternalLink, BriefcaseBusiness,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +24,8 @@ import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/li
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "@/components/creator/ProductFormDialog";
+import { ServiceFormDialog } from "@/components/creator/ServiceFormDialog";
+import { formatServicePrice } from "@/lib/service-categories";
 import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
 import { OPEN_EXTERNAL_LIVE_EVENT } from "@/components/live/LiveQuickStartGate";
 import { LineChart, Line as RechartsLine, XAxis as RechartsXAxis, YAxis as RechartsYAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar as RechartsBar, CartesianGrid } from "recharts";
@@ -144,6 +146,7 @@ export default function CreatorDashboard() {
   const [startup, setStartup] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [clicks, setClicks] = useState(0);
   const [selectedInsight, setSelectedInsight] = useState<any>(null);
 
@@ -176,6 +179,8 @@ export default function CreatorDashboard() {
   const [topProducts, setTopProducts] = useState<{ name: string; views: number }[]>([]);
   const [productEdit, setProductEdit] = useState<any | null>(null);
   const [productOpen, setProductOpen] = useState(false);
+  const [serviceEdit, setServiceEdit] = useState<any | null>(null);
+  const [serviceOpen, setServiceOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [audienceTiming, setAudienceTiming] = useState<AudienceTiming>(EMPTY_AUDIENCE_TIMING);
@@ -213,9 +218,10 @@ export default function CreatorDashboard() {
         cover_url: s.cover_url ?? "",
       });
     }
-    const [{ count: clicksCount }, { data: prods }] = await Promise.all([
+    const [{ count: clicksCount }, { data: prods }, serviceResult] = await Promise.all([
       supabase.from("purchase_clicks").select("id", { count: "exact", head: true }).eq("startup_id", s.id),
       supabase.from("products").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
+      (supabase as any).from("services").select("*").eq("startup_id", s.id).order("created_at", { ascending: false }),
     ]);
     const productIds = (prods ?? []).map((product) => product.id);
     const since = new Date(Date.now() - 30 * 86400000).toISOString();
@@ -233,6 +239,7 @@ export default function CreatorDashboard() {
     ]);
     setClicks(clicksCount ?? 0);
     setProducts(prods ?? []);
+    setServices(serviceResult.data ?? []);
     const { data: aggData } = await supabase.rpc("get_startup_stats", { _startup_id: s.id });
     const a = (aggData ?? {}) as Record<string, number>;
     setAgg({
@@ -280,6 +287,7 @@ export default function CreatorDashboard() {
       .channel(`creator-dashboard:${startup.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "startups", filter: `id=eq.${startup.id}` }, refreshCreatorData)
       .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "services", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
       .on("postgres_changes", { event: "*", schema: "public", table: "purchase_clicks", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
       .on("postgres_changes", { event: "*", schema: "public", table: "purchase_confirmations", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
       .on("postgres_changes", { event: "*", schema: "public", table: "reviews", filter: `startup_id=eq.${startup.id}` }, refreshCreatorData)
@@ -346,6 +354,13 @@ export default function CreatorDashboard() {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success(t("dashboard.creator.toastProductDeleted"));
+    refreshAll(user!.id);
+  };
+
+  const deleteService = async (id: string) => {
+    const { error } = await (supabase as any).from("services").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Service supprimé.");
     refreshAll(user!.id);
   };
 
@@ -418,6 +433,7 @@ export default function CreatorDashboard() {
             <TabsTrigger value="stats">{t("dashboard.creator.tabStats")}</TabsTrigger>
             <TabsTrigger value="profile">{t("dashboard.creator.tabProfile")}</TabsTrigger>
             <TabsTrigger value="products">{t("dashboard.creator.tabProducts")} ({products.length})</TabsTrigger>
+            <TabsTrigger value="services">Services ({services.length})</TabsTrigger>
             <TabsTrigger value="live">{t("dashboard.creator.tabLive")}</TabsTrigger>
             <TabsTrigger value="calendar">{t("liveCalendar.creator.tab")}</TabsTrigger>
           </TabsList>
@@ -726,6 +742,34 @@ export default function CreatorDashboard() {
               product={productEdit}
               onSaved={() => refreshAll(user.id)}
             />
+          </TabsContent>
+
+          {/* SERVICES */}
+          <TabsContent value="services">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">Publiez vos prestations séparément de vos produits.</p>
+              <Button onClick={() => { setServiceEdit(null); setServiceOpen(true); }} className="gradient-warm text-primary-foreground">
+                <Plus className="mr-2 h-4 w-4" /> Nouveau service
+              </Button>
+            </div>
+            {services.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun service pour le moment.</CardContent></Card>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {services.map((service) => (
+                  <Card key={service.id} className="overflow-hidden">
+                    <div className="aspect-[4/3] bg-muted">{service.images?.[0] ? <img src={service.images[0]} alt={service.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center"><BriefcaseBusiness className="h-8 w-8 text-muted-foreground" /></div>}</div>
+                    <CardContent className="space-y-2 p-4">
+                      <div className="flex items-start justify-between gap-2"><h3 className="font-semibold">{service.name}</h3><Badge variant={service.is_published ? "default" : "secondary"}>{service.is_published ? "Publié" : "Brouillon"}</Badge></div>
+                      <p className="text-sm font-semibold text-primary">{formatServicePrice(service)}</p>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{service.description}</p>
+                      <div className="flex gap-2 pt-2"><Button size="sm" variant="outline" className="flex-1" onClick={() => { setServiceEdit(service); setServiceOpen(true); }}><Pencil className="mr-1 h-3 w-3" /> Modifier</Button><AlertDialog><AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="h-3 w-3" /></Button></AlertDialogTrigger><AlertDialogContent className="bg-background"><AlertDialogHeader><AlertDialogTitle>Supprimer ce service ?</AlertDialogTitle><AlertDialogDescription>Cette action supprimera aussi ses avis et ne peut pas être annulée.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => deleteService(service.id)}>Supprimer</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            <ServiceFormDialog open={serviceOpen} onOpenChange={setServiceOpen} startupId={startup.id} ownerId={user.id} service={serviceEdit} onSaved={() => refreshAll(user.id)} />
           </TabsContent>
 
           {/* LIVE */}
