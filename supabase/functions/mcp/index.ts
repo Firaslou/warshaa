@@ -10,7 +10,9 @@ import { createClient } from "npm:@supabase/supabase-js@^2.104.1";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z } from "npm:zod@^3.25.76";
 function sb() {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  if (!process.env.SUPABASE_URL || !key) throw new Error("Supabase environment is not configured");
+  return createClient(process.env.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 }
@@ -42,7 +44,9 @@ import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.104.
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z2 } from "npm:zod@^3.25.76";
 function sb2() {
-  return createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  if (!process.env.SUPABASE_URL || !key) throw new Error("Supabase environment is not configured");
+  return createClient2(process.env.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 }
@@ -59,7 +63,7 @@ var get_creator_default = defineTool2({
     const { data: startup, error } = await client.from("startups").select("id,name,slug,tagline,description,category,categories,city,delegation,logo_url").eq("slug", slug).eq("status", "approved").maybeSingle();
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     if (!startup) return { content: [{ type: "text", text: "Creator not found" }], isError: true };
-    const { data: products } = await client.from("products").select("id,name,description,price,image_url").eq("startup_id", startup.id).eq("is_published", true).limit(50);
+    const { data: products } = await client.from("products").select("id,name,description,price,currency,images").eq("startup_id", startup.id).eq("is_published", true).limit(50);
     const payload = { ...startup, products: products ?? [] };
     return {
       content: [{ type: "text", text: JSON.stringify(payload) }],
@@ -73,7 +77,9 @@ import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.104.
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z3 } from "npm:zod@^3.25.76";
 function sb3() {
-  return createClient3(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  if (!process.env.SUPABASE_URL || !key) throw new Error("Supabase environment is not configured");
+  return createClient3(process.env.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 }
@@ -89,7 +95,7 @@ var search_products_default = defineTool3({
   handler: async ({ query, limit }) => {
     const client = sb3();
     const q = `%${query}%`;
-    const { data, error } = await client.from("products").select("id,name,description,price,image_url,startup_id").eq("is_published", true).or(`name.ilike.${q},description.ilike.${q}`).limit(limit ?? 20);
+    const { data, error } = await client.from("products").select("id,name,description,price,currency,images,startup_id,startups!inner(name,slug,status)").eq("is_published", true).eq("startups.status", "approved").or(`name.ilike.${q},description.ilike.${q}`).limit(limit ?? 20);
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     return {
       content: [{ type: "text", text: JSON.stringify(data) }],
@@ -99,7 +105,7 @@ var search_products_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "pbvmowpynpvikhofforo";
+var projectRef = "yqhanrhpigzvobwvmuoh";
 var mcp_default = defineMcp({
   name: "warsha-mcp",
   title: "Warsha MCP",

@@ -56,21 +56,24 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
   const group = groups[gIdx];
   const story = group?.stories[sIdx];
   const isOwner = user?.id === story?.user_id;
+  const storyId = story?.id;
+  const storyOwnerId = story?.user_id;
+  const userId = user?.id;
 
   // Load stats + record view whenever story changes
   useEffect(() => {
-    if (!open || !story || !user) return;
+    if (!open || !storyId || !storyOwnerId || !userId) return;
     let cancelled = false;
     (async () => {
       // Record view (ignore duplicate error)
-      if (story.user_id !== user.id) {
-        await supabase.from("story_views").insert({ story_id: story.id, user_id: user.id });
+      if (storyOwnerId !== userId) {
+        await supabase.from("story_views").insert({ story_id: storyId, user_id: userId });
       }
       const [{ count: vc }, { count: rc }, { count: cc }, mine] = await Promise.all([
-        supabase.from("story_views").select("*", { count: "exact", head: true }).eq("story_id", story.id),
-        supabase.from("story_reactions").select("*", { count: "exact", head: true }).eq("story_id", story.id),
-        supabase.from("story_comments").select("*", { count: "exact", head: true }).eq("story_id", story.id),
-        supabase.from("story_reactions").select("emoji").eq("story_id", story.id).eq("user_id", user.id).maybeSingle(),
+        supabase.from("story_views").select("*", { count: "exact", head: true }).eq("story_id", storyId),
+        supabase.from("story_reactions").select("*", { count: "exact", head: true }).eq("story_id", storyId),
+        supabase.from("story_comments").select("*", { count: "exact", head: true }).eq("story_id", storyId),
+        supabase.from("story_reactions").select("emoji").eq("story_id", storyId).eq("user_id", userId).maybeSingle(),
       ]);
       if (cancelled) return;
       setViewsCount(vc ?? 0);
@@ -79,7 +82,7 @@ export function StoryViewer({ open, onOpenChange, groups, startGroupIdx, onDelet
       setMyReaction((mine.data as any)?.emoji ?? null);
     })();
     return () => { cancelled = true; };
-  }, [open, story?.id, user?.id]);
+  }, [open, storyId, storyOwnerId, userId]);
 
   const next = () => {
     if (!group) return;

@@ -1,5 +1,6 @@
 // Warsha AI assistant — multilingual intent detection + targeted catalogue retrieval.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { consumeRateLimit } from "../_shared/rate-limit.ts";
 import { normalizeSearchText, rankProducts, type SearchIntent, type SearchableProduct } from "./relevance.ts";
 
 const corsHeaders = {
@@ -208,6 +209,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    if (!(await consumeRateLimit(supabase, userResult.user.id, "ai-assistant", 20, 60))) {
+      return jsonResponse({ error: "Too many requests" }, 429);
+    }
 
     const { data: profile } = await supabase
       .from("profiles")

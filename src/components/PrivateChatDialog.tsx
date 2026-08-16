@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { safeMediaUrl } from "@/lib/url-security";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { blobToFile, generateThumbnail } from "@/lib/image-utils";
@@ -52,8 +53,9 @@ export function PrivateChatDialog({
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastBroadcastRef = useRef<number>(0);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const markReceivedMessagesRead = async (convId: string) => {
+  const markReceivedMessagesRead = useCallback(async (convId: string) => {
     if (!user || document.visibilityState !== "visible") return;
     const readAt = new Date().toISOString();
     const { error } = await supabase
@@ -76,7 +78,7 @@ export function PrivateChatDialog({
         .eq("link", `/messages?conversation=${convId}`)
         .eq("read", false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!open || !user) return;
@@ -122,13 +124,16 @@ export function PrivateChatDialog({
       }
       setLoading(false);
     })();
-  }, [open, user, startupId, initialConversationId]);
+  }, [open, user, startupId, initialConversationId, markReceivedMessagesRead]);
 
   // Realtime messages and typing broadcast
   useEffect(() => {
     if (!conversationId) return;
 
-    const channel = supabase.channel(`chat:${conversationId}`);
+    const channel = supabase.channel(`chat:${conversationId}`, {
+      config: { private: true },
+    });
+    typingChannelRef.current = channel;
 
     channel
       .on(
@@ -156,9 +161,10 @@ export function PrivateChatDialog({
 
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (typingChannelRef.current === channel) typingChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [conversationId, user]);
+  }, [conversationId, user, markReceivedMessagesRead]);
 
   useEffect(() => {
     if (!open || !conversationId) return;
@@ -167,7 +173,7 @@ export function PrivateChatDialog({
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [open, conversationId, user]);
+  }, [open, conversationId, markReceivedMessagesRead]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -181,8 +187,7 @@ export function PrivateChatDialog({
     const now = Date.now();
     if (conversationId && user && now - lastBroadcastRef.current > 1500) {
       lastBroadcastRef.current = now;
-      const channel = supabase.channel(`chat:${conversationId}`);
-      channel.send({
+      void typingChannelRef.current?.send({
         type: "broadcast",
         event: "typing",
         payload: { senderId: user.id },
@@ -461,7 +466,10 @@ export function PrivateChatDialog({
                   size="sm"
                   variant="secondary"
                   className="gap-1.5 rounded-full"
-                  onClick={() => window.open(lightboxImage, "_blank")}
+                  onClick={() => {
+                    const safeUrl = safeMediaUrl(lightboxImage);
+                    if (safeUrl) window.open(safeUrl, "_blank", "noopener,noreferrer");
+                  }}
                 >
                   <ExternalLink className="h-3.5 w-3.5" /> Ouvrir l'original
                 </Button>

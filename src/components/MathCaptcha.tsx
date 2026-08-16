@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,15 +29,15 @@ export function MathCaptcha({ onValidChange }: { onValidChange: (valid: boolean)
   const [code, setCode] = useState("");
   const [answer, setAnswer] = useState("");
 
-  const regenerate = () => {
+  const regenerate = useCallback(() => {
     setCode(createCode());
     setAnswer("");
     onValidChange(false);
-  };
+  }, [onValidChange]);
 
   useEffect(() => {
     regenerate();
-  }, []);
+  }, [regenerate]);
 
   const normalizedAnswer = answer.trim().toLowerCase();
   const isAnswered = normalizedAnswer !== "";
@@ -47,27 +47,23 @@ export function MathCaptcha({ onValidChange }: { onValidChange: (valid: boolean)
     onValidChange(isCorrect);
   }, [isCorrect, onValidChange]);
 
-  const characters = useMemo(
-    () =>
-      code.split("").map((character, index) => ({
+  const { characters, noiseLines } = useMemo(
+    () => ({
+      characters: code.split("").map((character, index) => ({
         character,
         x: 22 + index * 25,
         y: randomBetween(34, 45),
         rotate: randomBetween(-22, 22),
         size: randomBetween(25, 31),
       })),
-    [code],
-  );
-
-  const noiseLines = useMemo(
-    () =>
-      Array.from({ length: 5 }, (_, index) => ({
+      noiseLines: Array.from({ length: 5 }, (_, index) => ({
         x1: randomBetween(0, 20),
         y1: randomBetween(10, 50),
         x2: randomBetween(105, 125),
         y2: randomBetween(10, 50),
         rotate: index * 7 - 14,
       })),
+    }),
     [code],
   );
 

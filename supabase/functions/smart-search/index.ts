@@ -1,5 +1,6 @@
-// Smart search — parse natural-language queries into product filters via Lovable AI
+// Smart search — parse natural-language queries into product filters via Gemini.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { consumeRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,9 @@ Deno.serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await consumeRateLimit(supabase, userRes.user.id, "smart-search", 30, 60))) {
+      return new Response(JSON.stringify({ error: "Too many requests" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const system = `Tu es un parseur de recherche e-commerce en français/arabe/anglais. À partir d'une requête utilisateur libre, retourne UNIQUEMENT un JSON strict avec ces champs:
 {"keywords":string[],"color":string|null,"max_price":number|null,"min_price":number|null,"category":string|null,"city":string|null,"delivery_required":boolean}

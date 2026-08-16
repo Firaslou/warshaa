@@ -3,6 +3,12 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2.95.0/cors";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     // Require a shared secret so only the scheduler/admin can trigger this job
@@ -66,7 +72,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: String((e as any)?.message ?? e) }), {
+    return new Response(JSON.stringify({ error: "Unexpected reminder error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

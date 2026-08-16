@@ -3,7 +3,9 @@ import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 
 function sb() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  if (!process.env.SUPABASE_URL || !key) throw new Error("Supabase environment is not configured");
+  return createClient(process.env.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

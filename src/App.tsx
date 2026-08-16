@@ -9,8 +9,9 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PageSkeleton } from "@/components/skeletons/PageSkeleton";
 import { CreatorLocationAutoUpdate } from "@/components/creator/CreatorLocationAutoUpdate";
 import { CreatorProfileLink } from "@/components/creator/CreatorProfileLink";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
-// Lazy-loaded page components — heavy deps (leaflet, recharts, WebRTC) are
+// Lazy-loaded page components — heavy dependencies such as maps and charts are
 // only fetched when the user navigates to the corresponding route.
 const Index = lazy(() => import("./pages/Index"));
 const Creators = lazy(() => import("./pages/Creators"));
@@ -47,8 +48,9 @@ const CreatorArea = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -90,8 +92,9 @@ const App = () => (
           </FavoritesProvider>
         </AuthProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

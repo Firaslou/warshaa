@@ -32,8 +32,10 @@ export default function Notifications() {
       try {
         const p = JSON.parse(raw);
         setEnabled(!!p.enabled);
-        setPrefs({ ...prefs, ...p.prefs });
-      } catch {}
+        setPrefs((current) => ({ ...current, ...p.prefs }));
+      } catch {
+        // Ignore malformed preferences and retain safe defaults.
+      }
     }
      
   }, []);

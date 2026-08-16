@@ -1,5 +1,6 @@
 // AI product description helper — turns keywords into a polished description
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { consumeRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,12 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -40,6 +47,12 @@ Deno.serve(async (req) => {
     if (!isStartup) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!(await consumeRateLimit(admin, userRes.user.id, "generate-description", 12, 60))) {
+      return new Response(JSON.stringify({ error: "Trop de requêtes" }), {
+        status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -83,8 +96,8 @@ Deno.serve(async (req) => {
     });
 
     if (!res.ok) {
-      const txt = await res.text();
-      return new Response(JSON.stringify({ error: txt }), {
+      console.error("Gemini description request failed", res.status, await res.text());
+      return new Response(JSON.stringify({ error: "Le service de description est indisponible" }), {
         status: res.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -96,7 +109,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
+    console.error("generate-description error", e);
+    return new Response(JSON.stringify({ error: "Erreur interne" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

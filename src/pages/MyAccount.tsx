@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, HandHeart, KeyRound, User as UserIcon, RefreshCw, Save, ExternalLink, Loader2 } from "lucide-react";
@@ -35,7 +35,7 @@ export default function MyAccount() {
     if (!loading && !user) navigate("/login");
   }, [loading, user, navigate]);
 
-  const loadAccount = async () => {
+  const loadAccount = useCallback(async () => {
     if (!user) return;
     setActivityLoading(true);
     setActivityError(null);
@@ -48,7 +48,7 @@ export default function MyAccount() {
       supabase.from("product_comments").select("id,content,created_at,product_id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
     ]);
 
-    const firstError = profileResult.error || likesResult.error || supportsResult.error || commentsResult.error;
+    const firstError = profileResult.error || likesResult.error || favoritesResult.error || supportsResult.error || commentsResult.error;
     if (firstError) {
       setActivityError(firstError.message);
       setActivityLoading(false);
@@ -82,9 +82,9 @@ export default function MyAccount() {
     setSupported((startupsResult.data ?? []).map((startup) => ({ startup_id: startup.id, startups: startup })));
     setComments((commentsResult.data ?? []).map((comment) => ({ ...comment, products: productMap.get(comment.product_id) ?? null })));
     setActivityLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { void loadAccount(); }, [user]);
+  useEffect(() => { void loadAccount(); }, [loadAccount]);
 
   useEffect(() => {
     if (!user) return;
@@ -95,7 +95,7 @@ export default function MyAccount() {
       .on("postgres_changes", { event: "*", schema: "public", table: "product_comments", filter: `user_id=eq.${user.id}` }, () => void loadAccount())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, loadAccount]);
 
   const saveProfile = async () => {
     if (!user || !profileForm.full_name.trim()) { toast({ title: "Le nom est obligatoire", variant: "destructive" }); return; }

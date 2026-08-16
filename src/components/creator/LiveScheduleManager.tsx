@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bell, Calendar as CalendarIcon, Clock, ExternalLink, Pencil, Play, Plus, Radio, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export function LiveScheduleManager({ startupId }: { startupId: string }) {
   const [activeEvent, setActiveEvent] = useState<LiveEvent | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data } = await db.from("live_events").select("*").eq("startup_id", startupId).order("scheduled_at", { ascending: false });
     const list = data ?? [];
     setEvents(list);
@@ -50,9 +50,9 @@ export function LiveScheduleManager({ startupId }: { startupId: string }) {
     const counts: Record<string, number> = {};
     (reminders ?? []).forEach((reminder: any) => { counts[reminder.live_event_id] = (counts[reminder.live_event_id] ?? 0) + 1; });
     setReminderCounts(counts);
-  };
+  }, [startupId]);
 
-  useEffect(() => { if (startupId) void load(); }, [startupId]);
+  useEffect(() => { if (startupId) void load(); }, [startupId, load]);
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (event: LiveEvent) => {

@@ -10,6 +10,7 @@ function slugify(s: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -34,7 +35,6 @@ Deno.serve(async (req) => {
     const { data: ownerRes, error: userErr } = await admin.auth.admin.getUserById(ownerId);
     if (userErr || !ownerRes?.user) return new Response(JSON.stringify({ error: "Applicant user not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const recipientEmail = ownerRes.user.email;
-    await admin.from("user_roles").upsert({ user_id: ownerId, role: "startup" }, { onConflict: "user_id,role" });
     let baseSlug = slugify(app.brand_name);
     let slug = baseSlug;
     for (let i = 2; i < 50; i++) {
@@ -66,9 +66,23 @@ Deno.serve(async (req) => {
       if (insErr || !created) return new Response(JSON.stringify({ error: insErr?.message ?? "Failed to create startup" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       startup = created;
     } else {
-      await admin.from("startups").update({ status: "approved", badge: "verified", city: app.city, delegation: app.delegation ?? null, latitude: app.latitude ?? null, longitude: app.longitude ?? null }).eq("id", existingStartup.id);
+      const { error: updateStartupError } = await admin.from("startups").update({ status: "approved", badge: "verified", city: app.city, delegation: app.delegation ?? null, latitude: app.latitude ?? null, longitude: app.longitude ?? null }).eq("id", existingStartup.id);
+      if (updateStartupError) return new Response(JSON.stringify({ error: "Failed to update startup" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    await admin.from("startup_applications").update({ status: "approved", reviewed_at: new Date().toISOString() }).eq("id", application_id);
+
+    // Grant the role only after the creator space exists. Every operation is
+    // idempotent, so a failed final update can safely be retried by the admin.
+    const { error: roleUpdateError } = await admin.from("user_roles").upsert(
+      { user_id: ownerId, role: "startup" },
+      { onConflict: "user_id,role" },
+    );
+    if (roleUpdateError) return new Response(JSON.stringify({ error: "Failed to grant creator role" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const { error: applicationUpdateError } = await admin
+      .from("startup_applications")
+      .update({ status: "approved", reviewed_at: new Date().toISOString() })
+      .eq("id", application_id);
+    if (applicationUpdateError) return new Response(JSON.stringify({ error: "Failed to finalize application" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (recipientEmail) {
       try {
         await admin.functions.invoke("send-transactional-email", { body: { templateName: "creator-approved", recipientEmail, idempotencyKey: `creator-approved-${application_id}`, templateData: { brandName: app.brand_name, startupSlug: startup!.slug } } });
@@ -77,6 +91,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, startup_id: startup!.id, slug: startup!.slug }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Unexpected approval error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

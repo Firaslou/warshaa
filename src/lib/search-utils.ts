@@ -142,5 +142,7 @@ export function removeSearchHistoryItem(query: string): string[] {
 export function clearSearchHistory(): void {
   try {
     localStorage.removeItem(HISTORY_STORAGE_KEY);
-  } catch {}
+  } catch {
+    // Some privacy modes disable Web Storage; clearing is best-effort.
+  }
 }

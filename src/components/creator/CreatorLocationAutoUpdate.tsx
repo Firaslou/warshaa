@@ -14,9 +14,10 @@ import { supabase } from "@/integrations/supabase/client";
 export function CreatorLocationAutoUpdate() {
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!user || pathname !== "/creator") return;
+    if (!userId || pathname !== "/creator") return;
     if (!navigator.geolocation) return;
 
     let cancelled = false;
@@ -36,7 +37,7 @@ export function CreatorLocationAutoUpdate() {
         const { data: startup } = await supabase
           .from("startups")
           .select("id")
-          .eq("owner_id", user.id)
+          .eq("owner_id", userId)
           .maybeSingle();
 
         if (cancelled || !startup?.id) return;
@@ -45,7 +46,7 @@ export function CreatorLocationAutoUpdate() {
           .from("startups")
           .update({ latitude, longitude } as any)
           .eq("id", startup.id)
-          .eq("owner_id", user.id);
+          .eq("owner_id", userId);
       },
       () => {
         // Location is optional. Do not interrupt the creator dashboard if
@@ -61,7 +62,7 @@ export function CreatorLocationAutoUpdate() {
     return () => {
       cancelled = true;
     };
-  }, [pathname, user?.id]);
+  }, [pathname, userId]);
 
   return null;
 }

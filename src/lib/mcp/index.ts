@@ -3,7 +3,8 @@ import listCreatorsTool from "./tools/list-creators";
 import getCreatorTool from "./tools/get-creator";
 import searchProductsTool from "./tools/search-products";
 
-const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset";
+// The MCP function is deployed to the Warsha-owned Supabase project.
+const projectRef = "yqhanrhpigzvobwvmuoh";
 
 export default defineMcp({
   name: "warsha-mcp",

@@ -1,5 +1,6 @@
 // Image search — analyze uploaded inspiration photo, return similar products
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { consumeRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +54,9 @@ Deno.serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await consumeRateLimit(supabase, userRes.user.id, "image-search", 8, 60))) {
+      return new Response(JSON.stringify({ error: "Too many requests" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const { data: products } = await supabase.from("products")
       .select("id,name,description,category,images,startup_id,startups!inner(status)")
       .eq("is_published", true).eq("startups.status", "approved").limit(300);

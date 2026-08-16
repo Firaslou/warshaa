@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Radio, Bell, BellRing, Calendar as CalendarIcon, Clock, ExternalLink, CalendarOff, Play } from "lucide-react";
@@ -27,7 +27,7 @@ export default function LiveCalendar() {
   const [loading, setLoading] = useState(true); const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [activeLiveModal, setActiveLiveModal] = useState<LiveEvent | null>(null); const [activeReplay, setActiveReplay] = useState<LiveEvent | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data } = await (supabase.from("live_events" as any) as any).select("*").order("scheduled_at", { ascending: true });
     const rows = data ?? []; const startupIds = [...new Set<string>(rows.map((event: any) => String(event.startup_id)).filter(Boolean))];
     const { data: startups } = startupIds.length ? await supabase.from("startups").select("id, name, slug, logo_url, owner_id, status").in("id", startupIds).eq("status", "approved") : { data: [] };
@@ -35,9 +35,9 @@ export default function LiveCalendar() {
     setEvents(rows.filter((event: any) => startupsById.has(event.startup_id)).map((event: any) => ({ ...event, startups: startupsById.get(event.startup_id) })) as LiveEvent[]);
     if (user) { const { data: rems } = await supabase.from("live_reminders").select("live_event_id").eq("user_id", user.id); setReminderIds(new Set((rems ?? []).map((r: any) => r.live_event_id))); }
     setLoading(false);
-  };
-  useEffect(() => { void load(); }, [user?.id]);
-  useEffect(() => { let timer: ReturnType<typeof setTimeout> | undefined; const refresh = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void load(), 250); }; const channel = supabase.channel("public-live-calendar-updates").on("postgres_changes", { event: "*", schema: "public", table: "live_events" }, refresh).on("postgres_changes", { event: "UPDATE", schema: "public", table: "startups" }, refresh).subscribe(); return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); }; }, [user?.id]);
+  }, [user]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { let timer: ReturnType<typeof setTimeout> | undefined; const refresh = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void load(), 250); }; const channel = supabase.channel("public-live-calendar-updates").on("postgres_changes", { event: "*", schema: "public", table: "live_events" }, refresh).on("postgres_changes", { event: "UPDATE", schema: "public", table: "startups" }, refresh).subscribe(); return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); }; }, [load]);
   const toggleReminder = async (eventId: string) => { if (!user) { toast.info("Connectez-vous pour activer le rappel."); return; } if (reminderIds.has(eventId)) { await supabase.from("live_reminders").delete().eq("user_id", user.id).eq("live_event_id", eventId); const next = new Set(reminderIds); next.delete(eventId); setReminderIds(next); toast.info("Rappel désactivé"); } else { await supabase.from("live_reminders").insert({ user_id: user.id, live_event_id: eventId }); const next = new Set(reminderIds); next.add(eventId); setReminderIds(next); toast.success("Rappel activé pour ce live 🔔"); } };
   const now = Date.now();
   const filtered = events.filter((e) => { const endTime = new Date(e.scheduled_at).getTime() + e.duration_minutes * 60_000; const finished = e.status === "ended" || e.status === "cancelled"; return tab === "upcoming" ? !finished && (e.status === "live" || (e.status === "scheduled" && endTime >= now)) : finished || endTime < now; }).sort((a, b) => { if (a.status === "live" && b.status !== "live") return -1; if (b.status === "live" && a.status !== "live") return 1; return new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(); });

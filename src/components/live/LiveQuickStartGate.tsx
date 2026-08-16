@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Facebook, Instagram, Music2, Radio, Youtube } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export function LiveQuickStartGate() {
   const [externalUrl, setExternalUrl] = useState("");
   const [starting, setStarting] = useState(false);
 
-  const openManager = async () => {
+  const openManager = useCallback(async () => {
     if (!user) return toast.error("Connectez-vous pour annoncer un live.");
     const { data, error } = await supabase.from("startups").select("id,name").eq("owner_id", user.id).maybeSingle();
     if (error || !data) return toast.error(error?.message ?? "Votre profil créateur est introuvable.");
@@ -45,7 +45,7 @@ export function LiveQuickStartGate() {
     setPlatform("youtube");
     setExternalUrl("");
     setChooserOpen(true);
-  };
+  }, [user]);
 
   useEffect(() => {
     const onCustomOpen = () => void openManager();
@@ -63,7 +63,7 @@ export function LiveQuickStartGate() {
       window.removeEventListener(OPEN_EXTERNAL_LIVE_EVENT, onCustomOpen);
       document.removeEventListener("click", onClick, true);
     };
-  }, [user]);
+  }, [openManager]);
 
   const startLive = async () => {
     if (!startup) return;

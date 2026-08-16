@@ -23,32 +23,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Listener first (best practice)
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        // Defer the role fetch to avoid deadlocks inside the auth callback
-        setTimeout(() => fetchRoles(sess.user.id), 0);
-      } else {
+    let active = true;
+    let revision = 0;
+
+    const applySession = async (nextSession: Session | null) => {
+      const currentRevision = ++revision;
+      const nextUser = nextSession?.user ?? null;
+      setSession(nextSession);
+      setUser(nextUser);
+
+      if (!nextUser) {
         setRoles([]);
+        setLoading(false);
+        return;
       }
-    });
 
-    // 2. Then bootstrap session
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) fetchRoles(s.user.id);
+      setLoading(true);
+      const nextRoles = await fetchRoles(nextUser.id);
+      if (!active || currentRevision !== revision) return;
+      setRoles(nextRoles);
       setLoading(false);
+    };
+
+    // Register the listener before bootstrapping. Work is deferred because
+    // Supabase advises against awaiting API calls inside the auth callback.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setTimeout(() => void applySession(nextSession), 0);
     });
 
-    return () => sub.subscription.unsubscribe();
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (active) void applySession(initialSession);
+    });
+
+    return () => {
+      active = false;
+      revision += 1;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
-  const fetchRoles = async (uid: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles((data?.map((r) => r.role) as AppRole[]) ?? []);
+  const fetchRoles = async (uid: string): Promise<AppRole[]> => {
+    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+    if (error) {
+      console.error("Unable to load user roles", error.message);
+      return [];
+    }
+    return (data?.map((r) => r.role) as AppRole[]) ?? [];
   };
 
   const signOut = async () => {

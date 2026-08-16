@@ -1,4 +1,9 @@
-project_id = "pbvmowpynpvikhofforo"
+project_id = "yqhanrhpigzvobwvmuoh"
 
 [functions.send-transactional-email]
 verify_jwt = true
+
+# This scheduled job authenticates with the independently rotated CRON_SECRET.
+# The function itself rejects all missing or incorrect secrets.
+[functions.notify-stock-reminder]
+verify_jwt = false

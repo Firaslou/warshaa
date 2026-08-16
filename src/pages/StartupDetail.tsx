@@ -22,6 +22,7 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { safeExternalUrl } from "@/lib/url-security";
 
 interface Startup {
   id: string;
@@ -60,7 +61,6 @@ interface Product {
   category?: string | null;
   delegation?: string | null;
   discount_percentage?: number | null;
-  startup_slug?: string | null;
 }
 
 interface Review {
@@ -329,6 +329,8 @@ export default function StartupDetail() {
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const conversionRate = stats.clicks > 0 ? Math.round((stats.purchases / stats.clicks) * 100) : 0;
   const recentPosts = products.slice(0, 6);
+  const instagramUrl = safeExternalUrl(startup.instagram_url);
+  const facebookUrl = safeExternalUrl(startup.facebook_url);
 
   return (
     <PageLayout>
@@ -383,11 +385,11 @@ export default function StartupDetail() {
                   <HandHeart className={cn("mr-1 h-4 w-4", isSupporter && "fill-current")} />
                   {isSupporter ? "Soutenu" : "Soutenir"}
                 </Button>
-                {startup.instagram_url && (
-                  <Button variant="outline" size="icon" asChild><a href={startup.instagram_url} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4" /></a></Button>
+                {instagramUrl && (
+                  <Button variant="outline" size="icon" asChild><a href={instagramUrl} target="_blank" rel="noopener noreferrer"><Instagram className="h-4 w-4" /></a></Button>
                 )}
-                {startup.facebook_url && (
-                  <Button variant="outline" size="icon" asChild><a href={startup.facebook_url} target="_blank" rel="noreferrer"><Facebook className="h-4 w-4" /></a></Button>
+                {facebookUrl && (
+                  <Button variant="outline" size="icon" asChild><a href={facebookUrl} target="_blank" rel="noopener noreferrer"><Facebook className="h-4 w-4" /></a></Button>
                 )}
                 <Button variant="outline" onClick={openChat} className="w-full sm:w-auto">
                   <Lock className="mr-1 h-4 w-4" /> Chat privé
@@ -718,8 +720,8 @@ export default function StartupDetail() {
               {startup.whatsapp_number && <div className="flex items-start gap-2"><MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{startup.whatsapp_number}</span></div>}
               {(startup.instagram_url || startup.facebook_url) && (
                 <div className="flex items-center gap-2 pt-2">
-                  {startup.instagram_url && <a href={startup.instagram_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="h-5 w-5" /></a>}
-                  {startup.facebook_url && <a href={startup.facebook_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-5 w-5" /></a>}
+                  {instagramUrl && <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="h-5 w-5" /></a>}
+                  {facebookUrl && <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-5 w-5" /></a>}
                 </div>
               )}
             </div>

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { consumeRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,8 +22,12 @@ Deno.serve(async (req) => {
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const text = String(messages.filter((m: any) => m?.role === "user").at(-1)?.content ?? "").trim();
     if (!text) return json({ error: "A user message is required" }, 400);
+    if (text.length > 2_000) return json({ error: "Message too long" }, 413);
 
     const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await consumeRateLimit(db, userResult.user.id, "ai-assistant-free", 20, 60))) {
+      return json({ error: "Too many requests" }, 429);
+    }
     const q = norm(text);
     const t = terms(text);
     const budgetMatch = q.match(/(?:moins de|sous|a|pour|budget)\s*(\d{2,5})\s*(?:dt|dinars)?/);

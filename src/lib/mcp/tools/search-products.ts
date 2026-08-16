@@ -3,7 +3,9 @@ import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 
 function sb() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  if (!process.env.SUPABASE_URL || !key) throw new Error("Supabase environment is not configured");
+  return createClient(process.env.SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -23,7 +25,7 @@ export default defineTool({
     const q = `%${escaped}%`;
     const { data, error } = await client
       .from("products")
-      .select("id,name,description,price,image_url,startup_id,startups!inner(status)")
+      .select("id,name,description,price,currency,images,startup_id,startups!inner(name,slug,status)")
       .eq("is_published", true)
       .eq("startups.status", "approved")
       .or(`name.ilike.${q},description.ilike.${q}`)

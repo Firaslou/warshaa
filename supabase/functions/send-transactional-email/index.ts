@@ -48,18 +48,25 @@ Deno.serve(async (req) => {
       : {};
     const brandName = escapeHtml(templateData.brandName);
     const startupSlug = encodeURIComponent(String(templateData.startupSlug ?? ""));
+    const configuredSiteUrl = String(Deno.env.get("PUBLIC_SITE_URL") ?? "https://warshaa.firasloukil2016.workers.dev").replace(/\/$/, "");
+    const siteUrl = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(configuredSiteUrl)
+      ? configuredSiteUrl
+      : "https://warshaa.firasloukil2016.workers.dev";
+    const idempotencyKey = String(body.idempotencyKey ?? crypto.randomUUID())
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .slice(0, 180);
     const response = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "Idempotency-Key": `creator-approved-${String(body.idempotencyKey ?? crypto.randomUUID()).slice(0, 180)}`,
+        "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({
         from: "Warsha <onboarding@resend.dev>",
         to: [recipientEmail],
         subject: "Votre demande de créateur Warsha a été approuvée",
-        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:680px;margin:auto"><h2>Demande de créateur approuvée</h2><p>Votre espace ${brandName || "Warsha"} est maintenant approuvé.</p>${startupSlug ? `<p><a href="https://warsha.tn/startup/${startupSlug}">Voir votre espace</a></p>` : ""}<hr><p style="color:#777">Email automatique de Warsha.</p></div>`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:680px;margin:auto"><h2>Demande de créateur approuvée</h2><p>Votre espace ${brandName || "Warsha"} est maintenant approuvé.</p>${startupSlug ? `<p><a href="${siteUrl}/startup/${startupSlug}">Voir votre espace</a></p>` : ""}<hr><p style="color:#777">Email automatique de Warsha.</p></div>`,
       }),
     });
 

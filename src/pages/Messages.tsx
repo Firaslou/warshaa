@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -46,7 +46,7 @@ export default function Messages() {
   const [active, setActive] = useState<ActiveChat | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
@@ -126,11 +126,11 @@ export default function Messages() {
     );
     setConvs(enriched);
     setLoading(false);
-  };
+  }, [tab, user]);
 
   useEffect(() => {
-    load();
-  }, [user, tab]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const requestedId = searchParams.get("conversation");
@@ -156,7 +156,7 @@ export default function Messages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, tab]);
+  }, [user, load]);
 
   // Filtered conversations
   const filteredConvs = useMemo(() => {
