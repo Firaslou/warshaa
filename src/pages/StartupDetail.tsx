@@ -108,10 +108,21 @@ export default function StartupDetail() {
         setStartup(s as Startup);
         setIsDemo(false);
 
-        // 2. On récupère les VRAIS produits de la DB en utilisant startup_id OU startup_slug !
-        let productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).eq("is_published", true).order("created_at", { ascending: false });
+        // Products are linked to their creator through the startup_id foreign key.
+        // Do not query startup_slug here: older databases do not have that column,
+        // which makes PostgREST reject the entire request and return no products.
+        let productResult = await supabase
+          .from("products")
+          .select("*")
+          .eq("startup_id", s.id)
+          .eq("is_published", true)
+          .order("created_at", { ascending: false });
         if (productResult.error && /is_published/i.test(productResult.error.message)) {
-          productResult = await supabase.from("products").select("*").or(`startup_id.eq.${s.id},startup_slug.eq.${slug}`).order("created_at", { ascending: false });
+          productResult = await supabase
+            .from("products")
+            .select("*")
+            .eq("startup_id", s.id)
+            .order("created_at", { ascending: false });
         }
         const { data: revs } = await supabase.from("reviews").select("*").eq("startup_id", s.id).order("created_at", { ascending: false });
         const prods = productResult.data;
