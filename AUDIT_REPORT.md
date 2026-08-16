@@ -31,7 +31,9 @@ handling.
   API and default public function execution is revoked.
 - The stock reminder job now rejects non-POST requests, hides internal errors,
   and is configured for its separate `CRON_SECRET` authentication.
-- Obsolete Lovable Cloud Auth and build tagger dependencies were removed.
+- Obsolete Lovable Cloud Auth and build tagger integrations were removed from
+  runtime/build code. Their unused package entries remain temporarily to keep
+  Cloudflare's Bun 1.2 frozen lockfile reproducible.
 - Social preview metadata now points to the independently hosted Warsha site.
 - The Supabase project configuration and MCP data tools target the owned
   project and current product schema.
@@ -41,7 +43,7 @@ handling.
 - `tsc --noEmit`: passed with zero errors.
 - `eslint .`: passed with zero errors; 11 development-only Fast Refresh
   organization warnings remain in shared UI/context modules.
-- `npm audit --offline`: zero known vulnerabilities across 662 dependencies.
+- `npm audit --offline`: zero known vulnerabilities across 690 dependencies.
 - `npm install --package-lock-only --offline`: passed, confirming npm manifest
   and lockfile consistency.
 - `package.json` and the Bun workspace dependency lists are aligned for
