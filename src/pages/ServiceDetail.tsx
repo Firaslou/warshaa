@@ -89,7 +89,7 @@ export default function ServiceDetail() {
           {service.service_area && <p className="text-sm"><strong>Zone :</strong> {service.service_area}</p>}
           {service.availability_text && <p className="text-sm"><strong>Disponibilités :</strong> {service.availability_text}</p>}
           {service.description && <p className="whitespace-pre-line leading-relaxed text-foreground/80">{service.description}</p>}
-          <div className="flex flex-wrap gap-2"><Button onClick={contactWhatsApp}><MessageCircle className="mr-2 h-4 w-4" />Contacter sur WhatsApp</Button><ServicePhoneButton phone={service.startups.whatsapp_number} /><Button variant="outline" onClick={() => user ? setChatOpen(true) : toast.info("Connectez-vous pour ouvrir le chat privé.")}><Lock className="mr-2 h-4 w-4" />Chat privé</Button></div>
+          <div className="flex flex-wrap gap-2"><Button onClick={contactWhatsApp}><MessageCircle className="mr-2 h-4 w-4" />Contacter sur WhatsApp</Button><ServicePhoneButton phone={service.contact_phone ?? service.startups.whatsapp_number} /><Button variant="outline" onClick={() => user ? setChatOpen(true) : toast.info("Connectez-vous pour ouvrir le chat privé.")}><Lock className="mr-2 h-4 w-4" />Chat privé</Button></div>
         </div>
       </div>
 

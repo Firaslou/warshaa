@@ -739,6 +739,7 @@ export default function CreatorDashboard() {
               onOpenChange={setProductOpen}
               startupId={startup.id}
               ownerId={user.id}
+              startupPhone={startup.whatsapp_number}
               product={productEdit}
               onSaved={() => refreshAll(user.id)}
             />
@@ -769,7 +770,7 @@ export default function CreatorDashboard() {
                 ))}
               </div>
             )}
-            <ServiceFormDialog open={serviceOpen} onOpenChange={setServiceOpen} startupId={startup.id} ownerId={user.id} service={serviceEdit} onSaved={() => refreshAll(user.id)} />
+            <ServiceFormDialog open={serviceOpen} onOpenChange={setServiceOpen} startupId={startup.id} ownerId={user.id} startupPhone={startup.whatsapp_number} service={serviceEdit} onSaved={() => refreshAll(user.id)} />
           </TabsContent>
 
           {/* LIVE */}

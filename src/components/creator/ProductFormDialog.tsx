@@ -12,23 +12,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { blobToFile, compressImage } from "@/lib/image-utils";
+import { isValidContactPhone } from "@/lib/phone";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   startupId: string;
   ownerId: string;
+  startupPhone?: string | null;
   product?: any | null;
   onSaved: () => void;
 }
 
 const PRICE_REGEX = /^[0-9]+([.,][0-9]{1,3})?$/;
 
-export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, product, onSaved }: Props) {
+export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, startupPhone, product, onSaved }: Props) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("");
+  const [contactPhone, setContactPhone] = useState("");
   const [priceStr, setPriceStr] = useState("");
   const [deliveryAvailable, setDeliveryAvailable] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState("");
@@ -47,6 +50,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setName(product.name ?? "");
       setDescription(product.description ?? "");
       setCategory(product.category ?? "");
+      setContactPhone(product.contact_phone ?? startupPhone ?? "");
       setPriceStr(product.price != null ? String(product.price) : "");
       // Modification ici : On lit directement la vraie valeur depuis Supabase
       setDiscountPercentage(product.discount_percentage ?? 0);
@@ -57,11 +61,12 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       setVideos(product.videos ?? []);
     } else {
       setName(""); setDescription(""); setCategory(""); setPriceStr("");
+      setContactPhone(startupPhone ?? "");
       setDeliveryAvailable(false); setDeliveryFee(""); setIsEco(false);
       setImages([]); setVideos([]); setDiscountPercentage(0);
     }
     setKeywords("");
-  }, [product, open]);
+  }, [product, open, startupPhone]);
 
   const handlePriceChange = (v: string) => {
     const cleaned = v.replace(/[^0-9.,]/g, "");
@@ -178,12 +183,16 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
     !name.trim() ? "nom" : null,
     !description.trim() ? "description" : null,
     !category ? "catégorie" : null,
+    !isValidContactPhone(contactPhone) ? "numéro de téléphone valide" : null,
     !priceStr.trim() || !PRICE_REGEX.test(priceStr.trim()) || !(parseFloat(priceStr.replace(",", ".")) > 0) ? "prix valide" : null,
     images.length === 0 ? "photo" : null,
   ].filter(Boolean) as string[];
 
   const submit = async (publish: boolean) => {
     if (!name.trim()) return toast({ title: t("productForm.errName"), variant: "destructive" });
+    if (contactPhone.trim() && !isValidContactPhone(contactPhone)) {
+      return toast({ title: "Numéro de téléphone invalide", description: "Utilisez un numéro de 6 à 15 chiffres avec son indicatif.", variant: "destructive" });
+    }
     if (publish && missingPublicationFields.length > 0) {
       return toast({ title: "Produit incomplet", description: `Ajoutez : ${missingPublicationFields.join(", ")}.`, variant: "destructive" });
     }
@@ -206,6 +215,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
       name: name.trim(),
       description: description.trim() || null,
       category: category || null,
+      contact_phone: contactPhone.trim() || null,
       price,
       images,
       videos,
@@ -294,6 +304,11 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, prod
                 value={priceStr}
                 onChange={(e) => handlePriceChange(e.target.value)}
               />
+            </div>
+            <div>
+              <Label>Numéro de téléphone *</Label>
+              <Input type="tel" inputMode="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} maxLength={40} placeholder="+216 12 345 678" />
+              <p className="mt-1 text-xs text-muted-foreground">Numéro prérempli depuis la boutique ; vous pouvez le modifier pour ce produit.</p>
             </div>
             <div>
               <Label>Pourcentage de solde (%)</Label>

@@ -406,6 +406,7 @@ export type Database = {
         Row: {
           availability: Database["public"]["Enums"]["product_availability"]
           category: string | null
+          contact_phone: string | null
           created_at: string
           currency: string
           delegation: string | null
@@ -429,6 +430,7 @@ export type Database = {
         Insert: {
           availability?: Database["public"]["Enums"]["product_availability"]
           category?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string
           delegation?: string | null
@@ -452,6 +454,7 @@ export type Database = {
         Update: {
           availability?: Database["public"]["Enums"]["product_availability"]
           category?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string
           delegation?: string | null
@@ -677,6 +680,7 @@ export type Database = {
         Row: {
           availability_text: string | null
           category: string
+          contact_phone: string | null
           custom_category: string | null
           created_at: string
           currency: string
@@ -696,6 +700,7 @@ export type Database = {
         Insert: {
           availability_text?: string | null
           category: string
+          contact_phone?: string | null
           custom_category?: string | null
           created_at?: string
           currency?: string
@@ -715,6 +720,7 @@ export type Database = {
         Update: {
           availability_text?: string | null
           category?: string
+          contact_phone?: string | null
           custom_category?: string | null
           created_at?: string
           currency?: string

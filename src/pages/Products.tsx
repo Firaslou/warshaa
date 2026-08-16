@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { RatingBadge } from "@/components/RatingBadge";
+import { ServicePhoneButton } from "@/components/ServicePhoneButton";
 import { aggregateRatings, type RatingSummary } from "@/lib/ratings";
 
 interface ProductRow {
@@ -36,6 +37,7 @@ interface ProductRow {
   delivery_available: boolean;
   delivery_fee: number | null;
   category: string | null;
+  contact_phone?: string | null;
   delegation: string | null;
   startup_id: string;
   startups: { slug: string; name: string; whatsapp_number: string | null; city: string | null } | null;
@@ -127,7 +129,7 @@ export default function Products() {
   const loadProducts = async () => {
     setLoading(true);
     setLoadError(null);
-    const productFields = "id,name,description,price,discount_percentage,currency,images,availability,delivery_available,delivery_fee,category,delegation,startup_id,startups(slug,name,whatsapp_number,city)";
+    const productFields = "id,name,description,price,discount_percentage,currency,images,availability,delivery_available,delivery_fee,category,contact_phone,delegation,startup_id,startups(slug,name,whatsapp_number,city)";
     let { data, error } = await supabase
       .from("products")
       .select(productFields)
@@ -626,6 +628,8 @@ export default function Products() {
                           WhatsApp
                         </Button>
                       )}
+
+                      <ServicePhoneButton phone={p.contact_phone ?? p.startups?.whatsapp_number} compact />
 
                       {user && p.startups && !p.isDemo && (
                         <Button

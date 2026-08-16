@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { normalizeCallablePhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -11,17 +12,10 @@ type Props = {
   className?: string;
 };
 
-function callablePhoneNumber(phone: string) {
-  const trimmed = phone.trim();
-  const digits = trimmed.replace(/\D/g, "");
-  if (digits.length < 6 || digits.length > 15) return null;
-  return trimmed.startsWith("+") ? `+${digits}` : digits;
-}
-
 export function ServicePhoneButton({ phone, compact = false, className }: Props) {
   const { user } = useAuth();
   const [revealed, setRevealed] = useState(false);
-  const callable = phone ? callablePhoneNumber(phone) : null;
+  const callable = normalizeCallablePhone(phone);
 
   if (!phone || !callable) return null;
 

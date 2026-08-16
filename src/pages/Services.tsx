@@ -19,6 +19,7 @@ export type ServiceRow = {
   name: string;
   description: string | null;
   category: string;
+  contact_phone: string | null;
   custom_category: string | null;
   pricing_type: ServicePricingType;
   price: number | null;
@@ -95,7 +96,7 @@ export default function Services() {
                 <RatingBadge rating={ratings[service.id]} />
                 {service.description && <p className="line-clamp-2 text-sm text-muted-foreground">{service.description}</p>}
                 <div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{service.category}</Badge><Badge variant="outline"><MapPin className="mr-1 h-3 w-3" />{SERVICE_LOCATIONS[service.location_type]}</Badge>{service.duration_minutes && <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />{service.duration_minutes} min</Badge>}</div>
-                {service.startups && <div className="flex items-center justify-between gap-2 border-t pt-3"><Link to={`/startup/${service.startups.slug}`} className="min-w-0 truncate text-xs text-primary hover:underline">Par {service.startups.name}{service.startups.city ? ` · ${service.startups.city}` : ""}</Link><ServicePhoneButton phone={service.startups.whatsapp_number} compact /></div>}
+                {service.startups && <div className="flex items-center justify-between gap-2 border-t pt-3"><Link to={`/startup/${service.startups.slug}`} className="min-w-0 truncate text-xs text-primary hover:underline">Par {service.startups.name}{service.startups.city ? ` · ${service.startups.city}` : ""}</Link><ServicePhoneButton phone={service.contact_phone ?? service.startups.whatsapp_number} compact /></div>}
               </CardContent>
             </Card>)}
           </div>

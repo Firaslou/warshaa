@@ -21,6 +21,7 @@ import { DEMO_STARTUPS } from "@/lib/demo";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { RatingBadge } from "@/components/RatingBadge";
+import { ServicePhoneButton } from "@/components/ServicePhoneButton";
 
 interface Product {
   id: string;
@@ -36,6 +37,7 @@ interface Product {
   delivery_available?: boolean;
   delivery_fee?: number | null;
   discount_percentage?: number | null;
+  contact_phone?: string | null;
 }
 
 interface Comment {
@@ -541,6 +543,7 @@ export default function ProductDetail() {
               <Button onClick={buy} className="gradient-warm text-primary-foreground">
                 <ShoppingBag className="mr-2 h-4 w-4" /> Acheter sur WhatsApp
               </Button>
+              <ServicePhoneButton phone={product.contact_phone ?? startup?.whatsapp_number} />
               <Button variant="outline" onClick={openChat}>
                 <Lock className="mr-2 h-4 w-4" /> Chat privé
               </Button>
