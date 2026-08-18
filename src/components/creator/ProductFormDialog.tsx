@@ -11,8 +11,9 @@ import { CATEGORIES_KEYS } from "@/lib/tunisia";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
-import { blobToFile, compressImage } from "@/lib/image-utils";
 import { isValidContactPhone } from "@/lib/phone";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
+import { IMAGE_ACCEPT, VIDEO_ACCEPT, imageExtensionFor, readVideoDuration, safeImageForUpload, validateVideoFile } from "@/lib/file-security";
 
 interface Props {
   open: boolean;
@@ -102,34 +103,22 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, star
       toast({ title: t("productForm.errMax5"), variant: "destructive" });
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      toast({ title: t("productForm.errImage"), variant: "destructive" });
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      toast({ title: "Image trop volumineuse", description: "La taille maximale est de 15 Mo.", variant: "destructive" });
-      return;
-    }
     setUploading(true);
-    let optimizedFile = file;
     try {
-      const compressedBlob = await compressImage(file, { maxWidth: 1800, quality: 0.82 });
-      optimizedFile = compressedBlob.size < file.size ? blobToFile(compressedBlob, file.name) : file;
-    } catch {
-      // Fall back to the original image if this browser cannot compress it.
-    }
-    const ext = optimizedFile.name.split(".").pop();
-    const path = `${ownerId}/${startupId}/img-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, optimizedFile, {
-      contentType: optimizedFile.type,
-    });
-    if (error) {
-      toast({ title: error.message, variant: "destructive" });
-    } else {
+      const optimizedFile = await safeImageForUpload(file, 10 * 1024 * 1024);
+      const path = `${ownerId}/${startupId}/img-${crypto.randomUUID()}.${imageExtensionFor(optimizedFile)}`;
+      const { error } = await supabase.storage.from("product-images").upload(path, optimizedFile, {
+        contentType: optimizedFile.type,
+        upsert: false,
+      });
+      if (error) throw error;
       const { data } = supabase.storage.from("product-images").getPublicUrl(path);
       setImages((p) => [...p, data.publicUrl]);
+    } catch (error: any) {
+      toast({ title: "Image refusée", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const moveImage = (from: number, to: number) => {
@@ -147,36 +136,25 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, star
       toast({ title: t("productForm.errMax2"), variant: "destructive" });
       return;
     }
-    if (!file.type.startsWith("video/")) {
-      toast({ title: t("productForm.errVideoFile"), variant: "destructive" });
-      return;
-    }
-    const duration = await new Promise<number>((resolve) => {
-      const v = document.createElement("video");
-      v.preload = "metadata";
-      v.onloadedmetadata = () => resolve(v.duration);
-      v.onerror = () => resolve(0);
-      v.src = URL.createObjectURL(file);
-    });
-    if (duration > 61) {
-      toast({
-        title: t("productForm.errVideoLong"),
-        description: t("productForm.errVideoLongDesc", { n: Math.round(duration) }),
-        variant: "destructive",
-      });
-      return;
-    }
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${ownerId}/${startupId}/vid-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
-    if (error) {
-      toast({ title: error.message, variant: "destructive" });
-    } else {
+    try {
+      await validateVideoFile(file, 25 * 1024 * 1024);
+      const duration = await readVideoDuration(file);
+      if (duration > 61) throw new Error(t("productForm.errVideoLongDesc", { n: Math.round(duration) }));
+      const ext = file.type === "video/mp4" ? "mp4" : "webm";
+      const path = `${ownerId}/${startupId}/vid-${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+      if (error) throw error;
       const { data } = supabase.storage.from("product-images").getPublicUrl(path);
       setVideos((p) => [...p, data.publicUrl]);
+    } catch (error: any) {
+      toast({ title: "Vidéo refusée", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const missingPublicationFields = [
@@ -381,17 +359,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, star
                   </div>
                 </div>
               ))}
-              {images.length < 5 && (
-                <label className="flex h-20 cursor-pointer items-center justify-center rounded-md border-2 border-dashed text-xs text-muted-foreground hover:border-primary">
-                  {t("productForm.addPhoto")}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
-                  />
-                </label>
-              )}
+              {images.length < 5 && <SecureFileDropzone compact accept={IMAGE_ACCEPT} disabled={uploading} label={t("productForm.addPhoto")} hint="JPG, PNG ou WEBP — max 10 Mo" onFiles={async (files) => { for (const file of files.slice(0, 5 - images.length)) await uploadImage(file); }} multiple />}
             </div>
           </div>
 
@@ -412,17 +380,7 @@ export function ProductFormDialog({ open, onOpenChange, startupId, ownerId, star
                   </button>
                 </div>
               ))}
-              {videos.length < 2 && (
-                <label className="flex h-32 cursor-pointer items-center justify-center rounded-md border-2 border-dashed text-xs text-muted-foreground hover:border-primary">
-                  {t("productForm.addVideo")}
-                  <input
-                    type="file"
-                    accept="video/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && uploadVideo(e.target.files[0])}
-                  />
-                </label>
-              )}
+              {videos.length < 2 && <SecureFileDropzone accept={VIDEO_ACCEPT} disabled={uploading} label={t("productForm.addVideo")} hint="MP4 ou WEBM — max 25 Mo / 60 s" onFiles={async (files) => { for (const file of files.slice(0, 2 - videos.length)) await uploadVideo(file); }} multiple />}
             </div>
           </div>
 

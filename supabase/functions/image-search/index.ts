@@ -7,6 +7,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const matchesSignature = (mime: string, bytes: Uint8Array) => {
+  const has = (offset: number, values: number[]) => values.every((value, index) => bytes[offset + index] === value);
+  if (mime === "image/jpeg") return has(0, [0xff, 0xd8, 0xff]);
+  if (mime === "image/png") return has(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (mime === "image/webp") return has(0, [0x52, 0x49, 0x46, 0x46]) && has(8, [0x57, 0x45, 0x42, 0x50]);
+  return false;
+};
+
+const isAllowedCatalogImage = (value: string) => {
+  try {
+    const storageOrigin = new URL(Deno.env.get("SUPABASE_URL")!).origin;
+    const url = new URL(value);
+    return url.origin === storageOrigin && url.pathname.startsWith("/storage/v1/object/public/product-images/");
+  } catch {
+    return false;
+  }
+};
 
 const bytesFromBase64 = (value: string) => {
   const binary = atob(value);
@@ -20,13 +37,17 @@ const sha256 = async (bytes: Uint8Array) => {
 };
 const findExactImageMatches = async (products: any[], uploadedHash: string) => {
   const matches: string[] = [];
-  const candidates = products.filter((product) => product.images?.[0]);
+  const candidates = products.filter((product) => product.images?.[0] && isAllowedCatalogImage(product.images[0]));
   for (let offset = 0; offset < candidates.length; offset += 8) {
     const batch = candidates.slice(offset, offset + 8);
     const results = await Promise.allSettled(batch.map(async (product) => {
       const response = await fetch(product.images[0], { signal: AbortSignal.timeout(5_000) });
       if (!response.ok) return null;
-      const hash = await sha256(new Uint8Array(await response.arrayBuffer()));
+      const contentLength = Number(response.headers.get("content-length") ?? 0);
+      if (contentLength > 10 * 1024 * 1024) return null;
+      const downloaded = new Uint8Array(await response.arrayBuffer());
+      if (downloaded.length > 10 * 1024 * 1024) return null;
+      const hash = await sha256(downloaded);
       return hash === uploadedHash ? product.id : null;
     }));
     results.forEach((result) => { if (result.status === "fulfilled" && result.value) matches.push(result.value); });
@@ -64,6 +85,7 @@ Deno.serve(async (req) => {
     const dataUrl = `data:${mimeType};base64,${imageBase64}`;
     const uploadedBytes = bytesFromBase64(imageBase64);
     if (uploadedBytes.length > 10 * 1024 * 1024) return new Response(JSON.stringify({ error: "Image too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!matchesSignature(mimeType, uploadedBytes)) return new Response(JSON.stringify({ error: "Invalid image content" }), { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const uploadedHash = await sha256(uploadedBytes);
     const exactMatchIds = await findExactImageMatches(products ?? [], uploadedHash);
 

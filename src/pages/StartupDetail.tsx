@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   MapPin, BadgeCheck, BadgePlus, Award, Heart, MessageCircle, Star,
   Instagram, Facebook, Eye, ShoppingBag, TrendingUp, Radio, Lock, Truck, LogIn, HandHeart, Flag,
-  Send, Camera, PackageOpen, Clock,
+  Send, PackageOpen, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,8 @@ import { RatingBadge } from "@/components/RatingBadge";
 import { ServicePhoneButton } from "@/components/ServicePhoneButton";
 import { aggregateRatings, type RatingSummary } from "@/lib/ratings";
 import { formatServicePrice, SERVICE_LOCATIONS, type ServiceLocationType, type ServicePricingType } from "@/lib/service-categories";
+import { IMAGE_ACCEPT, imageExtensionFor, safeImageForUpload } from "@/lib/file-security";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
 
 interface Startup {
   id: string;
@@ -309,10 +311,10 @@ export default function StartupDetail() {
     try {
       let photo_url: string | null = null;
       if (reviewPhoto) {
-        const ext = reviewPhoto.name.split(".").pop() ?? "jpg";
-        const path = `${user.id}/${startup.id}-${Date.now()}.${ext}`;
+        const safePhoto = await safeImageForUpload(reviewPhoto, 5 * 1024 * 1024, 1400);
+        const path = `${user.id}/${startup.id}-${crypto.randomUUID()}.${imageExtensionFor(safePhoto)}`;
         const { error: upErr } = await supabase.storage
-          .from("review-photos").upload(path, reviewPhoto, { upsert: false });
+          .from("review-photos").upload(path, safePhoto, { upsert: false, contentType: safePhoto.type });
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("review-photos").getPublicUrl(path);
         photo_url = pub.publicUrl;
@@ -640,11 +642,7 @@ export default function StartupDetail() {
                   rows={3}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-primary">
-                    <Camera className="h-4 w-4" />
-                    {reviewPhoto ? reviewPhoto.name : "Ajouter une photo (optionnel)"}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setReviewPhoto(e.target.files?.[0] ?? null)} />
-                  </label>
+                  <SecureFileDropzone compact className="min-h-16 flex-1" accept={IMAGE_ACCEPT} label={reviewPhoto ? reviewPhoto.name : "Ajouter ou déposer une photo"} hint="Optionnel — max 5 Mo" onFiles={(files) => setReviewPhoto(files[0])} />
                   <Button onClick={submitReview} disabled={submittingReview || reviewRating < 1} className="gradient-warm text-primary-foreground">
                     <Send className="mr-2 h-4 w-4" /> Publier
                   </Button>

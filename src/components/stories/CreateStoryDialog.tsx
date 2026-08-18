@@ -3,8 +3,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ImagePlus, X, Send, Camera, Video as VideoIcon, Type, RefreshCw, Circle, Square, SwitchCamera } from "lucide-react";
-import { blobToFile, compressImage } from "@/lib/image-utils";
+import { Loader2, X, Send, Camera, Video as VideoIcon, Type, RefreshCw, Circle, Square, SwitchCamera } from "lucide-react";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
+import { MEDIA_ACCEPT, imageExtensionFor, safeImageForUpload, validateImageFile, validateVideoFile } from "@/lib/file-security";
 
 interface Props {
   open: boolean;
@@ -43,6 +44,17 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
 
   const reset = () => {
     setFile(null); setCaption(""); setRecording(false); setRecordSec(0);
+  };
+
+  const selectMedia = async (selected: File) => {
+    try {
+      if (selected.type.startsWith("video/")) await validateVideoFile(selected, 15 * 1024 * 1024);
+      else await validateImageFile(selected, 10 * 1024 * 1024);
+      stopStream();
+      setFile(selected);
+    } catch (error: any) {
+      toast.error(error.message ?? "Fichier refusé");
+    }
   };
 
   const stopStream = () => {
@@ -136,13 +148,10 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
       } else {
         if (!file) { toast.error("Prends une photo ou une vidéo"); setUploading(false); return; }
         const isVideo = file.type.startsWith("video/");
-        let uploadFile = file;
-        if (!isVideo) {
-          const compressedBlob = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
-          if (compressedBlob.size < file.size) uploadFile = blobToFile(compressedBlob, file.name);
-        }
-        const ext = uploadFile.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
-        const path = `${userId}/stories/${startupId}/${Date.now()}.${ext}`;
+        const uploadFile = isVideo ? file : await safeImageForUpload(file, 10 * 1024 * 1024, 1600);
+        if (isVideo) await validateVideoFile(file, 15 * 1024 * 1024);
+        const ext = isVideo ? (file.type === "video/mp4" ? "mp4" : "webm") : imageExtensionFor(uploadFile);
+        const path = `${userId}/stories/${startupId}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("startup-assets").upload(path, uploadFile, {
           cacheControl: "3600", upsert: false, contentType: uploadFile.type,
         });
@@ -261,15 +270,7 @@ export function CreateStoryDialog({ open, onOpenChange, startupId, userId, onPub
             {/* Camera controls */}
             {mode === "camera" && !file && (
               <div className="flex items-center justify-around">
-                <label className="cursor-pointer rounded-full bg-white/10 p-3 text-white backdrop-blur hover:bg-white/20">
-                  <ImagePlus className="h-6 w-6" />
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) { stopStream(); setFile(f); } }}
-                  />
-                </label>
+                <SecureFileDropzone compact className="min-h-16 border-white/30 bg-white/10 px-3 text-white" accept={MEDIA_ACCEPT} label="Importer" hint="ou déposer" onFiles={(files) => selectMedia(files[0])} />
 
                 {!recording ? (
                   <div className="flex items-center gap-6">

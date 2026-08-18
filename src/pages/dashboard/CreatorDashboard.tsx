@@ -28,6 +28,8 @@ import { ServiceFormDialog } from "@/components/creator/ServiceFormDialog";
 import { formatServicePrice } from "@/lib/service-categories";
 import { LiveScheduleManager } from "@/components/creator/LiveScheduleManager";
 import { OPEN_EXTERNAL_LIVE_EVENT } from "@/components/live/LiveQuickStartGate";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
+import { IMAGE_ACCEPT, imageExtensionFor, safeImageForUpload } from "@/lib/file-security";
 import { LineChart, Line as RechartsLine, XAxis as RechartsXAxis, YAxis as RechartsYAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar as RechartsBar, CartesianGrid } from "recharts";
 const XAxis = RechartsXAxis as any;
 const YAxis = RechartsYAxis as any;
@@ -307,12 +309,16 @@ export default function CreatorDashboard() {
 
   const uploadAsset = async (file: File, kind: "logo_url" | "cover_url") => {
     if (!user || !startup) return;
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/${startup.id}/${kind}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("startup-assets").upload(path, file);
-    if (error) return toast.error(error.message);
-    const { data } = supabase.storage.from("startup-assets").getPublicUrl(path);
-    setPf((p) => ({ ...p, [kind]: data.publicUrl }));
+    try {
+      const safeFile = await safeImageForUpload(file, 10 * 1024 * 1024);
+      const path = `${user.id}/${startup.id}/${kind}-${crypto.randomUUID()}.${imageExtensionFor(safeFile)}`;
+      const { error } = await supabase.storage.from("startup-assets").upload(path, safeFile, { contentType: safeFile.type, upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("startup-assets").getPublicUrl(path);
+      setPf((p) => ({ ...p, [kind]: data.publicUrl }));
+    } catch (error: any) {
+      toast.error(error.message ?? "Image refusée");
+    }
   };
 
   const saveProfile = async () => {
@@ -967,10 +973,7 @@ function AssetUploader({ label, url, onPick, onClear, wide }: { label: string; u
             <Button size="sm" variant="destructive" className="absolute right-1 top-1 h-6 px-2" onClick={onClear}>×</Button>
           </div>
         ) : (
-          <label className="flex h-full w-full cursor-pointer items-center justify-center text-xs text-muted-foreground">
-            + ajouter
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])} />
-          </label>
+          <SecureFileDropzone className="h-full w-full rounded-lg border-0" compact accept={IMAGE_ACCEPT} label="Déposez ou choisissez" hint="JPG, PNG, WEBP" onFiles={(files) => onPick(files[0])} />
         )}
       </div>
     </div>

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { safeMediaUrl } from "@/lib/url-security";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { blobToFile, generateThumbnail } from "@/lib/image-utils";
+import { IMAGE_ACCEPT, imageExtensionFor, safeImageForUpload, validateImageFile } from "@/lib/file-security";
 
 interface Message {
   id: string;
@@ -203,14 +203,8 @@ export function PrivateChatDialog({
     const attachmentUrls: string[] = [];
     try {
       for (const file of pendingFiles) {
-        const compressedBlob = await generateThumbnail(file, 1080);
-        if (!compressedBlob) {
-            toast.error(`Erreur de compression pour ${file.name}`);
-            continue;
-        }
-        const compressedFile = compressedBlob.size < file.size ? blobToFile(compressedBlob, file.name) : file;
-        const ext = compressedFile.name.split(".").pop() || "jpg";
-        const path = `${conversationId}/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const compressedFile = await safeImageForUpload(file, 5 * 1024 * 1024, 1080);
+        const path = `${conversationId}/${user.id}/${crypto.randomUUID()}.${imageExtensionFor(compressedFile)}`;
         const { error: upErr } = await supabase.storage
           .from("chat-attachments")
           .upload(path, compressedFile, { contentType: compressedFile.type, upsert: false });
@@ -238,30 +232,34 @@ export function PrivateChatDialog({
     if (error) toast.error(error.message);
   };
 
-  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+  const addFiles = async (files: File[]) => {
     if (files.length === 0) return;
     const remaining = 3 - pendingFiles.length;
     const accepted: File[] = [];
     for (const f of files.slice(0, remaining)) {
-      if (f.size > 5 * 1024 * 1024) {
-        toast.error(`${f.name} dépasse 5 Mo`);
-        continue;
+      try {
+        await validateImageFile(f, 5 * 1024 * 1024);
+        accepted.push(f);
+      } catch (error: any) {
+        toast.error(`${f.name}: ${error.message}`);
       }
-      if (!f.type.startsWith("image/")) {
-        toast.error(`${f.name} n'est pas une image`);
-        continue;
-      }
-      accepted.push(f);
     }
     setPendingFiles((p) => [...p, ...accepted].slice(0, 3));
+  };
+
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    void addFiles(Array.from(e.target.files ?? []));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg overflow-hidden p-0 gap-0 rounded-3xl border-border/80 bg-background shadow-2xl">
+        <DialogContent
+          className="sm:max-w-lg overflow-hidden p-0 gap-0 rounded-3xl border-border/80 bg-background shadow-2xl"
+          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
+          onDrop={(event) => { event.preventDefault(); if (!uploading) void addFiles(Array.from(event.dataTransfer.files)); }}
+        >
           <DialogHeader className="border-b border-border/60 bg-muted/40 p-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -412,7 +410,7 @@ export function PrivateChatDialog({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_ACCEPT}
                     multiple
                     onChange={onPickFiles}
                     className="hidden"

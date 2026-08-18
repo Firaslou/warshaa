@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { blobToFile, compressImage } from "@/lib/image-utils";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
+import { IMAGE_ACCEPT, imageExtensionFor, safeImageForUpload } from "@/lib/file-security";
 import {
   SERVICE_CATEGORIES,
   SERVICE_LOCATIONS,
@@ -62,20 +63,12 @@ export function ServiceFormDialog({ open, onOpenChange, startupId, ownerId, star
   }, [service, open, startupPhone]);
 
   const uploadImage = async (file: File) => {
-    if (!file.type.startsWith("image/") || file.size > 15 * 1024 * 1024 || images.length >= 5) {
-      toast.error("Ajoutez jusqu’à 5 images de moins de 15 Mo.");
-      return;
-    }
+    if (images.length >= 5) return;
     setUploading(true);
     try {
-      let optimized = file;
-      try {
-        const compressed = await compressImage(file, { maxWidth: 1800, quality: 0.82 });
-        if (compressed.size < file.size) optimized = blobToFile(compressed, file.name);
-      } catch { /* keep original */ }
-      const ext = optimized.name.split(".").pop() ?? "jpg";
-      const path = `${ownerId}/${startupId}/service-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("product-images").upload(path, optimized, { contentType: optimized.type });
+      const optimized = await safeImageForUpload(file, 10 * 1024 * 1024);
+      const path = `${ownerId}/${startupId}/service-${crypto.randomUUID()}.${imageExtensionFor(optimized)}`;
+      const { error } = await supabase.storage.from("product-images").upload(path, optimized, { contentType: optimized.type, upsert: false });
       if (error) throw error;
       const { data } = supabase.storage.from("product-images").getPublicUrl(path);
       setImages((current) => [...current, data.publicUrl]);
@@ -155,7 +148,7 @@ export function ServiceFormDialog({ open, onOpenChange, startupId, ownerId, star
           <div className="sm:col-span-2 space-y-2">
             <Label>Images *</Label>
             <div className="flex flex-wrap gap-2">{images.map((url) => <div key={url} className="relative h-24 w-24 overflow-hidden rounded-xl border"><img src={url} alt="Service" className="h-full w-full object-cover" /><button type="button" className="absolute right-1 top-1 rounded-full bg-background/90 p-1" onClick={() => setImages((current) => current.filter((item) => item !== url))}><X className="h-3 w-3" /></button></div>)}</div>
-            <Button type="button" variant="outline" disabled={uploading || images.length >= 5} asChild><label className="cursor-pointer"><input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadImage(file); e.target.value = ""; }} />{uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}Ajouter une image</label></Button>
+            <SecureFileDropzone compact accept={IMAGE_ACCEPT} disabled={uploading || images.length >= 5} multiple label={uploading ? "Validation en cours…" : "Déposez ou choisissez des images"} hint="JPG, PNG ou WEBP — max 10 Mo" onFiles={async (files) => { for (const file of files.slice(0, 5 - images.length)) await uploadImage(file); }} />
           </div>
         </div>
         <DialogFooter className="gap-2"><Button variant="outline" disabled={saving || uploading} onClick={() => void save(false)}>Enregistrer le brouillon</Button><Button disabled={saving || uploading} onClick={() => void save(true)}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Publier</Button></DialogFooter>

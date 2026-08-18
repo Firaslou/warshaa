@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
+import { IMAGE_ACCEPT, validateImageFile } from "@/lib/file-security";
 
 interface ResultRow {
   id: string;
@@ -28,12 +30,10 @@ export default function ImageSearch() {
   const [searched, setSearched] = useState(false);
 
   const handleFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Choisis une image (JPG, PNG, WEBP).");
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Image trop lourde (max 8 Mo).");
+    try {
+      await validateImageFile(file, 8 * 1024 * 1024);
+    } catch (error: any) {
+      toast.error(error.message ?? "Image refusée");
       return;
     }
     const reader = new FileReader();
@@ -96,16 +96,7 @@ export default function ImageSearch() {
             </Button>
           </div>
         ) : !preview ? (
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/50 p-12 text-center transition hover:border-primary hover:bg-card"
-          >
-            <Upload className="h-10 w-10 text-muted-foreground" />
-            <div>
-              <p className="font-semibold">Clique pour choisir une image</p>
-              <p className="text-sm text-muted-foreground">JPG, PNG, WEBP — max 8 Mo</p>
-            </div>
-          </button>
+          <SecureFileDropzone className="min-h-56 bg-card/50" accept={IMAGE_ACCEPT} label="Déposez une image ici ou cliquez pour choisir" hint="JPG, PNG, WEBP — max 8 Mo" onFiles={(files) => handleFile(files[0])} />
         ) : (
           <div className="grid gap-6 md:grid-cols-[260px_1fr]">
             <div className="relative">
@@ -147,7 +138,7 @@ export default function ImageSearch() {
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept={IMAGE_ACCEPT}
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

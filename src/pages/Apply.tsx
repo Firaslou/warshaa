@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Camera, Video, Smartphone, Hand, BookOpen, ChevronRight, ChevronLeft, CheckCircle2, Clock, ShieldAlert, Heart, Upload, X } from "lucide-react";
+import { Camera, Video, Smartphone, Hand, BookOpen, ChevronRight, ChevronLeft, CheckCircle2, Clock, ShieldAlert, Heart, X } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,8 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { TUNISIA_GOVERNORATES, TUNISIA_DELEGATIONS, CATEGORIES_KEYS } from "@/lib/tunisia";
 import { cn } from "@/lib/utils";
-import { blobToFile, compressImage } from "@/lib/image-utils";
 import { LocationPicker } from "@/components/LocationPicker";
+import { SecureFileDropzone } from "@/components/SecureFileDropzone";
+import { IMAGE_ACCEPT, VIDEO_ACCEPT, imageExtensionFor, readVideoDuration, safeImageForUpload, validateVideoFile } from "@/lib/file-security";
 
 const STEPS = ["step1", "step2", "step3", "step4"] as const;
 
@@ -123,43 +124,24 @@ export default function Apply() {
       toast({ title: t("apply.needAccount"), variant: "destructive" });
       return;
     }
-    if (field === "proof_video_url") {
-      if (!file.type.startsWith("video/")) {
-        toast({ title: "Fichier vidéo requis", variant: "destructive" });
-        return;
-      }
-      const duration = await new Promise<number>((resolve) => {
-        const v = document.createElement("video");
-        v.preload = "metadata";
-        v.onloadedmetadata = () => resolve(v.duration);
-        v.onerror = () => resolve(0);
-        v.src = URL.createObjectURL(file);
-      });
-      if (duration > 10.5) {
-        toast({
-          title: "Vidéo trop longue",
-          description: `Maximum 10 secondes (la tienne fait ${Math.round(duration)}s).`,
-          variant: "destructive",
-        });
-        return;
-      }
-    } else if (!file.type.startsWith("image/")) {
-      toast({ title: "Image requise", variant: "destructive" });
-      return;
-    }
-
     setUploadingField(field + (field === "proof_photos" ? `-${form.proof_photos.length}` : ""));
     try {
-      let uploadFile = file;
-      if (!file.type.startsWith("video/")) {
-        const compressedBlob = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
-        if (compressedBlob.size < file.size) uploadFile = blobToFile(compressedBlob, file.name);
+      let securedFile: File;
+      let extension: string;
+      if (field === "proof_video_url") {
+        await validateVideoFile(file, 15 * 1024 * 1024);
+        const duration = await readVideoDuration(file);
+        if (duration > 10.5) throw new Error(`Maximum 10 secondes (la vôtre fait ${Math.round(duration)} s).`);
+        securedFile = file;
+        extension = file.type === "video/mp4" ? "mp4" : "webm";
+      } else {
+        securedFile = await safeImageForUpload(file, 10 * 1024 * 1024, 1600);
+        extension = imageExtensionFor(securedFile);
       }
-      const ext = uploadFile.name.split(".").pop() || (uploadFile.type === "image/webp" ? "webp" : "jpg");
-      const path = `${user.id}/${field}-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("applications").upload(path, uploadFile, {
+      const path = `${user.id}/${field}-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("applications").upload(path, securedFile, {
         upsert: false,
-        contentType: uploadFile.type,
+        contentType: securedFile.type,
       });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("applications").getPublicUrl(path);
@@ -250,9 +232,9 @@ export default function Apply() {
               <div className="md:col-span-2 mt-4 rounded-xl border-2 border-destructive/40 bg-destructive/5 p-5">
                 <div className="mb-3 flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><h3 className="font-serif text-lg font-bold">{t("applyExtra.securityTitle")}</h3><Badge variant="destructive">{t("applyExtra.obligatory")}</Badge></div>
                 <div className="mb-4 rounded-lg border border-destructive/30 bg-background p-3 text-sm">⚠️ <strong>{t("applyExtra.warning")}</strong> {t("applyExtra.warningDesc")}</div>
-                <div className="mb-5"><Label className="flex items-center gap-2"><Video className="h-4 w-4" /> {t("applyExtra.videoLabel")} *</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.videoHint")}</p><div className="mt-2 flex items-center gap-3"><Input type="file" accept="video/*" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_video_url")} disabled={uploadingField === "proof_video_url"} />{form.proof_video_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}</div>{form.proof_video_url && <video src={form.proof_video_url} controls className="mt-2 h-32 rounded-md border" />}</div>
-                <div className="mb-5"><Label className="flex items-center gap-2"><Camera className="h-4 w-4" /> {t("applyExtra.photosLabel")} * ({form.proof_photos.length}/3)</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.photosHint")}</p><div className="mt-2 grid grid-cols-3 gap-2">{form.proof_photos.map((url, i) => <div key={i} className="relative"><img src={url} alt={`Preuve ${i+1}`} className="h-24 w-full rounded-md border object-cover" /><button type="button" onClick={() => setForm((f) => ({ ...f, proof_photos: f.proof_photos.filter((_, idx) => idx !== i) }))} className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"><X className="h-3 w-3" /></button></div>)}{form.proof_photos.length < 3 && <label className="flex h-24 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border hover:border-primary"><Upload className="h-5 w-5 text-muted-foreground" /><input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "proof_photos")} /></label>}</div></div>
-                <div><Label className="flex items-center gap-2"><Hand className="h-4 w-4" /> {t("applyExtra.verifLabel")} *</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.verifHint")}</p><div className="mt-2 flex items-center gap-3"><Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "verification_photo_url")} disabled={uploadingField === "verification_photo_url"} />{form.verification_photo_url && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}</div>{form.verification_photo_url && <img src={form.verification_photo_url} alt="Vérification" className="mt-2 h-32 rounded-md border object-cover" />}</div>
+                <div className="mb-5"><Label className="flex items-center gap-2"><Video className="h-4 w-4" /> {t("applyExtra.videoLabel")} *</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.videoHint")}</p><SecureFileDropzone className="mt-2" compact accept={VIDEO_ACCEPT} disabled={uploadingField === "proof_video_url"} label="Déposez ou choisissez la vidéo" hint="MP4 ou WEBM — max 15 Mo / 10 s" onFiles={(files) => uploadFile(files[0], "proof_video_url")} />{form.proof_video_url && <CheckCircle2 className="mt-2 h-5 w-5 text-primary" />}{form.proof_video_url && <video src={form.proof_video_url} controls className="mt-2 h-32 rounded-md border" />}</div>
+                <div className="mb-5"><Label className="flex items-center gap-2"><Camera className="h-4 w-4" /> {t("applyExtra.photosLabel")} * ({form.proof_photos.length}/3)</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.photosHint")}</p><div className="mt-2 grid grid-cols-3 gap-2">{form.proof_photos.map((url, i) => <div key={i} className="relative"><img src={url} alt={`Preuve ${i+1}`} className="h-24 w-full rounded-md border object-cover" /><button type="button" onClick={() => setForm((f) => ({ ...f, proof_photos: f.proof_photos.filter((_, idx) => idx !== i) }))} className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"><X className="h-3 w-3" /></button></div>)}{form.proof_photos.length < 3 && <SecureFileDropzone compact accept={IMAGE_ACCEPT} disabled={uploadingField !== null} label="Ajouter" hint="JPG, PNG, WEBP" onFiles={(files) => uploadFile(files[0], "proof_photos")} />}</div></div>
+                <div><Label className="flex items-center gap-2"><Hand className="h-4 w-4" /> {t("applyExtra.verifLabel")} *</Label><p className="mt-1 text-xs text-muted-foreground">{t("applyExtra.verifHint")}</p><SecureFileDropzone className="mt-2" compact accept={IMAGE_ACCEPT} disabled={uploadingField === "verification_photo_url"} label="Déposez ou choisissez la photo" hint="JPG, PNG ou WEBP — max 10 Mo" onFiles={(files) => uploadFile(files[0], "verification_photo_url")} />{form.verification_photo_url && <CheckCircle2 className="mt-2 h-5 w-5 text-primary" />}{form.verification_photo_url && <img src={form.verification_photo_url} alt="Vérification" className="mt-2 h-32 rounded-md border object-cover" />}</div>
               </div>
             </div>
             <div className="mt-8 flex justify-between"><Button variant="ghost" onClick={() => setStepIdx(1)}><ChevronLeft className="mr-1 h-4 w-4"/>{t("applyWizard.back")}</Button><Button onClick={submit} className="gradient-warm text-primary-foreground">{t("applyWizard.submitApplication")} <ChevronRight className="ml-1 h-4 w-4"/></Button></div>
